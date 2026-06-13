@@ -275,11 +275,14 @@ app.get("/api/matches/:id/detail", requireAuth, (req, res) => {
   `).get(req.user.id, req.params.id);
   if (!match) return res.status(404).json({ error: "Partido no encontrado." });
   const open = match.status === "open" && !isExpired(match);
-  const participants = open ? db.prepare(`
-    SELECT u.id,u.username FROM predictions p JOIN users u ON u.id=p.user_id WHERE p.match_id=? ORDER BY u.username
-  `).all(match.id) : db.prepare(`
-    SELECT u.id,u.username,p.predicted_winner,p.predicted_team1_goals,p.predicted_team2_goals,p.total_points
-    FROM predictions p JOIN users u ON u.id=p.user_id WHERE p.match_id=? ORDER BY p.total_points DESC,u.username
+  const participants = db.prepare(`
+    SELECT u.id,u.username,
+      CASE WHEN p.id IS NULL THEN 0 ELSE 1 END participating,
+      p.predicted_winner,p.predicted_team1_goals,p.predicted_team2_goals,p.total_points
+    FROM users u
+    LEFT JOIN predictions p ON p.user_id=u.id AND p.match_id=?
+    WHERE u.active=1 AND u.role='user'
+    ORDER BY participating DESC,${open ? "u.username" : "p.total_points DESC,u.username"}
   `).all(match.id);
   const distribution = open ? [] : db.prepare(
     "SELECT predicted_winner winner,COUNT(*) count FROM predictions WHERE match_id=? GROUP BY predicted_winner"

@@ -138,6 +138,20 @@ test("la distribución de votos permanece oculta mientras se puede apostar", asy
   assert.deepEqual(detail.body.distribution, []);
 });
 
+test("el detalle muestra también los usuarios que aún no participan", async () => {
+  const agent = request.agent(app);
+  await agent.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
+  const matches = await agent.get("/api/matches");
+  const open = matches.body.find((match) => match.betting_open);
+  assert.ok(open);
+
+  const detail = await agent.get(`/api/matches/${open.id}/detail`);
+  assert.equal(detail.status, 200);
+  assert.ok(detail.body.participants.length > 0);
+  assert.equal(detail.body.participants.every((participant) => participant.participating === 0 || participant.participating === 1), true);
+  assert.equal(detail.body.participants.some((participant) => participant.username === "administrador"), false);
+});
+
 test("detecta la IP real enviada por Cloudflare o X-Forwarded-For", async () => {
   const response = await request(app)
     .get("/api/auth/me")
