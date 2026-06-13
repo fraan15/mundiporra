@@ -178,7 +178,7 @@ app.get("/api/dashboard", requireAuth, (req, res) => {
     SELECT COUNT(*) count FROM matches m LEFT JOIN predictions p ON p.match_id=m.id AND p.user_id=?
     WHERE m.status='open' AND m.auto_close_at>? AND p.id IS NULL
   `).get(req.user.id, now()).count;
-  const nextMatches = db.prepare("SELECT * FROM matches WHERE status='open' AND auto_close_at>? ORDER BY match_date,match_time LIMIT 4").all(now()).map(serializeMatch);
+  const nextMatches = db.prepare("SELECT * FROM matches WHERE status='open' AND auto_close_at>? ORDER BY match_date,match_time").all(now()).map(serializeMatch);
   res.json({ summary: { ...stats, today_points: todayPoints, pending }, next_match: nextMatches[0] || null, next_matches: nextMatches });
 });
 
