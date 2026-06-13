@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Activity, ArrowLeft, Check, ChevronDown, ChevronLeft, ChevronRight, Edit3, MessageCircle, Minus, Plus, Save, Send, Trash2 } from "lucide-react";
+import { Activity, ArrowLeft, Check, ChevronDown, ChevronLeft, ChevronRight, Edit3, MessageCircle, Minus, Plus, Save, Send, Star, Trash2 } from "lucide-react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../App";
@@ -30,7 +30,7 @@ export function PublicProfilePage(){
 }
 export function ActivityPage(){
  const [data,setData]=useState({items:[],page:1,total_pages:1});const load=page=>api(`/activity?page=${page}&page_size=10`).then(response=>setData(Array.isArray(response)?{items:response,page:1,total_pages:1}:response));useEffect(()=>{load(1)},[]);
- return <div className="page narrow"><section className="page-heading"><span className="eyebrow"><Activity size={14}/> COMUNIDAD</span><h1>Actividad reciente</h1><p>Lo último que está pasando en la porra.</p></section><div className="activity-feed">{data.items.map((item,i)=><article key={`${item.type}-${i}-${item.created_at}`}><span className={`feed-icon ${item.type}`}>{item.type==="points"?"+":"⚽"}</span><div><strong>{item.text}</strong><small>{new Date(item.created_at).toLocaleString("es-ES")}</small></div></article>)}</div>{data.total_pages>1&&<nav className="pagination" aria-label="Paginación de actividad"><button disabled={data.page===1} onClick={()=>load(data.page-1)}><ChevronLeft/>Anterior</button><span>Página {data.page} de {data.total_pages}</span><button disabled={data.page===data.total_pages} onClick={()=>load(data.page+1)}>Siguiente<ChevronRight/></button></nav>}</div>
+ return <div className="page narrow"><section className="page-heading"><span className="eyebrow"><Activity size={14}/> COMUNIDAD</span><h1>Actividad reciente</h1><p>Lo último que está pasando en la porra.</p></section><div className="activity-feed">{data.items.map((item,i)=><article key={`${item.type}-${i}-${item.created_at}`}><span className={`feed-icon ${item.type}`}>{item.type==="points"?"+":"⚽"}</span><div><strong>{item.text}</strong><small>{new Date(item.created_at).toLocaleString("es-ES")}</small></div>{item.type==="points"&&<span className={`points-award ${item.exact_result_points>0?"exact":""}`}>{item.exact_result_points>0&&<Star size={15} fill="currentColor"/>}+{item.total_points} puntos</span>}</article>)}</div>{data.total_pages>1&&<nav className="pagination" aria-label="Paginación de actividad"><button disabled={data.page===1} onClick={()=>load(data.page-1)}><ChevronLeft/>Anterior</button><span>Página {data.page} de {data.total_pages}</span><button disabled={data.page===data.total_pages} onClick={()=>load(data.page+1)}>Siguiente<ChevronRight/></button></nav>}</div>
 }
 function HiddenDistribution({revealAt,onReveal}){
  const [current,setCurrent]=useState(Date.now());

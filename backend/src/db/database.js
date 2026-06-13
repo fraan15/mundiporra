@@ -37,6 +37,7 @@ export function initDatabase() {
       result_team2 INTEGER,
       winner TEXT CHECK(winner IN ('team1','team2','draw') OR winner IS NULL),
       auto_close_at TEXT NOT NULL,
+      force_published INTEGER NOT NULL DEFAULT 0 CHECK(force_published IN (0,1)),
       close_reason TEXT CHECK(close_reason IN ('manual','automatic') OR close_reason IS NULL),
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
@@ -139,6 +140,8 @@ export function initDatabase() {
   `);
   const userColumns = db.prepare("PRAGMA table_info(users)").all().map((column) => column.name);
   if (!userColumns.includes("personal_phrase")) db.exec("ALTER TABLE users ADD COLUMN personal_phrase TEXT NOT NULL DEFAULT ''");
+  const matchColumns = db.prepare("PRAGMA table_info(matches)").all().map((column) => column.name);
+  if (!matchColumns.includes("force_published")) db.exec("ALTER TABLE matches ADD COLUMN force_published INTEGER NOT NULL DEFAULT 0 CHECK(force_published IN (0,1))");
   const notificationsSql = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='notifications'").get()?.sql || "";
   if (!notificationsSql.includes("'match_comment'")) {
     db.exec(`

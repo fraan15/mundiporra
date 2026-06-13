@@ -84,6 +84,27 @@ test("un usuario normal no accede a administración", async () => {
   assert.equal(response.status, 403);
 });
 
+test("el administrador puede paginar y filtrar partidos", async () => {
+  const agent = request.agent(app);
+  await agent.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+
+  const paginated = await agent.get("/api/admin/matches?page=1&page_size=1&filter=all");
+  assert.equal(paginated.status, 200);
+  assert.equal(paginated.body.matches.length, 1);
+  assert.equal(paginated.body.pagination.page_size, 1);
+  assert.ok(paginated.body.pagination.total >= 1);
+  assert.ok(paginated.body.pagination.total_pages >= 1);
+
+  const upcoming = await agent.get("/api/admin/matches?filter=upcoming");
+  assert.equal(upcoming.status, 200);
+  assert.equal(upcoming.body.matches.every((match) => ["open", "closed"].includes(match.status)), true);
+
+  const normalUser = request.agent(app);
+  await normalUser.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
+  const forbidden = await normalUser.get("/api/admin/matches");
+  assert.equal(forbidden.status, 403);
+});
+
 test("la clasificación requiere autenticación", async () => {
   const response = await request(app).get("/api/leaderboard");
   assert.equal(response.status, 401);
@@ -111,18 +132,133 @@ test("la clasificación diaria muestra a todos con cero antes del primer resulta
 });
 
 test("una predicción debe coincidir con el ganador del marcador", async () => {
+  const admin = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  const future = new Date(Date.now() + 48 * 60 * 60 * 1000);
+  const created = await admin.post("/api/matches").send({
+    match_date: future.toISOString().slice(0, 10),
+    match_time: future.toISOString().slice(11, 16),
+    team1: "Equipo prueba",
+    team2: "Equipo rival",
+    force_published: true
+  });
   const agent = request.agent(app);
   await agent.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
-  const matches = await agent.get("/api/matches");
-  const open = matches.body.find((match) => match.betting_open);
-  assert.ok(open);
   const response = await agent.post("/api/predictions").send({
-    match_id: open.id,
+    match_id: created.body.id,
     predicted_winner: "draw",
     predicted_team1_goals: 2,
     predicted_team2_goals: 1
   });
   assert.equal(response.status, 400);
+});
+
+test("los partidos se publican 24 horas antes salvo publicación forzada", async () => {
+  const admin = request.agent(app);
+  const user = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  await user.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
+  const future = new Date(Date.now() + 72 * 60 * 60 * 1000);
+  const payload = {
+    match_date: future.toISOString().slice(0, 10),
+    match_time: future.toISOString().slice(11, 16),
+    team1: "Equipo oculto",
+    team2: "Equipo visitante"
+  };
+
+  const created = await admin.post("/api/matches").send(payload);
+  assert.equal(created.status, 201);
+  assert.equal(created.body.published, false);
+  assert.equal((await user.get("/api/matches")).body.some((match) => match.id === created.body.id), false);
+  assert.equal((await user.get(`/api/matches/${created.body.id}/detail`)).status, 404);
+  assert.equal((await user.post("/api/predictions").send({
+    match_id: created.body.id,
+    predicted_winner: "draw",
+    predicted_team1_goals: 1,
+    predicted_team2_goals: 1
+  })).status, 409);
+
+  const published = await admin.put(`/api/matches/${created.body.id}`).send({ ...payload, force_published: true });
+  assert.equal(published.body.published, true);
+  assert.equal((await user.get("/api/matches")).body.some((match) => match.id === created.body.id), true);
+});
+
+test("el administrador puede eliminar un resultado y reabrir el partido", async () => {
+  const admin = request.agent(app);
+  const user = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  await user.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
+  const future = new Date(Date.now() + 48 * 60 * 60 * 1000);
+  const created = await admin.post("/api/matches").send({
+    match_date: future.toISOString().slice(0, 10),
+    match_time: future.toISOString().slice(11, 16),
+    team1: "Equipo reapertura",
+    team2: "Equipo contrario",
+    force_published: true
+  });
+  const prediction = await user.post("/api/predictions").send({
+    match_id: created.body.id,
+    predicted_winner: "team1",
+    predicted_team1_goals: 2,
+    predicted_team2_goals: 1
+  });
+  assert.equal(prediction.status, 201);
+
+  const finished = await admin.post(`/api/matches/${created.body.id}/finish`).send({
+    result_team1: 2,
+    result_team2: 1
+  });
+  assert.equal(finished.body.status, "finished");
+
+  const reopened = await admin.delete(`/api/matches/${created.body.id}/result`);
+  assert.equal(reopened.status, 200);
+  assert.equal(reopened.body.status, "open");
+  assert.equal(reopened.body.result_team1, null);
+  assert.equal(reopened.body.result_team2, null);
+  assert.equal(reopened.body.winner, null);
+  assert.equal(reopened.body.betting_open, true);
+
+  const predictions = await user.get("/api/predictions/me");
+  const reset = predictions.body.find((item) => item.match_id === created.body.id);
+  assert.equal(reset.winner_points, 0);
+  assert.equal(reset.exact_result_points, 0);
+  assert.equal(reset.total_points, 0);
+  assert.equal(reset.locked, 0);
+});
+
+test("eliminar un resultado no reabre apuestas si ya pasó la hora de cierre", async () => {
+  const admin = request.agent(app);
+  const user = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  await user.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
+  const past = new Date(Date.now() - 60 * 60 * 1000);
+  const created = await admin.post("/api/matches").send({
+    match_date: past.toISOString().slice(0, 10),
+    match_time: past.toISOString().slice(11, 16),
+    team1: "Equipo cerrado",
+    team2: "Equipo finalizado",
+    force_published: true
+  });
+
+  const finished = await admin.post(`/api/matches/${created.body.id}/finish`).send({
+    result_team1: 1,
+    result_team2: 0
+  });
+  assert.equal(finished.body.status, "finished");
+
+  const cleared = await admin.delete(`/api/matches/${created.body.id}/result`);
+  assert.equal(cleared.status, 200);
+  assert.equal(cleared.body.status, "closed");
+  assert.equal(cleared.body.close_reason, "automatic");
+  assert.equal(cleared.body.betting_open, false);
+
+  const prediction = await user.post("/api/predictions").send({
+    match_id: created.body.id,
+    predicted_winner: "team1",
+    predicted_team1_goals: 1,
+    predicted_team2_goals: 0
+  });
+  assert.equal(prediction.status, 409);
 });
 
 test("la distribución de votos permanece oculta mientras se puede apostar", async () => {

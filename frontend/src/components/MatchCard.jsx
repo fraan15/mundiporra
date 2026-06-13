@@ -4,8 +4,7 @@ import { api } from "../api/client";
 import { useNavigate } from "react-router-dom";
 import { Flag } from "./SportsUI";
 
-const labels = { team1: "Local", team2: "Visitante", draw: "Empate" };
-const statusLabel = (match) => match.status === "finished" ? "Finalizado" : match.status === "closed" ? (match.close_reason === "automatic" ? "Cierre automático" : "Cerrado") : "Abierto";
+const statusLabel = (match) => match.status === "finished" ? "Finalizado" : match.in_play ? "En juego" : match.status === "closed" ? (match.close_reason === "automatic" ? "Cierre automático" : "Cerrado") : "Abierto";
 
 export function MatchCard({ match, onSaved }) {
   const navigate=useNavigate();
@@ -31,9 +30,9 @@ export function MatchCard({ match, onSaved }) {
   };
   const date = new Date(`${match.match_date}T${match.match_time}:00`);
   const adjust = (setter, value, delta) => setter(String(Math.max(0, Number(value || 0) + delta)));
-  return <article className={`match-card ${match.status}`}>
+  return <article className={`match-card ${match.status} ${match.in_play?"in-play":""}`}>
     <div className="match-head">
-      <div><span className={`status ${match.status}`}>{statusLabel(match)}</span><strong>{date.toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"})}</strong><span><Clock3 size={14}/>{match.match_time}</span></div>
+      <div><span className={`status ${match.in_play?"in-play":match.status}`}>{statusLabel(match)}</span><strong>{date.toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"})}</strong><span><Clock3 size={14}/>{match.match_time}</span></div>
       <span>{match.stadium}</span>
     </div>
     <div className="versus">
@@ -55,9 +54,9 @@ export function MatchCard({ match, onSaved }) {
       <div className="score-picker"><div><small>{match.team1}</small><span><button onClick={()=>adjust(setG1,g1,-1)}><Minus/></button><input aria-label={`Goles de ${match.team1}`} inputMode="numeric" type="number" min="0" value={g1} onChange={e=>setG1(e.target.value)}/><button onClick={()=>adjust(setG1,g1,1)}><Plus/></button></span></div><b>:</b><div><small>{match.team2}</small><span><button onClick={()=>adjust(setG2,g2,-1)}><Minus/></button><input aria-label={`Goles de ${match.team2}`} inputMode="numeric" type="number" min="0" value={g2} onChange={e=>setG2(e.target.value)}/><button onClick={()=>adjust(setG2,g2,1)}><Plus/></button></span></div></div>
       <button className="primary save-prediction" onClick={save} disabled={saving || winner==="" || g1==="" || g2===""}><Save size={17}/>{saving?"Guardando...":match.prediction_id?"Guardar cambios":"Guardar resultado"}</button>
       {message && <small className={message.includes("guardada")?"success-text":"error-text"}>{message}</small>}
-    </div> : <div className="locked-prediction"><span>Tu apuesta</span><strong>{match.predicted_winner ? `${labels[match.predicted_winner]} · ${match.predicted_team1_goals} – ${match.predicted_team2_goals}` : "Sin predicción"}</strong>{match.status==="finished" && <b>{match.total_points || 0} pts</b>}</div>}
+    </div> : <div className="locked-prediction"><span>Tu apuesta</span><strong>{match.predicted_winner ? `${match.team1} ${match.predicted_team1_goals} – ${match.predicted_team2_goals} ${match.team2}` : "Sin predicción"}</strong>{match.status==="finished" && <b>{match.total_points || 0} pts</b>}</div>}
     <button className="reveal-toggle" onClick={toggleReveal}><span><Users size={16}/>{match.prediction_count} participantes</span><span>{match.betting_open ? "Apuestas ocultas hasta el cierre" : "Ver apuestas"}<ChevronDown className={expanded?"rotated":""} size={16}/></span></button>
-    {expanded && reveal && <div className="reveal-list">{!reveal.revealed ? reveal.participants?.length ? reveal.participants.map(p=><div key={p.id}><strong>{p.username}</strong><span><ShieldCheck size={14}/> Participando</span></div>) : <p>Aún no hay participantes.</p> : reveal.predictions.length ? reveal.predictions.map(p=><div key={p.id}><strong>{p.username}</strong><span>{labels[p.predicted_winner]} · {p.predicted_team1_goals} – {p.predicted_team2_goals}</span>{match.status==="finished"&&<b>{p.total_points} pts</b>}</div>) : <p>Aún no hay apuestas.</p>}</div>}
+    {expanded && reveal && <div className="reveal-list">{!reveal.revealed ? reveal.participants?.length ? reveal.participants.map(p=><div key={p.id}><strong>{p.username}</strong><span><ShieldCheck size={14}/> Participando</span></div>) : <p>Aún no hay participantes.</p> : reveal.predictions.length ? reveal.predictions.map(p=><div key={p.id}><strong>{p.username}</strong><span>{match.team1} {p.predicted_team1_goals} – {p.predicted_team2_goals} {match.team2}</span>{match.status==="finished"&&<b>{p.total_points} pts</b>}</div>) : <p>Aún no hay apuestas.</p>}</div>}
     <button className="match-detail-link" onClick={()=>navigate(`/match/${match.id}`)}><span>Ver detalles del partido<small>Estadísticas, participantes y comentarios</small></span><ChevronRight size={20}/></button>
   </article>;
 }

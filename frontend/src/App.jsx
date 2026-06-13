@@ -133,6 +133,7 @@ function MainLayout() {
   useEffect(()=>{
     if(sessionStorage.getItem("showPendingLoginAlert")!=="1")return;
     sessionStorage.removeItem("showPendingLoginAlert");
+    if(user.role==="admin")return;
     let timer;
     api("/dashboard").then(data=>{
       if(data.summary.pending>0){
@@ -141,7 +142,7 @@ function MainLayout() {
       }
     });
     return()=>clearTimeout(timer);
-  },[]);
+  },[user.role]);
   useEffect(()=>{
     const loadChatStatus=()=>api("/chat/status").then(data=>setUnreadChat(data.unread)).catch(()=>{});
     loadChatStatus();

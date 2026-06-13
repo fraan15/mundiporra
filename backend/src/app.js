@@ -86,11 +86,24 @@ const matchPayload = (body, existing = {}) => {
   return {
     match_date: date, match_time: time, stadium: String(body.stadium ?? existing.stadium ?? "").trim(),
     team1: String(body.team1 ?? existing.team1 ?? "").trim(), team2: String(body.team2 ?? existing.team2 ?? "").trim(),
-    auto_close_at: autoClose
+    auto_close_at: autoClose,
+    force_published: body.force_published === undefined ? Number(existing.force_published || 0) : body.force_published ? 1 : 0
   };
 };
 const predictionWinner = (g1, g2) => g1 === g2 ? "draw" : g1 > g2 ? "team1" : "team2";
-const serializeMatch = (match) => ({ ...match, effective_close_at: effectiveCloseAt(match).toISOString(), betting_open: match.status === "open" && !isExpired(match) });
+const matchStartsAt = (match) => new Date(`${match.match_date}T${match.match_time}:00`);
+const matchPublishesAt = (match) => new Date(matchStartsAt(match).getTime() - 24 * 60 * 60 * 1000);
+const isMatchPublished = (match, current = new Date()) => Boolean(match.force_published) || current >= matchPublishesAt(match);
+const canAccessMatch = (req, match) => req.user.role === "admin" || isMatchPublished(match);
+const isMatchInPlay = (match, current = new Date()) => match.status !== "finished" && current >= matchStartsAt(match);
+const serializeMatch = (match) => ({
+  ...match,
+  published: isMatchPublished(match),
+  publishes_at: matchPublishesAt(match).toISOString(),
+  effective_close_at: effectiveCloseAt(match).toISOString(),
+  betting_open: isMatchPublished(match) && match.status === "open" && !isExpired(match),
+  in_play: isMatchInPlay(match)
+});
 
 app.post("/api/auth/login", (req, res) => {
   const user = db.prepare("SELECT * FROM users WHERE username=? COLLATE NOCASE").get(String(req.body.username || "").trim());
@@ -114,7 +127,35 @@ app.get("/api/matches", requireAuth, (req, res) => {
     LEFT JOIN predictions mine ON mine.match_id=m.id AND mine.user_id=?
     GROUP BY m.id ORDER BY m.match_date,m.match_time
   `).all(req.user.id);
-  res.json(matches.map(serializeMatch));
+  res.json(matches.filter((match) => canAccessMatch(req, match)).map(serializeMatch));
+});
+
+app.get("/api/admin/matches", requireAdmin, (req, res) => {
+  const pageSize = Math.min(Math.max(Number.parseInt(req.query.page_size, 10) || 10, 1), 50);
+  const requestedPage = Math.max(Number.parseInt(req.query.page, 10) || 1, 1);
+  const filter = ["upcoming", "open", "closed", "finished"].includes(req.query.filter) ? req.query.filter : "all";
+  const where = filter === "upcoming"
+    ? "WHERE status IN ('open','closed')"
+    : filter === "all" ? "" : "WHERE status=?";
+  const params = filter === "all" || filter === "upcoming" ? [] : [filter];
+  const total = db.prepare(`SELECT COUNT(*) count FROM matches ${where}`).get(...params).count;
+  const totalPages = Math.max(Math.ceil(total / pageSize), 1);
+  const page = Math.min(requestedPage, totalPages);
+  const matches = db.prepare(`
+    SELECT * FROM matches ${where}
+    ORDER BY
+      CASE WHEN status='finished' THEN 1 ELSE 0 END,
+      CASE WHEN status='finished' THEN match_date END DESC,
+      CASE WHEN status='finished' THEN match_time END DESC,
+      CASE WHEN status!='finished' THEN match_date END ASC,
+      CASE WHEN status!='finished' THEN match_time END ASC
+    LIMIT ? OFFSET ?
+  `).all(...params, pageSize, (page - 1) * pageSize);
+  res.json({
+    matches: matches.map(serializeMatch),
+    pagination: { page, page_size: pageSize, total, total_pages: totalPages },
+    filter
+  });
 });
 
 const userStats = (userId) => {
@@ -174,12 +215,32 @@ app.get("/api/dashboard", requireAuth, (req, res) => {
     SELECT COALESCE(SUM(p.total_points),0) points FROM predictions p JOIN matches m ON m.id=p.match_id
     WHERE p.user_id=? AND m.match_date=?
   `).get(req.user.id, today).points;
-  const pending = db.prepare(`
-    SELECT COUNT(*) count FROM matches m LEFT JOIN predictions p ON p.match_id=m.id AND p.user_id=?
-    WHERE m.status='open' AND m.auto_close_at>? AND p.id IS NULL
-  `).get(req.user.id, now()).count;
-  const nextMatches = db.prepare("SELECT * FROM matches WHERE status='open' AND auto_close_at>? ORDER BY match_date,match_time").all(now()).map(serializeMatch);
-  res.json({ summary: { ...stats, today_points: todayPoints, pending }, next_match: nextMatches[0] || null, next_matches: nextMatches });
+  const unfinishedMatches = db.prepare(`
+    SELECT m.*, COUNT(bettor.id) prediction_count,
+      mine.id prediction_id, mine.predicted_winner, mine.predicted_team1_goals, mine.predicted_team2_goals,
+      mine.winner_points, mine.exact_result_points, mine.total_points
+    FROM matches m
+    LEFT JOIN predictions p ON p.match_id=m.id
+    LEFT JOIN users bettor ON bettor.id=p.user_id AND bettor.role='user'
+    LEFT JOIN predictions mine ON mine.match_id=m.id AND mine.user_id=?
+    WHERE m.status!='finished'
+    GROUP BY m.id
+    ORDER BY m.match_date,m.match_time
+  `).all(req.user.id)
+    .filter((match) => canAccessMatch(req, match));
+  const pending = unfinishedMatches.filter((match) =>
+    match.status === "open" &&
+    !isExpired(match) &&
+    !db.prepare("SELECT id FROM predictions WHERE match_id=? AND user_id=?").get(match.id, req.user.id)
+  ).length;
+  const inPlayMatches = unfinishedMatches.filter((match) => isMatchInPlay(match)).map(serializeMatch);
+  const nextMatches = unfinishedMatches.filter((match) => match.status === "open" && !isMatchInPlay(match)).map(serializeMatch);
+  res.json({
+    summary: { ...stats, today_points: todayPoints, pending },
+    in_play_matches: inPlayMatches,
+    next_match: nextMatches[0] || null,
+    next_matches: nextMatches
+  });
 });
 
 app.get("/api/profile/me", requireAuth, (req, res) => res.json({
@@ -273,7 +334,7 @@ app.get("/api/matches/:id/detail", requireAuth, (req, res) => {
     SELECT m.*,p.id prediction_id,p.predicted_winner,p.predicted_team1_goals,p.predicted_team2_goals,p.total_points
     FROM matches m LEFT JOIN predictions p ON p.match_id=m.id AND p.user_id=? WHERE m.id=?
   `).get(req.user.id, req.params.id);
-  if (!match) return res.status(404).json({ error: "Partido no encontrado." });
+  if (!match || !canAccessMatch(req, match)) return res.status(404).json({ error: "Partido no encontrado." });
   const open = match.status === "open" && !isExpired(match);
   const participants = db.prepare(`
     SELECT u.id,u.username,
@@ -290,15 +351,19 @@ app.get("/api/matches/:id/detail", requireAuth, (req, res) => {
   res.json({ match: serializeMatch(match), participants, revealed: !open, distribution });
 });
 
-app.get("/api/matches/:id/comments", requireAuth, (req, res) => res.json(db.prepare(`
-  SELECT c.*,u.username,u.role FROM match_comments c JOIN users u ON u.id=c.user_id
-  WHERE c.match_id=? ORDER BY c.created_at DESC
-`).all(req.params.id)));
+app.get("/api/matches/:id/comments", requireAuth, (req, res) => {
+  const match = db.prepare("SELECT * FROM matches WHERE id=?").get(req.params.id);
+  if (!match || !canAccessMatch(req, match)) return res.status(404).json({ error: "Partido no encontrado." });
+  res.json(db.prepare(`
+    SELECT c.*,u.username,u.role FROM match_comments c JOIN users u ON u.id=c.user_id
+    WHERE c.match_id=? ORDER BY c.created_at DESC
+  `).all(req.params.id));
+});
 app.post("/api/matches/:id/comments", requireAuth, (req, res) => {
   const comment = String(req.body.comment || "").trim().slice(0, 500);
   if (!comment) return res.status(400).json({ error: "Escribe un comentario." });
-  const match = db.prepare("SELECT id,team1,team2 FROM matches WHERE id=?").get(req.params.id);
-  if (!match) return res.status(404).json({ error: "Partido no encontrado." });
+  const match = db.prepare("SELECT * FROM matches WHERE id=?").get(req.params.id);
+  if (!match || !canAccessMatch(req, match)) return res.status(404).json({ error: "Partido no encontrado." });
   const result = db.prepare("INSERT INTO match_comments(match_id,user_id,comment,created_at,updated_at) VALUES(?,?,?,?,?)").run(req.params.id, req.user.id, comment, now(), now());
   notifyAllExcept(req.user.id, {
     type: "match_comment",
@@ -327,8 +392,8 @@ app.post("/api/matches", requireAdmin, (req, res) => {
   const data = matchPayload(req.body);
   if (!data.match_date || !data.match_time || !data.team1 || !data.team2) return res.status(400).json({ error: "Fecha, hora y equipos son obligatorios." });
   const stamp = now();
-  const result = db.prepare(`INSERT INTO matches(match_date,match_time,stadium,team1,team2,status,auto_close_at,created_at,updated_at) VALUES(?,?,?,?,?,'open',?,?,?)`)
-    .run(data.match_date, data.match_time, data.stadium, data.team1, data.team2, data.auto_close_at, stamp, stamp);
+  const result = db.prepare(`INSERT INTO matches(match_date,match_time,stadium,team1,team2,status,auto_close_at,force_published,created_at,updated_at) VALUES(?,?,?,?,?,'open',?,?,?,?)`)
+    .run(data.match_date, data.match_time, data.stadium, data.team1, data.team2, data.auto_close_at, data.force_published, stamp, stamp);
   const created = db.prepare("SELECT * FROM matches WHERE id=?").get(result.lastInsertRowid);
   logAction(req.user.id, "create_match", "match", created.id, "Partido creado", null, created);
   res.status(201).json(serializeMatch(created));
@@ -338,8 +403,8 @@ app.put("/api/matches/:id", requireAdmin, (req, res) => {
   const before = db.prepare("SELECT * FROM matches WHERE id=?").get(req.params.id);
   if (!before) return res.status(404).json({ error: "Partido no encontrado." });
   const data = matchPayload(req.body, before);
-  db.prepare("UPDATE matches SET match_date=?,match_time=?,stadium=?,team1=?,team2=?,auto_close_at=?,updated_at=? WHERE id=?")
-    .run(data.match_date, data.match_time, data.stadium, data.team1, data.team2, data.auto_close_at, now(), before.id);
+  db.prepare("UPDATE matches SET match_date=?,match_time=?,stadium=?,team1=?,team2=?,auto_close_at=?,force_published=?,updated_at=? WHERE id=?")
+    .run(data.match_date, data.match_time, data.stadium, data.team1, data.team2, data.auto_close_at, data.force_published, now(), before.id);
   const after = db.prepare("SELECT * FROM matches WHERE id=?").get(before.id);
   logAction(req.user.id, "edit_match", "match", before.id, "Partido editado", before, after);
   res.json(serializeMatch(after));
@@ -358,7 +423,7 @@ app.patch("/api/matches/:id/status", requireAdmin, (req, res) => {
   const status = req.body.status;
   if (!before || !["open", "closed", "finished"].includes(status)) return res.status(400).json({ error: "Partido o estado no válido." });
   if (status === "finished" && (before.result_team1 === null || before.result_team2 === null)) return res.status(400).json({ error: "Introduce el resultado antes de finalizar." });
-  const closeReason = status === "closed" ? "manual" : status === "open" ? null : before.close_reason;
+  const closeReason = status === "closed" || status === "open" ? "manual" : before.close_reason;
   db.prepare("UPDATE matches SET status=?,close_reason=?,updated_at=? WHERE id=?").run(status, closeReason, now(), before.id);
   db.prepare("UPDATE predictions SET locked=?,updated_at=? WHERE match_id=?").run(status === "open" ? 0 : 1, now(), before.id);
   const after = db.prepare("SELECT * FROM matches WHERE id=?").get(before.id);
@@ -374,6 +439,41 @@ app.patch("/api/matches/:id/status", requireAdmin, (req, res) => {
       eventKey: `match-closed:${before.id}`
     });
   }
+  res.json(serializeMatch(after));
+});
+
+app.delete("/api/matches/:id/result", requireAdmin, (req, res) => {
+  const before = db.prepare("SELECT * FROM matches WHERE id=?").get(req.params.id);
+  if (!before) return res.status(404).json({ error: "Partido no encontrado." });
+  if (before.status !== "finished" || before.result_team1 === null || before.result_team2 === null) {
+    return res.status(409).json({ error: "Este partido no tiene un resultado que eliminar." });
+  }
+
+  const config = settings();
+  const deadlinePassed = config.auto_close_enabled === "1" && new Date() >= effectiveCloseAt(before, config);
+  const nextStatus = deadlinePassed ? "closed" : "open";
+  const closeReason = deadlinePassed ? "automatic" : "manual";
+  const locked = deadlinePassed ? 1 : 0;
+  const stamp = now();
+  db.transaction(() => {
+    db.prepare(`
+      UPDATE matches
+      SET status=?,result_team1=NULL,result_team2=NULL,winner=NULL,close_reason=?,updated_at=?
+      WHERE id=?
+    `).run(nextStatus, closeReason, stamp, before.id);
+    db.prepare(`
+      UPDATE predictions
+      SET winner_points=0,exact_result_points=0,total_points=0,locked=?,updated_at=?
+      WHERE match_id=?
+    `).run(locked, stamp, before.id);
+  })();
+
+  saveRankingSnapshot();
+  const after = db.prepare("SELECT * FROM matches WHERE id=?").get(before.id);
+  const description = deadlinePassed
+    ? "Resultado eliminado; el partido permanece cerrado por plazo"
+    : "Resultado eliminado y partido reabierto";
+  logAction(req.user.id, "delete_result", "match", before.id, description, before, after);
   res.json(serializeMatch(after));
 });
 
@@ -420,7 +520,7 @@ app.get("/api/predictions/me", requireAuth, (req, res) => {
 });
 app.get("/api/predictions/match/:matchId", requireAuth, (req, res) => {
   const match = db.prepare("SELECT * FROM matches WHERE id=?").get(req.params.matchId);
-  if (!match) return res.status(404).json({ error: "Partido no encontrado." });
+  if (!match || !canAccessMatch(req, match)) return res.status(404).json({ error: "Partido no encontrado." });
   const count = db.prepare(`
     SELECT COUNT(*) count FROM predictions p
     JOIN users u ON u.id=p.user_id
@@ -449,6 +549,7 @@ function savePrediction(req, res, predictionId = null) {
   const g1 = parseIntField(req.body.predicted_team1_goals), g2 = parseIntField(req.body.predicted_team2_goals);
   const winner = req.body.predicted_winner;
   if (!match) return res.status(404).json({ error: "Partido no encontrado." });
+  if (!isMatchPublished(match)) return res.status(409).json({ error: "Este partido todavía no está publicado para apostar." });
   if (match.status !== "open" || isExpired(match)) return res.status(409).json({ error: "Las apuestas de este partido ya están cerradas." });
   if (g1 === null || g2 === null || !["team1", "team2", "draw"].includes(winner)) return res.status(400).json({ error: "Predicción no válida." });
   if (predictionWinner(g1, g2) !== winner) return res.status(400).json({ error: "El ganador elegido no coincide con el resultado pronosticado." });
@@ -505,18 +606,21 @@ app.get("/api/leaderboard/daily", requireAuth, (_req, res) => {
 });
 
 app.get("/api/history/days", requireAuth, (req, res) => {
-  res.json(db.prepare(`
+  const rows = db.prepare(`
     SELECT m.match_date,COUNT(*) matches_count,COALESCE(SUM(p.total_points),0) my_points
     FROM matches m LEFT JOIN predictions p ON p.match_id=m.id AND p.user_id=?
     GROUP BY m.match_date ORDER BY m.match_date DESC
-  `).all(req.user.id));
+  `).all(req.user.id);
+  if (req.user.role === "admin") return res.json(rows);
+  const visibleDates = new Set(db.prepare("SELECT * FROM matches").all().filter(isMatchPublished).map((match) => match.match_date));
+  res.json(rows.filter((row) => visibleDates.has(row.match_date)));
 });
 app.get("/api/history/day/:date", requireAuth, (req, res) => {
   const matches = db.prepare(`
     SELECT m.*,p.id prediction_id,p.predicted_winner,p.predicted_team1_goals,p.predicted_team2_goals,p.total_points
     FROM matches m LEFT JOIN predictions p ON p.match_id=m.id AND p.user_id=?
     WHERE m.match_date=? ORDER BY m.match_time
-  `).all(req.user.id, req.params.date).map(serializeMatch);
+  `).all(req.user.id, req.params.date).filter((match) => canAccessMatch(req, match)).map(serializeMatch);
   const details = Object.fromEntries(matches.map((match) => {
     if (match.status === "open" && !isExpired(match)) return [match.id, null];
     return [match.id, db.prepare(`

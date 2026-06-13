@@ -8,13 +8,15 @@ export function effectiveCloseAt(match, config = settings()) {
 
 export function isExpired(match) {
   const config = settings();
-  return config.auto_close_enabled === "1" && new Date() >= effectiveCloseAt(match, config);
+  return !(match.status === "open" && match.close_reason === "manual") &&
+    config.auto_close_enabled === "1" &&
+    new Date() >= effectiveCloseAt(match, config);
 }
 
 export function autoCloseExpired() {
   const config = settings();
   if (config.auto_close_enabled !== "1") return 0;
-  const open = db.prepare("SELECT * FROM matches WHERE status='open'").all();
+  const open = db.prepare("SELECT * FROM matches WHERE status='open' AND COALESCE(close_reason,'')!='manual'").all();
   let count = 0;
   const close = db.transaction((match) => {
     db.prepare("UPDATE matches SET status='closed', close_reason='automatic', updated_at=? WHERE id=?")
