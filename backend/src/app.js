@@ -278,16 +278,29 @@ app.get("/api/users/:id/public", requireAuth, (req, res) => {
 app.get("/api/activity", requireAuth, (req, res) => {
   const page = Math.max(Number(req.query.page) || 1, 1);
   const pageSize = Math.min(Math.max(Number(req.query.page_size) || 10, 1), 30);
-  const predictions = db.prepare(`
-    SELECT 'prediction' type,u.username,m.team1,m.team2,p.created_at FROM predictions p
-    JOIN users u ON u.id=p.user_id JOIN matches m ON m.id=p.match_id
-  `).all().map((x) => ({ ...x, text: `${x.username} registró un pronóstico en ${x.team1} - ${x.team2}` }));
-  const points = db.prepare(`
-    SELECT 'points' type,u.username,m.team1,m.team2,p.total_points,p.updated_at created_at,p.exact_result_points
-    FROM predictions p JOIN users u ON u.id=p.user_id JOIN matches m ON m.id=p.match_id
-    WHERE p.total_points>0
-  `).all().map((x) => ({ ...x, text: x.exact_result_points > 0 ? `${x.username} acertó un resultado exacto` : `${x.username} consiguió ${x.total_points} puntos` }));
-  const items = [...predictions, ...points].sort((a,b) => b.created_at.localeCompare(a.created_at));
+  const items = db.prepare(`
+    SELECT * FROM (
+      SELECT 'prediction' type,u.username,m.team1,m.team2,NULL total_points,
+        p.created_at,NULL exact_result_points,p.id event_id
+      FROM predictions p
+      JOIN users u ON u.id=p.user_id
+      JOIN matches m ON m.id=p.match_id
+      UNION ALL
+      SELECT 'points' type,u.username,m.team1,m.team2,p.total_points,
+        p.updated_at created_at,p.exact_result_points,p.id event_id
+      FROM predictions p
+      JOIN users u ON u.id=p.user_id
+      JOIN matches m ON m.id=p.match_id
+      WHERE p.total_points>0
+    )
+    ORDER BY created_at DESC,event_id DESC
+    LIMIT 50
+  `).all().map((item) => ({
+    ...item,
+    text: item.type === "points"
+      ? (item.exact_result_points > 0 ? `${item.username} acertó un resultado exacto` : `${item.username} consiguió ${item.total_points} puntos`)
+      : `${item.username} registró un pronóstico en ${item.team1} - ${item.team2}`
+  }));
   const start = (page - 1) * pageSize;
   res.json({ items: items.slice(start, start + pageSize), page, page_size: pageSize, total: items.length, total_pages: Math.max(1, Math.ceil(items.length / pageSize)) });
 });
@@ -300,7 +313,7 @@ app.get("/api/chat", requireAuth, (_req, res) => {
     JOIN users u ON u.id=c.user_id
     LEFT JOIN chat_messages parent ON parent.id=c.reply_to_id
     LEFT JOIN users parent_user ON parent_user.id=parent.user_id
-    ORDER BY c.created_at DESC,c.id DESC LIMIT 100
+    ORDER BY c.created_at DESC,c.id DESC LIMIT 30
   `).all();
   res.json(messages.reverse());
 });
