@@ -339,7 +339,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 [data-theme="dark"] .chat-stream{background:linear-gradient(160deg,#081524,#10243a)}[data-theme="dark"] .chat-bubble{background:#132943}[data-theme="dark"] .chat-message.mine .chat-bubble{background:#1b3150;border-color:#3b5e84}[data-theme="dark"] .chat-bubble blockquote{background:#0b1b2e}
 [data-theme="dark"] .live-match-info .has-prediction{background:rgba(98,168,255,.13);color:#9ecbff}
 @media(max-width:800px){
-  .dashboard-page .dashboard-overview,.dashboard-page .live-matches-section{
+  .dashboard-page .dashboard-overview{
     width:100vw;
     margin-left:calc(50% - 50vw);
     margin-right:calc(50% - 50vw);
@@ -353,7 +353,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
   .dashboard-page .live-matches-section .section-title{padding:0 4px}
 }
 @media(max-width:380px){
-  .dashboard-page .dashboard-overview,.dashboard-page .live-matches-section{padding-left:8px;padding-right:8px}
+  .dashboard-page .dashboard-overview{padding-left:8px;padding-right:8px}
   .dashboard-page .dashboard-overview .dashboard-stats{gap:8px}
   .dashboard-page .dashboard-overview .dashboard-stats article{padding:14px 12px}
 }
