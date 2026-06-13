@@ -1,0 +1,18 @@
+import { useEffect, useState } from "react";
+import { Medal, Target, Trophy } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { api } from "../api/client";
+
+export function LeaderboardPage() {
+  const [rows,setRows]=useState([]),[daily,setDaily]=useState({date:null,rows:[]}),navigate=useNavigate();
+  useEffect(()=>{Promise.all([api("/leaderboard"),api("/leaderboard/daily")]).then(([general,day])=>{setRows(general);setDaily(day)})},[]);
+  const dailyRows=daily.rows.length?daily.rows:rows.map(row=>({...row,total_points:0,winner_hits:0,exact_hits:0}));
+  return <div className="page"><section className="page-heading"><span className="eyebrow"><Trophy size={14}/> CLASIFICACIÓN GENERAL</span><h1>La carrera por la copa</h1><p>Ranking global, diferencia con el líder y perfiles de cada participante.</p></section>
+    <section className="ranking-block daily-ranking"><div className="ranking-heading"><div><span className="eyebrow">CLASIFICACIÓN DIARIA</span><h2>La jornada</h2></div><span>{daily.date?new Date(`${daily.date}T12:00:00`).toLocaleDateString("es-ES",{day:"numeric",month:"long"}):"Sin jornadas finalizadas"}</span></div><div className="daily-list">{dailyRows.map((row,index)=><button key={row.id} onClick={()=>navigate(`/usuario/${row.id}`)}><b>#{index+1}</b><span className="mini-avatar">{row.username[0].toUpperCase()}</span><strong>{row.username}</strong><em>{row.total_points} pts</em></button>)}</div></section>
+    <section className="ranking-block"><div className="ranking-heading"><div><span className="eyebrow">CLASIFICACIÓN GENERAL</span><h2>Podio del Mundial</h2></div><span>Acumulado total</span></div><div className="podium">{rows.slice(0,3).map((row,index)=><button onClick={()=>navigate(`/usuario/${row.id}`)} key={row.id} className={`podium-card place-${index+1}`}><span>{index===0?<Trophy/>:<Medal/>}</span><b>{["🥇","🥈","🥉"][index]} #{index+1}</b><strong>{row.username}</strong><em>{row.total_points} pts</em></button>)}</div></section>
+    <div className="export-actions"><button onClick={()=>exportRows(rows,"csv")}>Exportar CSV</button><button onClick={()=>exportRows(rows,"excel")}>Exportar Excel</button></div>
+    <div className="table-card"><table><thead><tr><th>Pos.</th><th>Participante</th><th>Total</th><th>Ganador</th><th>Exacto</th><th>Ajustes</th><th>Pronósticos</th><th>Aciertos</th></tr></thead><tbody>{rows.map((row,index)=><tr key={row.id}><td><b>#{index+1}</b></td><td className="clickable-user" onClick={()=>navigate(`/usuario/${row.id}`)}><span className="mini-avatar">{row.username[0].toUpperCase()}</span><strong>{row.username}</strong>{row.personal_phrase&&<small>{row.personal_phrase}</small>}</td><td><strong className="points">{row.total_points}</strong>{index>0&&<small className="leader-gap">-{rows[0].total_points-row.total_points}</small>}</td><td>{row.winner_points}</td><td>{row.exact_result_points}</td><td className={row.adjustments<0?"negative":""}>{row.adjustments>0?"+":""}{row.adjustments}</td><td>{row.predicted_matches}</td><td><span className="hit"><Target size={14}/>{row.winner_hits} / {row.exact_hits}</span></td></tr>)}</tbody></table></div>
+  </div>;
+}
+
+function exportRows(rows,type){const separator=type==="csv"?";":"\t";const text=[["Posición","Usuario","Puntos","Ganadores","Exactos"],...rows.map((r,i)=>[i+1,r.username,r.total_points,r.winner_hits,r.exact_hits])].map(r=>r.join(separator)).join("\n");const blob=new Blob([`\uFEFF${text}`],{type:type==="csv"?"text/csv":"application/vnd.ms-excel"});const link=document.createElement("a");link.href=URL.createObjectURL(blob);link.download=`clasificacion.${type==="csv"?"csv":"xls"}`;link.click();URL.revokeObjectURL(link.href)}
