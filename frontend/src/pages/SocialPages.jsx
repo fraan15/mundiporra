@@ -18,7 +18,29 @@ export function ProfilePage(){
   useEffect(()=>{load()},[]);
   if(!data)return <div className="page-loader"><span/></div>;
   const save=async()=>{const user=await api("/profile/me",{method:"PATCH",body:{personal_phrase:phrase}});setUser(u=>({...u,...user}));setSaved(true);load()};
-  const changeAvatar=async event=>{const file=event.target.files?.[0];event.target.value="";if(!file)return;const allowedTypes=["image/jpeg","image/png","image/webp"];if(!allowedTypes.includes(file.type)){setAvatarMessage(`El archivo "${file.name}" no es válido. Solo se admiten imágenes JPEG, PNG o WebP.`);return}if(file.size===0){setAvatarMessage("El archivo seleccionado está vacío.");return}if(file.size>5*1024*1024){setAvatarMessage(`La imagen ocupa ${(file.size/1024/1024).toFixed(1)} MB y el máximo permitido es 5 MB.`);return}setUploading(true);setAvatarMessage("");try{const response=await fetch("/api/profile/avatar",{method:"PUT",credentials:"include",headers:{"Content-Type":file.type},body:file});const user=await response.json();if(!response.ok)throw new Error(user.error||"No se pudo subir la imagen.");setUser(current=>({...current,...user}));setData(current=>({...current,user}));setAvatarMessage("Foto de perfil actualizada.")}catch(error){setAvatarMessage(error.message)}finally{setUploading(false)}};
+  const changeAvatar=async event=>{
+    const input=event.currentTarget,file=input.files?.[0];input.value="";if(!file)return;
+    const typeByExtension={jpg:"image/jpeg",jpeg:"image/jpeg",png:"image/png",webp:"image/webp"};
+    const extension=file.name.split(".").pop()?.toLowerCase(),contentType=typeByExtension[extension];
+    if(!contentType||file.type&&!["image/jpeg","image/png","image/webp"].includes(file.type)){setAvatarMessage(`El archivo "${file.name}" no es válido. Solo se admiten imágenes JPEG, PNG o WebP.`);return}
+    if(file.size===0){setAvatarMessage("El archivo seleccionado está vacío.");return}
+    if(file.size>5*1024*1024){setAvatarMessage(`La imagen ocupa ${(file.size/1024/1024).toFixed(1)} MB y el máximo permitido es 5 MB.`);return}
+    setUploading(true);setAvatarMessage("");
+    try{
+      const uploadUrl=new URL("/api/profile/avatar",window.location.origin);
+      const response=await fetch(uploadUrl.toString(),{method:"PUT",credentials:"same-origin",headers:{"Content-Type":contentType},body:file});
+      const responseType=response.headers.get("content-type")||"";
+      const user=responseType.includes("application/json")?await response.json():null;
+      if(!response.ok)throw new Error(user?.error||`El servidor rechazó la imagen (error ${response.status}).`);
+      if(!user?.avatar_url)throw new Error("El servidor no devolvió una foto de perfil válida.");
+      setUser(current=>({...current,...user}));setData(current=>({...current,user}));setAvatarMessage("Foto de perfil actualizada.");
+    }catch(error){
+      console.error("Error al subir la foto de perfil:",error);
+      setAvatarMessage(error instanceof TypeError||error?.name==="SyntaxError"
+        ?"No se pudo enviar la imagen al servidor. Comprueba la conexión y vuelve a intentarlo."
+        :error?.message||"No se pudo subir la imagen.");
+    }finally{setUploading(false)}
+  };
   const removeAvatar=async()=>{setUploading(true);setAvatarMessage("");try{const user=await api("/profile/avatar",{method:"DELETE"});setUser(current=>({...current,...user}));setData(current=>({...current,user}));setAvatarMessage("Foto eliminada.")}catch(error){setAvatarMessage(error.message)}finally{setUploading(false)}};
   const s=data.stats;
   return <div className="page"><section className="profile-hero"><div className="profile-avatar-editor"><Avatar user={data.user} className="profile-avatar"/><label className="avatar-upload"><input type="file" accept="image/jpeg,image/png,image/webp" onChange={changeAvatar} disabled={uploading}/>{uploading?"Procesando...":data.user.avatar_url?"Cambiar foto":"Añadir foto"}</label>{data.user.avatar_url&&<button type="button" onClick={removeAvatar} disabled={uploading}>Eliminar</button>}</div><div><span className="eyebrow">PERFIL DE JUGADOR</span><h1>{data.user.username}</h1><p>{data.user.role==="admin"?"Administrador":"Participante"} · Desde {new Date(data.user.created_at).toLocaleDateString("es-ES")}</p><small className="avatar-requirements">JPEG, PNG o WebP · máximo 5 MB · mínimo 100 × 100 px</small>{avatarMessage&&<small className={avatarMessage.includes("actualizada")||avatarMessage.includes("eliminada")?"success-text":"error-text"}>{avatarMessage}</small>}</div></section>
