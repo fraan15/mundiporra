@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import request from "supertest";
 import { app } from "../src/app.js";
+import { db } from "../src/db/database.js";
 
 test("sirve el frontend compilado desde la ruta raíz", async () => {
   const response = await request(app).get("/");
@@ -303,6 +304,34 @@ test("las notificaciones son privadas y requieren sesión", async () => {
   const response = await agent.get("/api/notifications");
   assert.equal(response.status, 200);
   assert.ok(Array.isArray(response.body.notifications));
+});
+
+test("devuelve todas las notificaciones pendientes y solo las 5 leídas más recientes", async () => {
+  const agent = request.agent(app);
+  await agent.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
+  const user = db.prepare("SELECT id FROM users WHERE username=?").get("lucia");
+  const prefix = `notification-limit-${Date.now()}`;
+  const insert = db.prepare(`
+    INSERT INTO notifications (user_id,type,title,message,event_key,read,created_at)
+    VALUES (?,?,?,?,?,?,?)
+  `);
+
+  for (let index = 0; index < 8; index += 1) {
+    insert.run(user.id, "match_closed", `Leída ${index}`, "Prueba", `${prefix}:read:${index}`, 1, `2099-01-${String(index + 1).padStart(2, "0")}T00:00:00.000Z`);
+  }
+  for (let index = 0; index < 7; index += 1) {
+    insert.run(user.id, "match_closed", `Pendiente ${index}`, "Prueba", `${prefix}:unread:${index}`, 0, `2099-02-${String(index + 1).padStart(2, "0")}T00:00:00.000Z`);
+  }
+
+  const response = await agent.get("/api/notifications");
+  const testNotifications = response.body.notifications.filter((item) => item.event_key?.startsWith(prefix));
+  const readNotifications = testNotifications.filter((item) => item.read === 1);
+  const unreadNotifications = testNotifications.filter((item) => item.read === 0);
+
+  assert.equal(response.status, 200);
+  assert.equal(unreadNotifications.length, 7);
+  assert.equal(readNotifications.length, 5);
+  assert.deepEqual(readNotifications.map((item) => item.title), ["Leída 7", "Leída 6", "Leída 5", "Leída 4", "Leída 3"]);
 });
 
 test("mensajes y encuestas de administración bloquean hasta responder y guardan estadísticas", async () => {

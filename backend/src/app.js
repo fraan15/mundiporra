@@ -584,10 +584,22 @@ app.post("/api/predictions", requireAuth, (req, res) => savePrediction(req, res)
 app.put("/api/predictions/:id", requireAuth, (req, res) => savePrediction(req, res, req.params.id));
 
 app.get("/api/notifications", requireAuth, (req, res) => {
-  const limit = Math.min(Math.max(Number(req.query.limit) || 30, 1), 100);
   const notifications = db.prepare(`
-    SELECT * FROM notifications WHERE user_id=? ORDER BY created_at DESC LIMIT ?
-  `).all(req.user.id, limit);
+    SELECT *
+    FROM notifications
+    WHERE user_id=?
+      AND (
+        read=0
+        OR id IN (
+          SELECT id
+          FROM notifications
+          WHERE user_id=? AND read=1
+          ORDER BY created_at DESC, id DESC
+          LIMIT 5
+        )
+      )
+    ORDER BY created_at DESC, id DESC
+  `).all(req.user.id, req.user.id);
   const unread = db.prepare("SELECT COUNT(*) count FROM notifications WHERE user_id=? AND read=0").get(req.user.id).count;
   res.json({ notifications, unread });
 });
