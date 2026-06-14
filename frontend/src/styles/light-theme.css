@@ -378,3 +378,63 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
   .brand-copy{width:clamp(120px,38vw,175px)}
   .brand .today-matches-ticker{display:block}
 }
+
+/* Administration messages always use the white and red palette. */
+.admin-message-list>article,
+[data-theme="dark"] .admin-message-list>article{
+  background:#c91832;
+  color:#fff;
+}
+.admin-message-list>article h3,
+.admin-message-list>article header p,
+.admin-message-list .message-summary>strong,
+.admin-message-list .message-summary>span,
+[data-theme="dark"] .admin-message-list>article h3,
+[data-theme="dark"] .admin-message-list>article header p,
+[data-theme="dark"] .admin-message-list .message-summary>strong,
+[data-theme="dark"] .admin-message-list .message-summary>span{
+  color:#fff;
+}
+.admin-message-list .poll-results details,
+.admin-message-list .message-user-groups details,
+[data-theme="dark"] .admin-message-list .poll-results details,
+[data-theme="dark"] .admin-message-list .message-user-groups details{
+  background:#fff;
+  color:#a80f25;
+  border-color:#fff;
+}
+.admin-message-list .poll-results summary,
+.admin-message-list .poll-results summary strong,
+.admin-message-list .poll-results summary span,
+.admin-message-list .message-user-groups summary,
+.admin-message-list .poll-results p,
+.admin-message-list .message-user-groups p,
+[data-theme="dark"] .admin-message-list .poll-results summary,
+[data-theme="dark"] .admin-message-list .poll-results summary strong,
+[data-theme="dark"] .admin-message-list .poll-results summary span,
+[data-theme="dark"] .admin-message-list .message-user-groups summary,
+[data-theme="dark"] .admin-message-list .poll-results p,
+[data-theme="dark"] .admin-message-list .message-user-groups p{
+  color:#a80f25;
+}
+.admin-message-list .icon-delete,
+[data-theme="dark"] .admin-message-list .icon-delete{
+  width:42px;
+  height:42px;
+  flex:0 0 42px;
+  display:grid;
+  place-items:center;
+  padding:0;
+  border:2px solid #fff;
+  border-radius:12px;
+  background:#fff;
+  color:#b31229;
+  box-shadow:0 5px 14px rgba(80,0,12,.24);
+}
+.admin-message-list .icon-delete:hover,
+[data-theme="dark"] .admin-message-list .icon-delete:hover{
+  background:#78101f;
+  border-color:#fff;
+  color:#fff;
+  transform:translateY(-1px);
+}

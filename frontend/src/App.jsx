@@ -157,6 +157,9 @@ function MainLayout() {
   const [theme,setTheme]=useState(()=>localStorage.getItem("theme")||"light");
   const [pendingAlert,setPendingAlert]=useState(false);
   const [unreadChat,setUnreadChat]=useState(0);
+  const [adminMessage,setAdminMessage]=useState(null);
+  const [messageError,setMessageError]=useState("");
+  const [answering,setAnswering]=useState(false);
   useEffect(()=>{document.documentElement.dataset.theme=theme;localStorage.setItem("theme",theme)},[theme]);
   useEffect(()=>{
     if(sessionStorage.getItem("showPendingLoginAlert")!=="1")return;
@@ -177,6 +180,21 @@ function MainLayout() {
     const timer=setInterval(loadChatStatus,10000);
     return()=>clearInterval(timer);
   },[location.pathname]);
+  const loadAdminMessage=()=>api("/admin-messages/pending").then(data=>setAdminMessage(data.message)).catch(()=>{});
+  useEffect(()=>{
+    if(user.role==="admin")return;
+    loadAdminMessage();
+    const timer=setInterval(loadAdminMessage,15000);
+    return()=>clearInterval(timer);
+  },[user.role]);
+  const answerAdminMessage=async optionId=>{
+    setAnswering(true);setMessageError("");
+    try{
+      await api(`/admin-messages/${adminMessage.id}/respond`,{method:"POST",body:optionId?{option_id:optionId}:{}});
+      await loadAdminMessage();
+    }catch(error){setMessageError(error.message)}
+    finally{setAnswering(false)}
+  };
   const items = [
     ["/", "Inicio", LayoutDashboard],
     ["/partidos", "Partidos", Trophy],
@@ -186,6 +204,20 @@ function MainLayout() {
     ...(user.role === "admin" ? [["/gestion", "Gestión", Shield]] : [])
   ];
   return <div className="app-shell">
+    {adminMessage&&<div className="mandatory-message-overlay" role="dialog" aria-modal="true" aria-labelledby="mandatory-message-title">
+      <section className="mandatory-message-card">
+        <span className="eyebrow">{adminMessage.type==="poll"?"ENCUESTA DE ADMINISTRACIÓN":"MENSAJE DE ADMINISTRACIÓN"}</span>
+        <h2 id="mandatory-message-title">{adminMessage.title}</h2>
+        <p>{adminMessage.body}</p>
+        {messageError&&<div className="alert error">{messageError}</div>}
+        <div className="mandatory-message-actions">
+          {adminMessage.type==="poll"
+            ?adminMessage.options.map(option=><button disabled={answering} className="poll-answer" key={option.id} onClick={()=>answerAdminMessage(option.id)}>{option.label}</button>)
+            :<button disabled={answering} className="primary wide" onClick={()=>answerAdminMessage()}>{answering?"Guardando...":"He leído el mensaje"}</button>}
+        </div>
+        <small>Debes {adminMessage.type==="poll"?"responder":"confirmar la lectura"} para continuar.</small>
+      </section>
+    </div>}
     {pendingAlert&&<div className="pending-login-alert">
       <button className="pending-login-alert-link" onClick={()=>{setPendingAlert(false);navigate("/partidos#upcoming")}}>
         <span>¡Hay partidos pendientes de apuesta!</span><small>Pulsa aquí para hacer tus pronósticos</small>

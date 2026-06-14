@@ -754,6 +754,117 @@ app.put("/api/admin/settings", requireAdmin, (req, res) => {
   res.json(settings());
 });
 
+const messageOptions = (messageId) => db.prepare(
+  "SELECT id,label,position FROM admin_message_options WHERE message_id=? ORDER BY position,id"
+).all(messageId);
+
+app.get("/api/admin-messages/pending", requireAuth, (req, res) => {
+  if (req.user.role === "admin") return res.json({ message: null, pending_count: 0 });
+  const pending = db.prepare(`
+    SELECT m.* FROM admin_messages m
+    WHERE NOT EXISTS (
+      SELECT 1 FROM admin_message_responses r WHERE r.message_id=m.id AND r.user_id=?
+    )
+    ORDER BY m.created_at,m.id LIMIT 1
+  `).get(req.user.id);
+  const count = db.prepare(`
+    SELECT COUNT(*) count FROM admin_messages m
+    WHERE NOT EXISTS (
+      SELECT 1 FROM admin_message_responses r WHERE r.message_id=m.id AND r.user_id=?
+    )
+  `).get(req.user.id).count;
+  res.json({
+    message: pending ? { ...pending, options: messageOptions(pending.id) } : null,
+    pending_count: count
+  });
+});
+
+app.post("/api/admin-messages/:id/respond", requireAuth, (req, res) => {
+  if (req.user.role === "admin") return res.status(403).json({ error: "Los administradores no responden comunicados." });
+  const message = db.prepare("SELECT * FROM admin_messages WHERE id=?").get(req.params.id);
+  if (!message) return res.status(404).json({ error: "El comunicado ya no existe." });
+  let optionId = null;
+  if (message.type === "poll") {
+    optionId = Number(req.body.option_id);
+    const option = db.prepare("SELECT id FROM admin_message_options WHERE id=? AND message_id=?").get(optionId, message.id);
+    if (!option) return res.status(400).json({ error: "Selecciona una respuesta válida." });
+  }
+  db.prepare(`
+    INSERT OR IGNORE INTO admin_message_responses(message_id,user_id,option_id,responded_at)
+    VALUES(?,?,?,?)
+  `).run(message.id, req.user.id, optionId, now());
+  res.json({ ok: true });
+});
+
+app.get("/api/admin/admin-messages", requireAdmin, (_req, res) => {
+  const totalUsers = db.prepare("SELECT COUNT(*) count FROM users WHERE role='user' AND active=1").get().count;
+  const messages = db.prepare(`
+    SELECT m.*,u.username created_by_username,
+      COUNT(DISTINCT CASE WHEN target.active=1 THEN r.user_id END) responded_count
+    FROM admin_messages m
+    LEFT JOIN users u ON u.id=m.created_by
+    LEFT JOIN admin_message_responses r ON r.message_id=m.id
+    LEFT JOIN users target ON target.id=r.user_id AND target.role='user'
+    GROUP BY m.id ORDER BY m.created_at DESC,m.id DESC
+  `).all();
+  res.json(messages.map((message) => {
+    const options = messageOptions(message.id).map((option) => {
+      const users = db.prepare(`
+        SELECT u.id,u.username,r.responded_at FROM admin_message_responses r
+        JOIN users u ON u.id=r.user_id
+        WHERE r.message_id=? AND r.option_id=? AND u.role='user' AND u.active=1
+        ORDER BY u.username
+      `).all(message.id, option.id);
+      return { ...option, count: users.length, percentage: totalUsers ? Math.round(users.length / totalUsers * 100) : 0, users };
+    });
+    const respondedUsers = db.prepare(`
+      SELECT u.id,u.username,r.responded_at FROM admin_message_responses r
+      JOIN users u ON u.id=r.user_id
+      WHERE r.message_id=? AND u.role='user' AND u.active=1 ORDER BY u.username
+    `).all(message.id);
+    const pendingUsers = db.prepare(`
+      SELECT u.id,u.username FROM users u
+      WHERE u.role='user' AND u.active=1 AND NOT EXISTS (
+        SELECT 1 FROM admin_message_responses r WHERE r.message_id=? AND r.user_id=u.id
+      ) ORDER BY u.username
+    `).all(message.id);
+    return {
+      ...message, options, responded_users: respondedUsers, pending_users: pendingUsers,
+      total_users: totalUsers,
+      response_percentage: totalUsers ? Math.round(message.responded_count / totalUsers * 100) : 0
+    };
+  }));
+});
+
+app.post("/api/admin/admin-messages", requireAdmin, (req, res) => {
+  const type = req.body.type === "poll" ? "poll" : "message";
+  const title = String(req.body.title || "").trim().slice(0, 120);
+  const body = String(req.body.body || "").trim().slice(0, 2000);
+  const options = Array.isArray(req.body.options)
+    ? req.body.options.map((value) => String(value || "").trim().slice(0, 80)).filter(Boolean)
+    : [];
+  if (!title || !body) return res.status(400).json({ error: "Título y mensaje son obligatorios." });
+  if (type === "poll" && options.length < 2) return res.status(400).json({ error: "La encuesta necesita al menos dos respuestas." });
+  if (options.length > 10) return res.status(400).json({ error: "Puedes crear un máximo de 10 respuestas." });
+  const result = db.transaction(() => {
+    const created = db.prepare("INSERT INTO admin_messages(type,title,body,created_by,created_at) VALUES(?,?,?,?,?)")
+      .run(type, title, body, req.user.id, now());
+    const insertOption = db.prepare("INSERT INTO admin_message_options(message_id,label,position) VALUES(?,?,?)");
+    options.forEach((label, index) => insertOption.run(created.lastInsertRowid, label, index));
+    return created;
+  })();
+  logAction(req.user.id, "create_admin_message", "admin_message", Number(result.lastInsertRowid), `${type === "poll" ? "Encuesta" : "Mensaje"} creado: ${title}`);
+  res.status(201).json({ id: Number(result.lastInsertRowid) });
+});
+
+app.delete("/api/admin/admin-messages/:id", requireAdmin, (req, res) => {
+  const message = db.prepare("SELECT * FROM admin_messages WHERE id=?").get(req.params.id);
+  if (!message) return res.status(404).json({ error: "Comunicado no encontrado." });
+  db.prepare("DELETE FROM admin_messages WHERE id=?").run(message.id);
+  logAction(req.user.id, "delete_admin_message", "admin_message", message.id, `Comunicado eliminado: ${message.title}`, message, null);
+  res.json({ ok: true });
+});
+
 if (fs.existsSync(path.join(frontendDist, "index.html"))) {
   app.use(express.static(frontendDist));
   app.get("*", (req, res, next) => {

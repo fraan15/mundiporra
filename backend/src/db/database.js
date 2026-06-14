@@ -131,12 +131,34 @@ export function initDatabase() {
       created_at TEXT NOT NULL,
       UNIQUE(user_id, snapshot_date)
     );
+    CREATE TABLE IF NOT EXISTS admin_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL CHECK(type IN ('message','poll')),
+      title TEXT NOT NULL,
+      body TEXT NOT NULL,
+      created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      created_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS admin_message_options (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      message_id INTEGER NOT NULL REFERENCES admin_messages(id) ON DELETE CASCADE,
+      label TEXT NOT NULL,
+      position INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS admin_message_responses (
+      message_id INTEGER NOT NULL REFERENCES admin_messages(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      option_id INTEGER REFERENCES admin_message_options(id) ON DELETE CASCADE,
+      responded_at TEXT NOT NULL,
+      PRIMARY KEY(message_id, user_id)
+    );
     CREATE INDEX IF NOT EXISTS idx_matches_date ON matches(match_date, match_time);
     CREATE INDEX IF NOT EXISTS idx_predictions_match ON predictions(match_id);
     CREATE INDEX IF NOT EXISTS idx_log_created ON admin_actions_log(created_at);
     CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, read, created_at);
     CREATE INDEX IF NOT EXISTS idx_comments_match ON match_comments(match_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_chat_created ON chat_messages(created_at);
+    CREATE INDEX IF NOT EXISTS idx_admin_message_responses_user ON admin_message_responses(user_id, message_id);
   `);
   const userColumns = db.prepare("PRAGMA table_info(users)").all().map((column) => column.name);
   if (!userColumns.includes("personal_phrase")) db.exec("ALTER TABLE users ADD COLUMN personal_phrase TEXT NOT NULL DEFAULT ''");

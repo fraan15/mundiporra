@@ -1,15 +1,46 @@
 import { useEffect, useState } from "react";
-import { Activity, Calculator, Plus, Settings, Shield, Trash2, Users } from "lucide-react";
+import { Activity, Calculator, MessageSquareText, Plus, Settings, Shield, Trash2, Users } from "lucide-react";
 import { api } from "../api/client";
 
 export function AdminPage() {
   const [tab,setTab]=useState("matches");
-  const tabs=[["matches","Partidos",Shield],["users","Usuarios",Users],["points","Ajustes",Plus],["recalculate","Recálculo",Calculator],["settings","Configuración",Settings],["logs","Actividad",Activity]];
+  const tabs=[["matches","Partidos",Shield],["messages","Mensajes y encuestas",MessageSquareText],["users","Usuarios",Users],["points","Ajustes",Plus],["recalculate","Recálculo",Calculator],["settings","Configuración",Settings],["logs","Actividad",Activity]];
   return <div className="page"><section className="page-heading compact"><span className="eyebrow">CENTRO DE CONTROL</span><h1>Gestión de la porra</h1></section><div className="admin-tabs">{tabs.map(([id,label,Icon])=><button className={tab===id?"active":""} onClick={()=>setTab(id)} key={id}><Icon size={16}/>{label}</button>)}</div>
-    {tab==="matches"&&<AdminMatches/>}{tab==="users"&&<AdminUsers/>}{tab==="points"&&<AdminPoints/>}{tab==="recalculate"&&<AdminRecalculate/>}{tab==="settings"&&<AdminSettings/>}{tab==="logs"&&<AdminLogs/>}
+    {tab==="matches"&&<AdminMatches/>}{tab==="messages"&&<AdminMessages/>}{tab==="users"&&<AdminUsers/>}{tab==="points"&&<AdminPoints/>}{tab==="recalculate"&&<AdminRecalculate/>}{tab==="settings"&&<AdminSettings/>}{tab==="logs"&&<AdminLogs/>}
   </div>;
 }
 const Notice=({text})=>text?<div className="alert success">{text}</div>:null;
+
+function AdminMessages(){
+  const blank={type:"message",title:"",body:"",options:["",""]};
+  const [form,setForm]=useState(blank),[messages,setMessages]=useState([]),[notice,setNotice]=useState("");
+  const load=()=>api("/admin/admin-messages").then(setMessages);
+  useEffect(()=>{load()},[]);
+  const save=async e=>{
+    e.preventDefault();
+    await api("/admin/admin-messages",{method:"POST",body:form});
+    setForm(blank);setNotice(form.type==="poll"?"Encuesta publicada.":"Mensaje publicado.");load();
+  };
+  const remove=async message=>{
+    if(!window.confirm(`¿Eliminar "${message.title}"? También se borrarán todas sus respuestas.`))return;
+    await api(`/admin/admin-messages/${message.id}`,{method:"DELETE"});load();
+  };
+  const setOption=(index,value)=>setForm({...form,options:form.options.map((option,i)=>i===index?value:option)});
+  return <section className="admin-section"><Notice text={notice}/><form className="admin-form admin-message-form" onSubmit={save}>
+    <h3>Nuevo comunicado obligatorio</h3>
+    <div className="form-grid"><label>Tipo<select value={form.type} onChange={e=>setForm({...form,type:e.target.value})}><option value="message">Mensaje</option><option value="poll">Encuesta</option></select></label><label className="message-title-field">Título<input required maxLength={120} value={form.title} onChange={e=>setForm({...form,title:e.target.value})}/></label></div>
+    <label>Contenido<textarea required maxLength={2000} rows={4} value={form.body} onChange={e=>setForm({...form,body:e.target.value})}/></label>
+    {form.type==="poll"&&<div className="poll-options-editor"><strong>Botones de respuesta</strong>{form.options.map((option,index)=><div key={index}><input required placeholder={`Respuesta ${index+1}`} maxLength={80} value={option} onChange={e=>setOption(index,e.target.value)}/>{form.options.length>2&&<button type="button" className="danger" onClick={()=>setForm({...form,options:form.options.filter((_,i)=>i!==index)})}>Quitar</button>}</div>)}{form.options.length<10&&<button type="button" className="secondary" onClick={()=>setForm({...form,options:[...form.options,""]})}>Añadir respuesta</button>}</div>}
+    <button className="primary">Publicar ahora</button>
+  </form>
+  <div className="admin-message-list">{messages.length?messages.map(message=><article key={message.id}>
+    <header><div><span className="eyebrow">{message.type==="poll"?"ENCUESTA":"MENSAJE"}</span><h3>{message.title}</h3><p>{message.body}</p></div><button className="danger icon-delete" title="Eliminar" onClick={()=>remove(message)}><Trash2 size={16}/></button></header>
+    <div className="message-summary"><strong>{message.response_percentage}% completado</strong><span>{message.responded_count} de {message.total_users} usuarios</span><div><i style={{width:`${message.response_percentage}%`}}/></div></div>
+    {message.type==="poll"&&<div className="poll-results">{message.options.map(option=><details key={option.id}><summary><strong>{option.label}</strong><span>{option.count} · {option.percentage}%</span></summary><p>{option.users.length?option.users.map(user=>user.username).join(", "):"Nadie ha elegido esta respuesta."}</p></details>)}</div>}
+    <div className="message-user-groups"><details><summary>{message.type==="poll"?"Han respondido":"Han leído"} ({message.responded_users.length})</summary><p>{message.responded_users.length?message.responded_users.map(user=>user.username).join(", "):"Nadie todavía."}</p></details><details><summary>Pendientes ({message.pending_users.length})</summary><p>{message.pending_users.length?message.pending_users.map(user=>user.username).join(", "):"Todos han completado el comunicado."}</p></details></div>
+  </article>):<div className="admin-list-empty">Todavía no hay mensajes ni encuestas.</div>}</div>
+  </section>;
+}
 
 function AdminMatches(){
   const blank={match_date:"",match_time:"",stadium:"",team1:"",team2:"",auto_close_at:"",force_published:false};

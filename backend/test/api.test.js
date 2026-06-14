@@ -305,6 +305,38 @@ test("las notificaciones son privadas y requieren sesión", async () => {
   assert.ok(Array.isArray(response.body.notifications));
 });
 
+test("mensajes y encuestas de administración bloquean hasta responder y guardan estadísticas", async () => {
+  const admin = request.agent(app);
+  const user = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  await user.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
+
+  const created = await admin.post("/api/admin/admin-messages").send({
+    type: "poll",
+    title: "Encuesta de prueba",
+    body: "Elige una opción",
+    options: ["Sí", "No"]
+  });
+  assert.equal(created.status, 201);
+
+  const pending = await user.get("/api/admin-messages/pending");
+  assert.equal(pending.body.message.id, created.body.id);
+  assert.equal(pending.body.message.options.length, 2);
+
+  const answered = await user.post(`/api/admin-messages/${created.body.id}/respond`).send({
+    option_id: pending.body.message.options[0].id
+  });
+  assert.equal(answered.status, 200);
+  assert.notEqual((await user.get("/api/admin-messages/pending")).body.message?.id, created.body.id);
+
+  const stats = await admin.get("/api/admin/admin-messages");
+  const poll = stats.body.find((item) => item.id === created.body.id);
+  assert.equal(poll.responded_users.some((item) => item.username === "lucia"), true);
+  assert.equal(poll.options[0].users.some((item) => item.username === "lucia"), true);
+
+  assert.equal((await admin.delete(`/api/admin/admin-messages/${created.body.id}`)).status, 200);
+});
+
 test("un comentario nuevo notifica a los demás y enlaza a los comentarios", async () => {
   const author = request.agent(app);
   const recipient = request.agent(app);
