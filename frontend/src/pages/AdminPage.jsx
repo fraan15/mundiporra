@@ -44,14 +44,29 @@ function AdminMessages(){
 
 function AdminMatches(){
   const blank={match_date:"",match_time:"",stadium:"",team1:"",team2:"",auto_close_at:"",force_published:false,is_star:false};
+  const toLocalDateTime=value=>{
+    if(!value)return "";
+    const date=new Date(value);
+    const offset=date.getTimezoneOffset()*60000;
+    return new Date(date.getTime()-offset).toISOString().slice(0,16);
+  };
   const [matches,setMatches]=useState([]),[form,setForm]=useState(blank),[edit,setEdit]=useState(null),[notice,setNotice]=useState("");
   const [filter,setFilter]=useState("all"),[page,setPage]=useState(1),[pagination,setPagination]=useState({page:1,total:0,total_pages:1});
   const load=()=>api(`/admin/matches?${new URLSearchParams({filter,page:String(page),page_size:"10"})}`).then(data=>{setMatches(data.matches);setPagination(data.pagination);if(data.pagination.page!==page)setPage(data.pagination.page)});
   useEffect(()=>{load()},[filter,page]);
   const selectFilter=value=>{setFilter(value);setPage(1)};
-  const save=async e=>{e.preventDefault();await api(edit?`/matches/${edit}`:"/matches",{method:edit?"PUT":"POST",body:form});setForm(blank);setEdit(null);setNotice("Partido guardado.");setPage(1);load()};
-  const startEdit=m=>{setEdit(m.id);setForm({match_date:m.match_date,match_time:m.match_time,stadium:m.stadium,team1:m.team1,team2:m.team2,auto_close_at:m.auto_close_at.slice(0,16),force_published:Boolean(m.force_published),is_star:Boolean(m.is_star)})};
-  const status=async(id,value)=>{await api(`/matches/${id}/status`,{method:"PATCH",body:{status:value}});load()};
+  const save=async e=>{e.preventDefault();const body={...form,auto_close_at:form.auto_close_at?new Date(form.auto_close_at).toISOString():""};await api(edit?`/matches/${edit}`:"/matches",{method:edit?"PUT":"POST",body});setForm(blank);setEdit(null);setNotice("Partido guardado.");setPage(1);load()};
+  const startEdit=m=>{setEdit(m.id);setForm({match_date:m.match_date,match_time:m.match_time,stadium:m.stadium,team1:m.team1,team2:m.team2,auto_close_at:toLocalDateTime(m.auto_close_at),force_published:Boolean(m.force_published),is_star:Boolean(m.is_star)})};
+  const status=async(id,value)=>{
+    const body={status:value};
+    if(value==="open"){
+      const automatic=window.confirm("¿Quieres volver a activar el cierre automático?\n\nAceptar: se cerrará automáticamente en la fecha configurada.\nCancelar: permanecerá abierto hasta que lo cierres manualmente.");
+      body.reopen_mode=automatic?"automatic":"manual";
+    }
+    await api(`/matches/${id}/status`,{method:"PATCH",body});
+    setNotice(value==="open"?`Partido reabierto con cierre ${body.reopen_mode==="automatic"?"automático":"manual"}.`:"Partido cerrado manualmente.");
+    load();
+  };
   const finish=async m=>{const score=window.prompt(`Resultado ${m.team1}-${m.team2} (ej. 2-1)`);if(!score)return;const [a,b]=score.split("-").map(Number);await api(`/matches/${m.id}/finish`,{method:"POST",body:{result_team1:a,result_team2:b}});setNotice("Resultado guardado y puntos recalculados.");load()};
   const deleteResult=async m=>{if(!window.confirm(`¿Eliminar el resultado de ${m.team1} - ${m.team2}? Se quitarán los puntos obtenidos y el partido volverá a abrirse.`))return;await api(`/matches/${m.id}/result`,{method:"DELETE"});setNotice("Resultado eliminado y partido reabierto.");load()};
   const remove=async m=>{if(window.confirm(`¿Eliminar ${m.team1} - ${m.team2}?`)){await api(`/matches/${m.id}`,{method:"DELETE"});load()}};

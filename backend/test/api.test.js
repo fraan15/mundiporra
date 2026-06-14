@@ -49,6 +49,30 @@ test("login inicial y sesión", async () => {
   assert.equal(me.body.user.username, "administrador");
 });
 
+test("interpreta las horas de los partidos en Europe/Madrid", async () => {
+  const admin = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+
+  const created = await admin.post("/api/matches").send({
+    match_date: "2099-06-15",
+    match_time: "01:00",
+    team1: "Zona horaria",
+    team2: "Madrid"
+  });
+  assert.equal(created.status, 201);
+  assert.equal(created.body.auto_close_at, "2099-06-14T23:00:00.000Z");
+
+  const edited = await admin.put(`/api/matches/${created.body.id}`).send({
+    match_date: "2099-06-15",
+    match_time: "01:00",
+    auto_close_at: "2099-06-15T01:00",
+    team1: "Zona horaria",
+    team2: "Madrid"
+  });
+  assert.equal(edited.status, 200);
+  assert.equal(edited.body.auto_close_at, "2099-06-14T23:00:00.000Z");
+});
+
 test("rechaza credenciales incorrectas", async () => {
   const response = await request(app).post("/api/auth/login").send({ username: "administrador", password: "no" });
   assert.equal(response.status, 401);
@@ -314,6 +338,40 @@ test("el administrador puede eliminar un resultado y reabrir el partido", async 
   assert.equal(reset.exact_result_points, 0);
   assert.equal(reset.total_points, 0);
   assert.equal(reset.locked, 0);
+});
+
+test("al reabrir se puede elegir cierre automático o apertura manual", async () => {
+  const admin = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  const created = await admin.post("/api/matches").send({
+    match_date: "2099-06-15",
+    match_time: "01:00",
+    team1: "Reapertura",
+    team2: "Configurable",
+    force_published: true
+  });
+
+  await admin.patch(`/api/matches/${created.body.id}/status`).send({ status: "closed" });
+
+  const missingMode = await admin.patch(`/api/matches/${created.body.id}/status`).send({ status: "open" });
+  assert.equal(missingMode.status, 400);
+
+  const automatic = await admin.patch(`/api/matches/${created.body.id}/status`).send({
+    status: "open",
+    reopen_mode: "automatic"
+  });
+  assert.equal(automatic.status, 200);
+  assert.equal(automatic.body.status, "open");
+  assert.equal(automatic.body.close_reason, null);
+
+  await admin.patch(`/api/matches/${created.body.id}/status`).send({ status: "closed" });
+  const manual = await admin.patch(`/api/matches/${created.body.id}/status`).send({
+    status: "open",
+    reopen_mode: "manual"
+  });
+  assert.equal(manual.status, 200);
+  assert.equal(manual.body.status, "open");
+  assert.equal(manual.body.close_reason, "manual");
 });
 
 test("eliminar un resultado no reabre apuestas si ya pasó la hora de cierre", async () => {

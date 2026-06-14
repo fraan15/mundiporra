@@ -84,10 +84,31 @@ app.use("/api", (req, _res, next) => { if (!req.path.startsWith("/auth")) autoCl
 const avatarUrl = (user) => user?.avatar_filename ? `/avatars/${user.avatar_filename}` : null;
 const safeUser = (user) => user && ({ id: user.id, username: user.username, role: user.role, active: user.active, personal_phrase: user.personal_phrase || "", avatar_url: avatarUrl(user), created_at: user.created_at });
 const parseIntField = (value) => Number.isInteger(Number(value)) && Number(value) >= 0 ? Number(value) : null;
+const MATCH_TIME_ZONE = "Europe/Madrid";
+const madridDateTimeToIso = (value) => {
+  const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
+  if (!match) return new Date(value).toISOString();
+  const [, year, month, day, hour, minute, second = "00"] = match;
+  const target = Date.UTC(+year, +month - 1, +day, +hour, +minute, +second);
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: MATCH_TIME_ZONE,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+    hourCycle: "h23"
+  });
+  let instant = target;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const parts = Object.fromEntries(formatter.formatToParts(new Date(instant)).map(({ type, value: part }) => [type, part]));
+    const represented = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute, +parts.second);
+    instant += target - represented;
+  }
+  return new Date(instant).toISOString();
+};
+const normalizeMatchInstant = (value) => madridDateTimeToIso(String(value || "").trim());
 const matchPayload = (body, existing = {}) => {
   const date = body.match_date ?? existing.match_date;
   const time = body.match_time ?? existing.match_time;
-  const autoClose = body.auto_close_at || new Date(`${date}T${time}:00`).toISOString();
+  const autoClose = normalizeMatchInstant(body.auto_close_at || `${date}T${time}:00`);
   return {
     match_date: date, match_time: time, stadium: String(body.stadium ?? existing.stadium ?? "").trim(),
     team1: String(body.team1 ?? existing.team1 ?? "").trim(), team2: String(body.team2 ?? existing.team2 ?? "").trim(),
@@ -97,7 +118,7 @@ const matchPayload = (body, existing = {}) => {
   };
 };
 const predictionWinner = (g1, g2) => g1 === g2 ? "draw" : g1 > g2 ? "team1" : "team2";
-const matchStartsAt = (match) => new Date(`${match.match_date}T${match.match_time}:00`);
+const matchStartsAt = (match) => new Date(normalizeMatchInstant(`${match.match_date}T${match.match_time}:00`));
 const matchPublishesAt = (match) => new Date(matchStartsAt(match).getTime() - 24 * 60 * 60 * 1000);
 const isMatchPublished = (match, current = new Date()) => Boolean(match.force_published) || current >= matchPublishesAt(match);
 const canAccessMatch = (req, match) => req.user.role === "admin" || isMatchPublished(match);
@@ -513,11 +534,22 @@ app.patch("/api/matches/:id/status", requireAdmin, (req, res) => {
   const status = req.body.status;
   if (!before || !["open", "closed", "finished"].includes(status)) return res.status(400).json({ error: "Partido o estado no válido." });
   if (status === "finished" && (before.result_team1 === null || before.result_team2 === null)) return res.status(400).json({ error: "Introduce el resultado antes de finalizar." });
-  const closeReason = status === "closed" || status === "open" ? "manual" : before.close_reason;
+  const reopenMode = req.body.reopen_mode;
+  if (status === "open" && !["automatic", "manual"].includes(reopenMode)) {
+    return res.status(400).json({ error: "Indica si la reapertura mantiene el cierre automático o queda abierta manualmente." });
+  }
+  const closeReason = status === "closed"
+    ? "manual"
+    : status === "open"
+      ? reopenMode === "manual" ? "manual" : null
+      : before.close_reason;
   db.prepare("UPDATE matches SET status=?,close_reason=?,updated_at=? WHERE id=?").run(status, closeReason, now(), before.id);
   db.prepare("UPDATE predictions SET locked=?,updated_at=? WHERE match_id=?").run(status === "open" ? 0 : 1, now(), before.id);
   const after = db.prepare("SELECT * FROM matches WHERE id=?").get(before.id);
-  logAction(req.user.id, status === "closed" ? "close_match" : "edit_match", "match", before.id, `Estado cambiado a ${status}`, before, after);
+  const description = status === "open"
+    ? `Partido reabierto con cierre ${reopenMode === "automatic" ? "automático" : "manual"}`
+    : `Estado cambiado a ${status}`;
+  logAction(req.user.id, status === "closed" ? "close_match" : "edit_match", "match", before.id, description, before, after);
   if (status === "closed" && before.status !== "closed") {
     notifyAll({
       type: "match_closed",
