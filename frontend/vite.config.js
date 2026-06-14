@@ -5,7 +5,9 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    proxy: { "/api": { target: "http://localhost:3001", changeOrigin: true } }
+    proxy: {
+      "/api": { target: "http://localhost:3001", changeOrigin: true },
+      "/avatars": { target: "http://localhost:3001", changeOrigin: true }
+    }
   }
 });
-

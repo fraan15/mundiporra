@@ -10,6 +10,7 @@ import { AdminPage } from "./pages/AdminPage";
 import { MatchesPage } from "./pages/MatchesPage";
 import { ActivityPage, MatchDetailPage, ProfilePage, PublicProfilePage } from "./pages/SocialPages";
 import { ChatPage } from "./pages/ChatPage";
+import { Avatar } from "./components/Avatar";
 
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
@@ -102,7 +103,7 @@ function ProfileMenu() {
   };
   return <div className="profile-menu" ref={menuRef}>
     <button className="profile-shortcut" aria-expanded={open} aria-haspopup="menu" onClick={toggle}>
-      <span className="avatar">{user.username[0].toUpperCase()}</span>
+      <Avatar user={user}/>
       <span><strong>{user.username}</strong><small>{user.role === "admin" ? "Administrador" : "Participante"}</small></span>
       <ChevronDown className={open ? "open" : ""} size={15}/>
     </button>

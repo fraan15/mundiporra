@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import request from "supertest";
+import sharp from "sharp";
 import { app } from "../src/app.js";
 import { db } from "../src/db/database.js";
 
@@ -78,6 +79,50 @@ test("un usuario puede cambiar su propia contraseña", async () => {
   });
 });
 
+test("un usuario puede subir y eliminar una foto de perfil", async () => {
+  const agent = request.agent(app);
+  await agent.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
+  const image = await sharp({
+    create: { width: 800, height: 500, channels: 3, background: "#a91f32" }
+  }).png().toBuffer();
+
+  const uploaded = await agent.put("/api/profile/avatar").set("Content-Type", "image/png").send(image);
+  assert.equal(uploaded.status, 200);
+  assert.match(uploaded.body.avatar_url, /^\/avatars\/user-\d+-\d+\.webp$/);
+
+  const served = await agent.get(uploaded.body.avatar_url);
+  assert.equal(served.status, 200);
+  assert.equal(served.headers["content-type"], "image/webp");
+
+  const removed = await agent.delete("/api/profile/avatar");
+  assert.equal(removed.status, 200);
+  assert.equal(removed.body.avatar_url, null);
+});
+
+test("rechaza contenido que no sea una imagen válida", async () => {
+  const agent = request.agent(app);
+  await agent.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
+  const response = await agent.put("/api/profile/avatar").set("Content-Type", "image/png").send("no es una imagen");
+  assert.equal(response.status, 400);
+  assert.match(response.body.error, /dañado|incompleto|compatible/i);
+});
+
+test("explica por qué se rechazan tipos y dimensiones no válidos", async () => {
+  const agent = request.agent(app);
+  await agent.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
+
+  const wrongType = await agent.put("/api/profile/avatar").set("Content-Type", "application/pdf").send("pdf");
+  assert.equal(wrongType.status, 415);
+  assert.match(wrongType.body.error, /JPEG, PNG o WebP/);
+
+  const tinyImage = await sharp({
+    create: { width: 50, height: 50, channels: 3, background: "#a91f32" }
+  }).png().toBuffer();
+  const tooSmall = await agent.put("/api/profile/avatar").set("Content-Type", "image/png").send(tinyImage);
+  assert.equal(tooSmall.status, 400);
+  assert.match(tooSmall.body.error, /100 × 100/);
+});
+
 test("un usuario normal no accede a administración", async () => {
   const agent = request.agent(app);
   await agent.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
@@ -152,6 +197,50 @@ test("una predicción debe coincidir con el ganador del marcador", async () => {
     predicted_team2_goals: 1
   });
   assert.equal(response.status, 400);
+});
+
+test("un Partido Estrella duplica los puntos y deja trazabilidad x2", async () => {
+  const admin = request.agent(app);
+  const user = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  await user.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
+  const future = new Date(Date.now() + 48 * 60 * 60 * 1000);
+  const created = await admin.post("/api/matches").send({
+    match_date: future.toISOString().slice(0, 10),
+    match_time: future.toISOString().slice(11, 16),
+    team1: "Brasil",
+    team2: "Argentina",
+    force_published: true,
+    is_star: true
+  });
+  assert.equal(created.body.is_star, 1);
+
+  await user.post("/api/predictions").send({
+    match_id: created.body.id,
+    predicted_winner: "team1",
+    predicted_team1_goals: 2,
+    predicted_team2_goals: 1
+  });
+  await admin.post(`/api/matches/${created.body.id}/finish`).send({
+    result_team1: 2,
+    result_team2: 1
+  });
+
+  const predictions = await user.get("/api/predictions/me");
+  const scored = predictions.body.find((item) => item.match_id === created.body.id);
+  assert.equal(scored.winner_points, 6);
+  assert.equal(scored.exact_result_points, 10);
+  assert.equal(scored.total_points, 16);
+  assert.equal(scored.scoring_multiplier, 2);
+
+  const activity = await user.get("/api/activity?page_size=30");
+  const event = activity.body.items.find((item) => item.event_id === scored.id && item.type === "points");
+  assert.match(event.text, /Partido Estrella x2/);
+  assert.match(event.text, /8 ×2 = 16/);
+
+  const notifications = await user.get("/api/notifications");
+  const notification = notifications.body.notifications.find((item) => item.type === "points_earned" && item.entity_id === created.body.id);
+  assert.match(notification.message, /8 puntos base ×2/);
 });
 
 test("los partidos se publican 24 horas antes salvo publicación forzada", async () => {

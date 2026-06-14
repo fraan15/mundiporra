@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Medal, Target, Trophy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
+import { Avatar } from "../components/Avatar";
 
 export function LeaderboardPage() {
   const [rows,setRows]=useState([]),navigate=useNavigate();
@@ -9,7 +10,7 @@ export function LeaderboardPage() {
   return <div className="page"><section className="page-heading"><span className="eyebrow"><Trophy size={14}/> CLASIFICACIÓN GENERAL</span><h1>La carrera por la copa</h1><p>Ranking global y perfiles de cada participante.</p></section>
     <section className="ranking-block"><div className="ranking-heading"><div><span className="eyebrow">CLASIFICACIÓN GENERAL</span><h2>Podio del Mundial</h2></div><span>Acumulado total</span></div><div className="podium">{rows.slice(0,3).map((row,index)=><button onClick={()=>navigate(`/usuario/${row.id}`)} key={row.id} className={`podium-card place-${index+1}`}><span>{index===0?<LeaderCup/>:<Medal/>}</span><b>{["🥇","🥈","🥉"][index]} #{index+1}</b><strong>{row.username}</strong><em>{row.total_points} pts</em></button>)}</div></section>
     <div className="export-actions"><button onClick={()=>exportRows(rows,"csv")}>Exportar CSV</button><button onClick={()=>exportRows(rows,"excel")}>Exportar Excel</button></div>
-    <div className="table-card"><table><thead><tr><th>Pos.</th><th>Participante</th><th>Total</th><th>Ganador</th><th>Exacto</th><th>Ajustes</th><th>Pronósticos</th><th>Aciertos</th></tr></thead><tbody>{rows.map((row,index)=><tr key={row.id}><td><b><Position index={index} total={rows.length}/></b></td><td className="clickable-user" onClick={()=>navigate(`/usuario/${row.id}`)}><span className="mini-avatar">{row.username[0].toUpperCase()}</span><strong>{row.username}</strong>{row.personal_phrase&&<small>{row.personal_phrase}</small>}</td><td><strong className="points">{row.total_points}</strong></td><td>{row.winner_points}</td><td>{row.exact_result_points}</td><td className={row.adjustments<0?"negative":""}>{row.adjustments>0?"+":""}{row.adjustments}</td><td>{row.predicted_matches}</td><td><span className="hit"><Target size={14}/>{row.winner_hits} / {row.exact_hits}</span></td></tr>)}</tbody></table></div>
+    <div className="table-card"><table><thead><tr><th>Pos.</th><th>Participante</th><th>Total</th><th>Ganador</th><th>Exacto</th><th>Ajustes</th><th>Pronósticos</th><th>Aciertos</th></tr></thead><tbody>{rows.map((row,index)=><tr key={row.id}><td><b><Position index={index} total={rows.length}/></b></td><td className="clickable-user" onClick={()=>navigate(`/usuario/${row.id}`)}><Avatar user={row} className="mini-avatar"/><strong>{row.username}</strong>{row.personal_phrase&&<small>{row.personal_phrase}</small>}</td><td><strong className="points">{row.total_points}</strong></td><td>{row.winner_points}</td><td>{row.exact_result_points}</td><td className={row.adjustments<0?"negative":""}>{row.adjustments>0?"+":""}{row.adjustments}</td><td>{row.predicted_matches}</td><td><span className="hit"><Target size={14}/>{row.winner_hits} / {row.exact_hits}</span></td></tr>)}</tbody></table></div>
   </div>;
 }
 

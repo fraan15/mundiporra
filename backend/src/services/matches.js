@@ -52,16 +52,19 @@ export function recalculateMatch(matchId) {
   const config = settings();
   const winnerPoints = Number(config.winner_points || 3);
   const exactPoints = Number(config.exact_result_points || 5);
+  const multiplier = match.is_star ? 2 : 1;
   const predictions = db.prepare("SELECT * FROM predictions WHERE match_id=?").all(matchId);
   const update = db.prepare(`
-    UPDATE predictions SET winner_points=?, exact_result_points=?, total_points=?, locked=1, updated_at=? WHERE id=?
+    UPDATE predictions SET winner_points=?, exact_result_points=?, total_points=?, scoring_multiplier=?, locked=1, updated_at=? WHERE id=?
   `);
   const transaction = db.transaction(() => {
     for (const prediction of predictions) {
-      const wp = prediction.predicted_winner === match.winner ? winnerPoints : 0;
-      const ep = prediction.predicted_team1_goals === match.result_team1 &&
+      const baseWinnerPoints = prediction.predicted_winner === match.winner ? winnerPoints : 0;
+      const baseExactPoints = prediction.predicted_team1_goals === match.result_team1 &&
         prediction.predicted_team2_goals === match.result_team2 ? exactPoints : 0;
-      update.run(wp, ep, wp + ep, now(), prediction.id);
+      const wp = baseWinnerPoints * multiplier;
+      const ep = baseExactPoints * multiplier;
+      update.run(wp, ep, wp + ep, multiplier, now(), prediction.id);
     }
   });
   transaction();

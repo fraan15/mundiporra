@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { CornerUpLeft, MessageCircle, Send, X } from "lucide-react";
 import { api } from "../api/client";
 import { useAuth } from "../App";
+import { Avatar } from "../components/Avatar";
 
 export function ChatPage() {
   const { user } = useAuth();
@@ -54,7 +55,7 @@ export function ChatPage() {
     <section className="chat-card">
       <div className="chat-stream">
         {messages.length ? messages.map(message => <article className={`chat-message ${message.user_id === user.id ? "mine" : ""}`} key={message.id}>
-          <span className="chat-avatar">{message.username[0].toUpperCase()}</span>
+          <Avatar user={message} className="chat-avatar"/>
           <div className="chat-bubble">
             <header><strong>{message.username}</strong><time>{new Date(message.created_at).toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" })}</time></header>
             {message.reply_to_id && <blockquote><b>{message.reply_username}</b><span>{message.reply_message}</span></blockquote>}

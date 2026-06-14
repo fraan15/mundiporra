@@ -15,7 +15,7 @@ const flags = {
   "Sudáfrica":"🇿🇦","Suecia":"🇸🇪","Suiza":"🇨🇭","Surinam":"🇸🇷","Túnez":"🇹🇳",
   "Turquía":"🇹🇷","Ucrania":"🇺🇦","Uruguay":"🇺🇾","Uzbekistán":"🇺🇿","Venezuela":"🇻🇪"
 };
-export const Flag = ({ team }) => <span className="real-flag" aria-label={team}>{flags[team] || "⚽"}</span>;
+export const Flag = ({ team }) => <span className="real-flag" aria-label={team}>{flags[team] || "🏴"}</span>;
 
 export function MiniChart({ data = [], field = "points", inverse = false }) {
   const values = data.map((item) => Number(item[field]) || 0);

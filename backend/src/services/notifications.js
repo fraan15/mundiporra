@@ -1,7 +1,8 @@
 import { db, now } from "../db/database.js";
 
 export const leaderboardRows = () => db.prepare(`
-  SELECT u.id,u.username,u.personal_phrase,
+  SELECT u.id,u.username,u.personal_phrase,u.avatar_filename,
+    CASE WHEN u.avatar_filename IS NULL THEN NULL ELSE '/avatars/' || u.avatar_filename END avatar_url,
     COALESCE(SUM(p.total_points),0)+COALESCE(adj.adjustments,0) total_points,
     COALESCE(SUM(p.winner_points),0) winner_points,
     COALESCE(SUM(p.exact_result_points),0) exact_result_points,

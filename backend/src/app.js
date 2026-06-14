@@ -4,6 +4,7 @@ import session from "express-session";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import sharp from "sharp";
 import { db, initDatabase, logAction, now, settings } from "./db/database.js";
 import { hydrateUser, requireAdmin, requireAuth } from "./middleware/auth.js";
 import { autoCloseExpired, calculateWinner, effectiveCloseAt, isExpired, recalculateAll, recalculateMatch } from "./services/matches.js";
@@ -12,6 +13,8 @@ import { createNotification, leaderboardRows, notifyAll, notifyAllExcept, notify
 initDatabase();
 const here = path.dirname(fileURLToPath(import.meta.url));
 const frontendDist = path.resolve(here, "../../frontend/dist");
+const avatarsDir = path.resolve(here, "../data/avatars");
+fs.mkdirSync(avatarsDir, { recursive: true });
 
 class SQLiteSessionStore extends session.Store {
   get(sid, callback) {
@@ -55,6 +58,7 @@ app.use(cors((req, callback) => {
     origin: originAllowed
   });
 }));
+app.use("/avatars", express.static(avatarsDir, { immutable: true, maxAge: "1y", fallthrough: false }));
 app.use(express.json());
 app.use((req, _res, next) => {
   const forwarded = req.get("x-forwarded-for")?.split(",")[0]?.trim();
@@ -77,7 +81,8 @@ app.use(session({
 app.use(hydrateUser);
 app.use("/api", (req, _res, next) => { if (!req.path.startsWith("/auth")) autoCloseExpired(); next(); });
 
-const safeUser = (user) => user && ({ id: user.id, username: user.username, role: user.role, active: user.active, personal_phrase: user.personal_phrase || "", created_at: user.created_at });
+const avatarUrl = (user) => user?.avatar_filename ? `/avatars/${user.avatar_filename}` : null;
+const safeUser = (user) => user && ({ id: user.id, username: user.username, role: user.role, active: user.active, personal_phrase: user.personal_phrase || "", avatar_url: avatarUrl(user), created_at: user.created_at });
 const parseIntField = (value) => Number.isInteger(Number(value)) && Number(value) >= 0 ? Number(value) : null;
 const matchPayload = (body, existing = {}) => {
   const date = body.match_date ?? existing.match_date;
@@ -87,7 +92,8 @@ const matchPayload = (body, existing = {}) => {
     match_date: date, match_time: time, stadium: String(body.stadium ?? existing.stadium ?? "").trim(),
     team1: String(body.team1 ?? existing.team1 ?? "").trim(), team2: String(body.team2 ?? existing.team2 ?? "").trim(),
     auto_close_at: autoClose,
-    force_published: body.force_published === undefined ? Number(existing.force_published || 0) : body.force_published ? 1 : 0
+    force_published: body.force_published === undefined ? Number(existing.force_published || 0) : body.force_published ? 1 : 0,
+    is_star: body.is_star === undefined ? Number(existing.is_star || 0) : body.is_star ? 1 : 0
   };
 };
 const predictionWinner = (g1, g2) => g1 === g2 ? "draw" : g1 > g2 ? "team1" : "team2";
@@ -245,12 +251,78 @@ app.get("/api/dashboard", requireAuth, (req, res) => {
 
 app.get("/api/profile/me", requireAuth, (req, res) => res.json({
   user: safeUser(db.prepare("SELECT * FROM users WHERE id=?").get(req.user.id)),
-  stats: userStats(req.user.id),
+  stats: userStats(req.user.id) || {
+    position: "—", total_points: 0, predicted_matches: 0, winner_hits: 0, exact_hits: 0,
+    average_points: 0, winner_percentage: 0, exact_percentage: 0, best_day: null,
+    worst_day: null, most_picked_team: "—", best_team: "—", daily: [], badges: []
+  },
   history: db.prepare("SELECT snapshot_date date,position,points FROM ranking_snapshots WHERE user_id=? ORDER BY snapshot_date").all(req.user.id)
 }));
 app.patch("/api/profile/me", requireAuth, (req, res) => {
   const phrase = String(req.body.personal_phrase || "").trim().slice(0, 120);
   db.prepare("UPDATE users SET personal_phrase=?,updated_at=? WHERE id=?").run(phrase, now(), req.user.id);
+  res.json(safeUser(db.prepare("SELECT * FROM users WHERE id=?").get(req.user.id)));
+});
+app.put(
+  "/api/profile/avatar",
+  requireAuth,
+  express.raw({ type: "*/*", limit: "5mb" }),
+  async (req, res, next) => {
+    try {
+      const contentType = String(req.get("content-type") || "").split(";")[0].toLowerCase();
+      const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+      if (!allowedTypes.has(contentType)) {
+        return res.status(415).json({
+          error: `Tipo de archivo no válido (${contentType || "desconocido"}). Usa una imagen JPEG, PNG o WebP.`
+        });
+      }
+      if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+        return res.status(400).json({ error: "El archivo está vacío. Selecciona una imagen JPEG, PNG o WebP." });
+      }
+      const image = sharp(req.body, { failOn: "warning", limitInputPixels: 40_000_000 });
+      const metadata = await image.metadata();
+      if (!["jpeg", "png", "webp"].includes(metadata.format)) {
+        return res.status(415).json({ error: "El contenido del archivo no corresponde a una imagen JPEG, PNG o WebP válida." });
+      }
+      if (!metadata.width || !metadata.height) {
+        return res.status(400).json({ error: "No se han podido leer las dimensiones de la imagen." });
+      }
+      if (metadata.width < 100 || metadata.height < 100) {
+        return res.status(400).json({ error: "La imagen es demasiado pequeña. Debe medir al menos 100 × 100 píxeles." });
+      }
+      if (metadata.width * metadata.height > 40_000_000) {
+        return res.status(400).json({ error: "La imagen tiene demasiada resolución. El máximo permitido es de 40 megapíxeles." });
+      }
+      if ((metadata.pages || 1) > 1) {
+        return res.status(400).json({ error: "No se permiten imágenes animadas. Selecciona una imagen estática." });
+      }
+      const filename = `user-${req.user.id}-${Date.now()}.webp`;
+      await image.rotate().resize(400, 400, { fit: "cover", position: "attention" }).webp({ quality: 82 })
+        .toFile(path.join(avatarsDir, filename));
+
+      const current = db.prepare("SELECT avatar_filename FROM users WHERE id=?").get(req.user.id);
+      db.prepare("UPDATE users SET avatar_filename=?,updated_at=? WHERE id=?").run(filename, now(), req.user.id);
+      if (current?.avatar_filename && current.avatar_filename !== filename) {
+        fs.rm(path.join(avatarsDir, path.basename(current.avatar_filename)), { force: true }, () => {});
+      }
+      res.json(safeUser(db.prepare("SELECT * FROM users WHERE id=?").get(req.user.id)));
+    } catch (error) {
+      if (error?.name === "InputBufferError" || error?.message?.includes("unsupported image format")) {
+        return res.status(400).json({ error: "El archivo está dañado, incompleto o no contiene una imagen compatible." });
+      }
+      if (error?.message?.includes("Input image exceeds pixel limit")) {
+        return res.status(400).json({ error: "La imagen tiene demasiada resolución. El máximo permitido es de 40 megapíxeles." });
+      }
+      next(error);
+    }
+  }
+);
+app.delete("/api/profile/avatar", requireAuth, (req, res) => {
+  const current = db.prepare("SELECT avatar_filename FROM users WHERE id=?").get(req.user.id);
+  db.prepare("UPDATE users SET avatar_filename=NULL,updated_at=? WHERE id=?").run(now(), req.user.id);
+  if (current?.avatar_filename) {
+    fs.rm(path.join(avatarsDir, path.basename(current.avatar_filename)), { force: true }, () => {});
+  }
   res.json(safeUser(db.prepare("SELECT * FROM users WHERE id=?").get(req.user.id)));
 });
 app.patch("/api/profile/password", requireAuth, (req, res) => {
@@ -265,14 +337,14 @@ app.patch("/api/profile/password", requireAuth, (req, res) => {
 });
 app.get("/api/users/:id/public", requireAuth, (req, res) => {
   saveRankingSnapshot();
-  const user = db.prepare("SELECT id,username,role,personal_phrase,created_at FROM users WHERE id=? AND active=1").get(req.params.id);
+  const user = db.prepare("SELECT id,username,role,personal_phrase,avatar_filename,created_at FROM users WHERE id=? AND active=1").get(req.params.id);
   if (!user) return res.status(404).json({ error: "Usuario no encontrado." });
   const predictions = db.prepare(`
     SELECT p.*,m.team1,m.team2,m.match_date,m.status,m.result_team1,m.result_team2
     FROM predictions p JOIN matches m ON m.id=p.match_id
     WHERE p.user_id=? AND (m.status!='open' OR m.auto_close_at<=?) ORDER BY m.match_date DESC,m.match_time DESC
   `).all(user.id, now());
-  res.json({ user, stats: userStats(user.id), predictions, history: db.prepare("SELECT snapshot_date date,position,points FROM ranking_snapshots WHERE user_id=? ORDER BY snapshot_date").all(user.id) });
+  res.json({ user: { ...user, avatar_url: avatarUrl(user) }, stats: userStats(user.id), predictions, history: db.prepare("SELECT snapshot_date date,position,points FROM ranking_snapshots WHERE user_id=? ORDER BY snapshot_date").all(user.id) });
 });
 
 app.get("/api/activity", requireAuth, (req, res) => {
@@ -281,13 +353,13 @@ app.get("/api/activity", requireAuth, (req, res) => {
   const items = db.prepare(`
     SELECT * FROM (
       SELECT 'prediction' type,u.username,m.team1,m.team2,NULL total_points,
-        p.created_at,NULL exact_result_points,p.id event_id
+        p.created_at,NULL exact_result_points,p.id event_id,m.is_star,1 scoring_multiplier
       FROM predictions p
       JOIN users u ON u.id=p.user_id
       JOIN matches m ON m.id=p.match_id
       UNION ALL
       SELECT 'points' type,u.username,m.team1,m.team2,p.total_points,
-        p.updated_at created_at,p.exact_result_points,p.id event_id
+        p.updated_at created_at,p.exact_result_points,p.id event_id,m.is_star,p.scoring_multiplier
       FROM predictions p
       JOIN users u ON u.id=p.user_id
       JOIN matches m ON m.id=p.match_id
@@ -298,7 +370,7 @@ app.get("/api/activity", requireAuth, (req, res) => {
   `).all().map((item) => ({
     ...item,
     text: item.type === "points"
-      ? (item.exact_result_points > 0 ? `${item.username} acertó un resultado exacto` : `${item.username} consiguió ${item.total_points} puntos`)
+      ? `${item.username} ${item.exact_result_points > 0 ? "acertó un resultado exacto" : `consiguió ${item.total_points} puntos`}${item.is_star ? ` en un Partido Estrella x2 (${item.total_points / item.scoring_multiplier} ×${item.scoring_multiplier} = ${item.total_points})` : ""}`
       : `${item.username} registró un pronóstico en ${item.team1} - ${item.team2}`
   }));
   const start = (page - 1) * pageSize;
@@ -307,7 +379,7 @@ app.get("/api/activity", requireAuth, (req, res) => {
 
 app.get("/api/chat", requireAuth, (_req, res) => {
   const messages = db.prepare(`
-    SELECT c.id,c.message,c.created_at,c.reply_to_id,u.id user_id,u.username,
+    SELECT c.id,c.message,c.created_at,c.reply_to_id,u.id user_id,u.username,u.avatar_filename,
       parent.message reply_message,parent_user.username reply_username
     FROM chat_messages c
     JOIN users u ON u.id=c.user_id
@@ -315,7 +387,7 @@ app.get("/api/chat", requireAuth, (_req, res) => {
     LEFT JOIN users parent_user ON parent_user.id=parent.user_id
     ORDER BY c.created_at DESC,c.id DESC LIMIT 30
   `).all();
-  res.json(messages.reverse());
+  res.json(messages.reverse().map((message) => ({ ...message, avatar_url: avatarUrl(message) })));
 });
 app.post("/api/chat", requireAuth, (req, res) => {
   const message = String(req.body.message || "").trim().slice(0, 500);
@@ -367,10 +439,11 @@ app.get("/api/matches/:id/detail", requireAuth, (req, res) => {
 app.get("/api/matches/:id/comments", requireAuth, (req, res) => {
   const match = db.prepare("SELECT * FROM matches WHERE id=?").get(req.params.id);
   if (!match || !canAccessMatch(req, match)) return res.status(404).json({ error: "Partido no encontrado." });
-  res.json(db.prepare(`
-    SELECT c.*,u.username,u.role FROM match_comments c JOIN users u ON u.id=c.user_id
+  const comments = db.prepare(`
+    SELECT c.*,u.username,u.role,u.avatar_filename FROM match_comments c JOIN users u ON u.id=c.user_id
     WHERE c.match_id=? ORDER BY c.created_at DESC
-  `).all(req.params.id));
+  `).all(req.params.id);
+  res.json(comments.map((comment) => ({ ...comment, avatar_url: avatarUrl(comment) })));
 });
 app.post("/api/matches/:id/comments", requireAuth, (req, res) => {
   const comment = String(req.body.comment || "").trim().slice(0, 500);
@@ -405,8 +478,8 @@ app.post("/api/matches", requireAdmin, (req, res) => {
   const data = matchPayload(req.body);
   if (!data.match_date || !data.match_time || !data.team1 || !data.team2) return res.status(400).json({ error: "Fecha, hora y equipos son obligatorios." });
   const stamp = now();
-  const result = db.prepare(`INSERT INTO matches(match_date,match_time,stadium,team1,team2,status,auto_close_at,force_published,created_at,updated_at) VALUES(?,?,?,?,?,'open',?,?,?,?)`)
-    .run(data.match_date, data.match_time, data.stadium, data.team1, data.team2, data.auto_close_at, data.force_published, stamp, stamp);
+  const result = db.prepare(`INSERT INTO matches(match_date,match_time,stadium,team1,team2,status,auto_close_at,force_published,is_star,created_at,updated_at) VALUES(?,?,?,?,?,'open',?,?,?,?,?)`)
+    .run(data.match_date, data.match_time, data.stadium, data.team1, data.team2, data.auto_close_at, data.force_published, data.is_star, stamp, stamp);
   const created = db.prepare("SELECT * FROM matches WHERE id=?").get(result.lastInsertRowid);
   logAction(req.user.id, "create_match", "match", created.id, "Partido creado", null, created);
   res.status(201).json(serializeMatch(created));
@@ -416,8 +489,12 @@ app.put("/api/matches/:id", requireAdmin, (req, res) => {
   const before = db.prepare("SELECT * FROM matches WHERE id=?").get(req.params.id);
   if (!before) return res.status(404).json({ error: "Partido no encontrado." });
   const data = matchPayload(req.body, before);
-  db.prepare("UPDATE matches SET match_date=?,match_time=?,stadium=?,team1=?,team2=?,auto_close_at=?,force_published=?,updated_at=? WHERE id=?")
-    .run(data.match_date, data.match_time, data.stadium, data.team1, data.team2, data.auto_close_at, data.force_published, now(), before.id);
+  db.prepare("UPDATE matches SET match_date=?,match_time=?,stadium=?,team1=?,team2=?,auto_close_at=?,force_published=?,is_star=?,updated_at=? WHERE id=?")
+    .run(data.match_date, data.match_time, data.stadium, data.team1, data.team2, data.auto_close_at, data.force_published, data.is_star, now(), before.id);
+  if (before.status === "finished" && Number(before.is_star) !== data.is_star) {
+    recalculateMatch(before.id);
+    saveRankingSnapshot();
+  }
   const after = db.prepare("SELECT * FROM matches WHERE id=?").get(before.id);
   logAction(req.user.id, "edit_match", "match", before.id, "Partido editado", before, after);
   res.json(serializeMatch(after));
@@ -476,7 +553,7 @@ app.delete("/api/matches/:id/result", requireAdmin, (req, res) => {
     `).run(nextStatus, closeReason, stamp, before.id);
     db.prepare(`
       UPDATE predictions
-      SET winner_points=0,exact_result_points=0,total_points=0,locked=?,updated_at=?
+      SET winner_points=0,exact_result_points=0,total_points=0,scoring_multiplier=1,locked=?,updated_at=?
       WHERE match_id=?
     `).run(locked, stamp, before.id);
   })();
@@ -507,22 +584,24 @@ app.post("/api/matches/:id/finish", requireAdmin, (req, res) => {
   notifyAll({
     type: "result_published",
     title: "Resultado publicado",
-    message: `${before.team1} ${g1} - ${g2} ${before.team2}.`,
+    message: `${before.team1} ${g1} - ${g2} ${before.team2}.${before.is_star ? " Partido Estrella x2." : ""}`,
     entityType: "match",
     entityId: before.id,
     link: "/",
     eventKey: `result:${before.id}:${g1}-${g2}`
   });
-  db.prepare("SELECT user_id,total_points FROM predictions WHERE match_id=? AND total_points>0").all(before.id)
+  db.prepare("SELECT user_id,total_points,scoring_multiplier FROM predictions WHERE match_id=? AND total_points>0").all(before.id)
     .forEach((prediction) => createNotification({
       userId: prediction.user_id,
       type: "points_earned",
       title: "Has sumado puntos",
-      message: `Has conseguido ${prediction.total_points} puntos en ${before.team1} - ${before.team2}.`,
+      message: before.is_star
+        ? `Has conseguido ${prediction.total_points} puntos en ${before.team1} - ${before.team2}: ${prediction.total_points / prediction.scoring_multiplier} puntos base ×${prediction.scoring_multiplier} por ser Partido Estrella.`
+        : `Has conseguido ${prediction.total_points} puntos en ${before.team1} - ${before.team2}.`,
       entityType: "match",
       entityId: before.id,
       link: "/clasificacion",
-      eventKey: `points:${before.id}:${g1}-${g2}:${prediction.total_points}`
+      eventKey: `points:${before.id}:${g1}-${g2}:${prediction.total_points}:x${prediction.scoring_multiplier}`
     }));
   notifyNewTopThree(leaderboardBefore, `result:${before.id}:${g1}-${g2}`);
   res.json(serializeMatch(after));
@@ -886,6 +965,9 @@ if (fs.existsSync(path.join(frontendDist, "index.html"))) {
 }
 
 app.use((error, _req, res, _next) => {
+  if (error?.type === "entity.too.large") {
+    return res.status(413).json({ error: "La imagen no puede superar los 5 MB." });
+  }
   console.error(error);
   res.status(500).json({ error: "Error interno del servidor." });
 });

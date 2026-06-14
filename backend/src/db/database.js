@@ -38,6 +38,7 @@ export function initDatabase() {
       winner TEXT CHECK(winner IN ('team1','team2','draw') OR winner IS NULL),
       auto_close_at TEXT NOT NULL,
       force_published INTEGER NOT NULL DEFAULT 0 CHECK(force_published IN (0,1)),
+      is_star INTEGER NOT NULL DEFAULT 0 CHECK(is_star IN (0,1)),
       close_reason TEXT CHECK(close_reason IN ('manual','automatic') OR close_reason IS NULL),
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
@@ -52,6 +53,7 @@ export function initDatabase() {
       winner_points INTEGER NOT NULL DEFAULT 0,
       exact_result_points INTEGER NOT NULL DEFAULT 0,
       total_points INTEGER NOT NULL DEFAULT 0,
+      scoring_multiplier INTEGER NOT NULL DEFAULT 1,
       locked INTEGER NOT NULL DEFAULT 0 CHECK(locked IN (0,1)),
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
@@ -162,8 +164,12 @@ export function initDatabase() {
   `);
   const userColumns = db.prepare("PRAGMA table_info(users)").all().map((column) => column.name);
   if (!userColumns.includes("personal_phrase")) db.exec("ALTER TABLE users ADD COLUMN personal_phrase TEXT NOT NULL DEFAULT ''");
+  if (!userColumns.includes("avatar_filename")) db.exec("ALTER TABLE users ADD COLUMN avatar_filename TEXT");
   const matchColumns = db.prepare("PRAGMA table_info(matches)").all().map((column) => column.name);
   if (!matchColumns.includes("force_published")) db.exec("ALTER TABLE matches ADD COLUMN force_published INTEGER NOT NULL DEFAULT 0 CHECK(force_published IN (0,1))");
+  if (!matchColumns.includes("is_star")) db.exec("ALTER TABLE matches ADD COLUMN is_star INTEGER NOT NULL DEFAULT 0 CHECK(is_star IN (0,1))");
+  const predictionColumns = db.prepare("PRAGMA table_info(predictions)").all().map((column) => column.name);
+  if (!predictionColumns.includes("scoring_multiplier")) db.exec("ALTER TABLE predictions ADD COLUMN scoring_multiplier INTEGER NOT NULL DEFAULT 1");
   const notificationsSql = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='notifications'").get()?.sql || "";
   if (!notificationsSql.includes("'match_comment'")) {
     db.exec(`
