@@ -122,6 +122,34 @@ function ProfileMenu() {
     </div>}
   </div>;
 }
+function TodayMatchesTicker({ fallback }) {
+  const [matches, setMatches] = useState([]);
+  useEffect(() => {
+    let active = true;
+    const load = () => api("/matches").then(data => {
+      if (!active) return;
+      const today = new Date().toLocaleDateString("sv-SE");
+      setMatches(data
+        .filter(match => match.match_date === today && match.result_team1 === null && match.result_team2 === null)
+        .sort((a, b) => a.match_time.localeCompare(b.match_time)));
+    }).catch(() => {});
+    load();
+    const timer = setInterval(load, 30000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, []);
+
+  if (!matches.length) return <small>{fallback}</small>;
+  const items = matches.map(match => `${match.team1} - ${match.team2} ${match.match_time}`);
+  const group = (key) => <span className="today-matches-group" aria-hidden={key === "copy"} key={key}>
+    {items.map((text, index) => <span className="today-match-item" key={`${key}-${index}`}>{text}</span>)}
+  </span>;
+  return <small className="today-matches-ticker" aria-label={`Partidos de hoy: ${items.join(", ")}`}>
+    <span className="today-matches-track" style={{ "--ticker-duration": `${Math.max(18, items.length * 11)}s` }}>{group("main")}{group("copy")}</span>
+  </small>;
+}
 function MainLayout() {
   const { user, settings } = useAuth();
   const location = useLocation();
@@ -166,8 +194,8 @@ function MainLayout() {
     </div>}
     <header className="topbar">
       <button className="brand" onClick={() => navigate("/")}>
-        <span className="brand-mark"><Trophy size={20}/></span>
-        <span><strong>MundiPorra</strong><small>{settings.pool_name || "La porra oficial de tu Mundial"}</small></span>
+        <span className="brand-mark"><img src="/images/iconomundial.png" alt="" /></span>
+        <span className="brand-copy"><strong>MundiPorra</strong><TodayMatchesTicker fallback={settings.pool_name || "MUNDIPORRA"}/></span>
       </button>
       <div className="user-area"><button className="icon-btn" title="Cambiar tema" onClick={()=>setTheme(theme==="dark"?"light":"dark")}>{theme==="dark"?<Sun size={18}/>:<Moon size={18}/>}</button><NotificationsBell/><ProfileMenu/></div>
     </header>
