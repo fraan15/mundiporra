@@ -6,10 +6,12 @@ export const leaderboardRows = () => db.prepare(`
     COALESCE(SUM(p.total_points),0)+COALESCE(adj.adjustments,0) total_points,
     COALESCE(SUM(p.winner_points),0) winner_points,
     COALESCE(SUM(p.exact_result_points),0) exact_result_points,
+    COALESCE(SUM(p.scorer_points),0) scorer_points,
     COALESCE(adj.adjustments,0) adjustments,
     COUNT(p.id) predicted_matches,
     COALESCE(SUM(CASE WHEN p.winner_points>0 THEN 1 ELSE 0 END),0) winner_hits,
     COALESCE(SUM(CASE WHEN p.exact_result_points>0 THEN 1 ELSE 0 END),0) exact_hits
+    ,COALESCE(SUM(CASE WHEN p.scorer_points>0 THEN 1 ELSE 0 END),0) scorer_hits
   FROM users u LEFT JOIN predictions p ON p.user_id=u.id
   LEFT JOIN (SELECT user_id,SUM(points) adjustments FROM points_adjustments GROUP BY user_id) adj ON adj.user_id=u.id
   WHERE u.active=1 AND u.role='user'

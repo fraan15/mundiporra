@@ -4,6 +4,8 @@ import { api } from "../api/client";
 import { useNavigate } from "react-router-dom";
 import { Flag } from "./SportsUI";
 import { StarMatchTitle, StarPoints } from "./StarMatchTitle";
+import { SearchSelect } from "./SearchSelect";
+import { NO_SCORER, NO_SCORER_ID } from "../constants/scorers";
 
 const statusLabel = (match) => match.status === "finished" ? "Finalizado" : match.in_play ? "En juego" : match.status === "closed" ? (match.close_reason === "automatic" ? "Cierre automático" : "Cerrado") : "Abierto";
 
@@ -16,11 +18,27 @@ export function MatchCard({ match, onSaved }) {
   const [message, setMessage] = useState("");
   const [reveal, setReveal] = useState(null);
   const [expanded, setExpanded] = useState(false);
-  useEffect(() => { setWinner(match.predicted_winner || ""); setG1(match.predicted_team1_goals ?? ""); setG2(match.predicted_team2_goals ?? ""); }, [match]);
+  const [players,setPlayers]=useState([]),[scorerId,setScorerId]=useState(match.predicted_scorer_id||null);
+  useEffect(() => {
+    setWinner(match.predicted_winner || ""); setG1(match.predicted_team1_goals ?? ""); setG2(match.predicted_team2_goals ?? "");
+    setScorerId(match.predicted_scorer_id||null);
+  }, [match]);
+  useEffect(() => {
+    if (g1 === "" || g2 === "") return;
+    const team1Goals = Number(g1), team2Goals = Number(g2);
+    if (!Number.isFinite(team1Goals) || !Number.isFinite(team2Goals) || team1Goals < 0 || team2Goals < 0) return;
+    setWinner(team1Goals === team2Goals ? "draw" : team1Goals > team2Goals ? "team1" : "team2");
+  }, [g1, g2]);
+  useEffect(()=>{const codes=[match.team1_team?.fifa_code,match.team2_team?.fifa_code].filter(Boolean);if(match.scorer_enabled&&codes.length===2)api(`/players?team_fifa_codes=${codes.join(",")}`).then(setPlayers)},[match.id,match.scorer_enabled,match.team1_team?.fifa_code,match.team2_team?.fifa_code]);
+  const isNilNil=Number(g1)+Number(g2)===0;
+  const scoringTeamCodes=[Number(g1)>0&&match.team1_team?.fifa_code,Number(g2)>0&&match.team2_team?.fifa_code].filter(Boolean);
+  const availableScorers=isNilNil?[NO_SCORER]:players.filter(player=>scoringTeamCodes.includes(player.team_fifa_code));
+  useEffect(()=>{if(match.scorer_enabled&&g1!==""&&g2!==""&&isNilNil&&scorerId!==NO_SCORER_ID)setScorerId(NO_SCORER_ID)},[g1,g2,isNilNil,match.scorer_enabled,scorerId]);
+  useEffect(()=>{if(players.length&&scorerId&&scorerId!==NO_SCORER_ID&&!availableScorers.some(player=>String(player.id)===String(scorerId)))setScorerId(null)},[g1,g2,players.length,scorerId]);
   const save = async () => {
     setSaving(true); setMessage("");
     try {
-      const body = { match_id: match.id, predicted_winner: winner, predicted_team1_goals: Number(g1), predicted_team2_goals: Number(g2) };
+      const body = { match_id: match.id, predicted_winner: winner, predicted_team1_goals: Number(g1), predicted_team2_goals: Number(g2), predicted_scorer_id:isNilNil?NO_SCORER_ID:scorerId };
       await api(match.prediction_id ? `/predictions/${match.prediction_id}` : "/predictions", { method: match.prediction_id ? "PUT" : "POST", body });
       setMessage("Predicción guardada"); onSaved();
     } catch (error) { setMessage(error.message); } finally { setSaving(false); }
@@ -54,11 +72,12 @@ export function MatchCard({ match, onSaved }) {
       </div>
       <span className="section-label score-label">2. MARCADOR FINAL</span>
       <div className="score-picker"><div><small>{match.team1}</small><span><button onClick={()=>adjust(setG1,g1,-1)}><Minus/></button><input aria-label={`Goles de ${match.team1}`} inputMode="numeric" type="number" min="0" value={g1} onChange={e=>setG1(e.target.value)}/><button onClick={()=>adjust(setG1,g1,1)}><Plus/></button></span></div><b>:</b><div><small>{match.team2}</small><span><button onClick={()=>adjust(setG2,g2,-1)}><Minus/></button><input aria-label={`Goles de ${match.team2}`} inputMode="numeric" type="number" min="0" value={g2} onChange={e=>setG2(e.target.value)}/><button onClick={()=>adjust(setG2,g2,1)}><Plus/></button></span></div></div>
-      <button className="primary save-prediction" onClick={save} disabled={saving || winner==="" || g1==="" || g2===""}><Save size={17}/>{saving?"Guardando...":match.prediction_id?"Guardar cambios":"Guardar resultado"}</button>
+      {match.scorer_enabled&&<div className="scorer-pick"><span className="section-label">3. GOLEADOR DEL PARTIDO</span><SearchSelect items={availableScorers} value={scorerId} onChange={player=>setScorerId(player?.id||null)} placeholder={isNilNil?"Sin goleador":"Buscar jugador..."} label="Goleador del partido" renderItem={player=><><strong>{player.name}</strong><small>{player.team_name} · {player.position}</small></>}/></div>}
+      <button className="primary save-prediction" onClick={save} disabled={saving || winner==="" || g1==="" || g2==="" || (match.scorer_enabled&&Number(g1)+Number(g2)>0&&!scorerId)}><Save size={17}/>{saving?"Guardando...":match.prediction_id?"Guardar cambios":"Guardar resultado"}</button>
       {message && <small className={message.includes("guardada")?"success-text":"error-text"}>{message}</small>}
-    </div> : <div className="locked-prediction"><span>Tu apuesta</span><strong>{match.predicted_winner ? `${match.team1} ${match.predicted_team1_goals} – ${match.predicted_team2_goals} ${match.team2}` : "Sin predicción"}</strong>{match.status==="finished" && <b><StarPoints match={match} points={match.total_points}/></b>}</div>}
+    </div> : <div className="locked-prediction"><span>Tu apuesta</span><strong>{match.predicted_winner ? `${match.team1} ${match.predicted_team1_goals} – ${match.predicted_team2_goals} ${match.team2}` : "Sin predicción"}</strong>{match.predicted_scorer&&<small>Goleador: {match.predicted_scorer.name}</small>}{match.status==="finished" && <b><StarPoints match={match} points={match.total_points}/></b>}</div>}
     <button className="reveal-toggle" onClick={toggleReveal}><span><Users size={16}/>{match.prediction_count} participantes</span><span>{match.betting_open ? "Apuestas ocultas hasta el cierre" : "Ver apuestas"}<ChevronDown className={expanded?"rotated":""} size={16}/></span></button>
-    {expanded && reveal && <div className="reveal-list">{!reveal.revealed ? reveal.participants?.length ? reveal.participants.map(p=><div key={p.id}><strong>{p.username}</strong><span><ShieldCheck size={14}/> Participando</span></div>) : <p>Aún no hay participantes.</p> : reveal.predictions.length ? reveal.predictions.map(p=><div key={p.id}><strong>{p.username}</strong><span>{match.team1} {p.predicted_team1_goals} – {p.predicted_team2_goals} {match.team2}</span>{match.status==="finished"&&<b>{p.total_points} pts</b>}</div>) : <p>Aún no hay apuestas.</p>}</div>}
+    {expanded && reveal && <div className="reveal-list">{!reveal.revealed ? <p>{reveal.count ? `${reveal.count} pronóstico${reveal.count===1?"":"s"} registrado${reveal.count===1?"":"s"}. Se revelarán al cierre.` : "Aún no hay participantes."}</p> : reveal.predictions.length ? reveal.predictions.map(p=><div key={p.id}><strong>{p.username}</strong><span>{match.team1} {p.predicted_team1_goals} – {p.predicted_team2_goals} {match.team2}</span>{match.status==="finished"&&<b>{p.total_points} pts</b>}</div>) : <p>Aún no hay apuestas.</p>}</div>}
     <button className="match-detail-link" onClick={()=>navigate(`/match/${match.id}`)}><span>Ver detalles del partido<small>Estadísticas, participantes y comentarios</small></span><ChevronRight size={20}/></button>
   </article>;
 }

@@ -1,0 +1,3338 @@
+{
+  "name": "World Cup 2026",
+  "language": "es",
+  "display_timezone": "Europe/Madrid",
+  "generated_from": "worldcup.json",
+  "source_url": null,
+  "synced_at": "2026-06-15T21:38:03.384Z",
+  "matches": [
+    {
+      "reference_id": 1,
+      "round": "Matchday 1",
+      "group": "Group A",
+      "match_date": "2026-06-11",
+      "match_time": "21:00",
+      "starts_at": "2026-06-11T19:00:00.000Z",
+      "team1": {
+        "source_name": "Mexico",
+        "fifa_code": "MEX",
+        "name_es": "México"
+      },
+      "team2": {
+        "source_name": "South Africa",
+        "fifa_code": "RSA",
+        "name_es": "Sudáfrica"
+      },
+      "stadium": {
+        "name": "Estadio Azteca",
+        "city": "Mexico City"
+      },
+      "score": {
+        "ft": [
+          2,
+          0
+        ],
+        "ht": [
+          1,
+          0
+        ]
+      },
+      "goals1": [
+        {
+          "name": "Julián Quiñones",
+          "minute": "9"
+        },
+        {
+          "name": "Raúl Jiménez",
+          "minute": "67"
+        }
+      ],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-11",
+        "time": "13:00 UTC-6"
+      }
+    },
+    {
+      "reference_id": 2,
+      "round": "Matchday 1",
+      "group": "Group A",
+      "match_date": "2026-06-12",
+      "match_time": "04:00",
+      "starts_at": "2026-06-12T02:00:00.000Z",
+      "team1": {
+        "source_name": "South Korea",
+        "fifa_code": "KOR",
+        "name_es": "Corea del Sur"
+      },
+      "team2": {
+        "source_name": "Czech Republic",
+        "fifa_code": "CZE",
+        "name_es": "República Checa"
+      },
+      "stadium": {
+        "name": "Estadio Akron",
+        "city": "Guadalajara (Zapopan)"
+      },
+      "score": {
+        "ft": [
+          2,
+          1
+        ],
+        "ht": [
+          0,
+          0
+        ]
+      },
+      "goals1": [
+        {
+          "name": "Hwang In-Beom",
+          "minute": "67"
+        },
+        {
+          "name": "Oh Hyeon-Gyu",
+          "minute": "80"
+        }
+      ],
+      "goals2": [
+        {
+          "name": "Ladislav Krejcí",
+          "minute": "59"
+        }
+      ],
+      "source": {
+        "date": "2026-06-11",
+        "time": "20:00 UTC-6"
+      }
+    },
+    {
+      "reference_id": 3,
+      "round": "Matchday 8",
+      "group": "Group A",
+      "match_date": "2026-06-18",
+      "match_time": "18:00",
+      "starts_at": "2026-06-18T16:00:00.000Z",
+      "team1": {
+        "source_name": "Czech Republic",
+        "fifa_code": "CZE",
+        "name_es": "República Checa"
+      },
+      "team2": {
+        "source_name": "South Africa",
+        "fifa_code": "RSA",
+        "name_es": "Sudáfrica"
+      },
+      "stadium": {
+        "name": "Mercedes-Benz Stadium",
+        "city": "Atlanta"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-18",
+        "time": "12:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 4,
+      "round": "Matchday 8",
+      "group": "Group A",
+      "match_date": "2026-06-19",
+      "match_time": "03:00",
+      "starts_at": "2026-06-19T01:00:00.000Z",
+      "team1": {
+        "source_name": "Mexico",
+        "fifa_code": "MEX",
+        "name_es": "México"
+      },
+      "team2": {
+        "source_name": "South Korea",
+        "fifa_code": "KOR",
+        "name_es": "Corea del Sur"
+      },
+      "stadium": {
+        "name": "Estadio Akron",
+        "city": "Guadalajara (Zapopan)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-18",
+        "time": "19:00 UTC-6"
+      }
+    },
+    {
+      "reference_id": 5,
+      "round": "Matchday 14",
+      "group": "Group A",
+      "match_date": "2026-06-25",
+      "match_time": "03:00",
+      "starts_at": "2026-06-25T01:00:00.000Z",
+      "team1": {
+        "source_name": "Czech Republic",
+        "fifa_code": "CZE",
+        "name_es": "República Checa"
+      },
+      "team2": {
+        "source_name": "Mexico",
+        "fifa_code": "MEX",
+        "name_es": "México"
+      },
+      "stadium": {
+        "name": "Estadio Azteca",
+        "city": "Mexico City"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-24",
+        "time": "19:00 UTC-6"
+      }
+    },
+    {
+      "reference_id": 6,
+      "round": "Matchday 14",
+      "group": "Group A",
+      "match_date": "2026-06-25",
+      "match_time": "03:00",
+      "starts_at": "2026-06-25T01:00:00.000Z",
+      "team1": {
+        "source_name": "South Africa",
+        "fifa_code": "RSA",
+        "name_es": "Sudáfrica"
+      },
+      "team2": {
+        "source_name": "South Korea",
+        "fifa_code": "KOR",
+        "name_es": "Corea del Sur"
+      },
+      "stadium": {
+        "name": "Estadio BBVA",
+        "city": "Monterrey (Guadalupe)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-24",
+        "time": "19:00 UTC-6"
+      }
+    },
+    {
+      "reference_id": 7,
+      "round": "Matchday 2",
+      "group": "Group B",
+      "match_date": "2026-06-12",
+      "match_time": "21:00",
+      "starts_at": "2026-06-12T19:00:00.000Z",
+      "team1": {
+        "source_name": "Canada",
+        "fifa_code": "CAN",
+        "name_es": "Canadá"
+      },
+      "team2": {
+        "source_name": "Bosnia & Herzegovina",
+        "fifa_code": "BIH",
+        "name_es": "Bosnia y Herzegovina"
+      },
+      "stadium": {
+        "name": "BMO Field",
+        "city": "Toronto"
+      },
+      "score": {
+        "ft": [
+          1,
+          1
+        ],
+        "ht": [
+          0,
+          1
+        ]
+      },
+      "goals1": [
+        {
+          "name": "Cyle Larin",
+          "minute": "78"
+        }
+      ],
+      "goals2": [
+        {
+          "name": "Jovo Lukić",
+          "minute": "21"
+        }
+      ],
+      "source": {
+        "date": "2026-06-12",
+        "time": "15:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 8,
+      "round": "Matchday 3",
+      "group": "Group B",
+      "match_date": "2026-06-13",
+      "match_time": "21:00",
+      "starts_at": "2026-06-13T19:00:00.000Z",
+      "team1": {
+        "source_name": "Qatar",
+        "fifa_code": "QAT",
+        "name_es": "Catar"
+      },
+      "team2": {
+        "source_name": "Switzerland",
+        "fifa_code": "SUI",
+        "name_es": "Suiza"
+      },
+      "stadium": {
+        "name": "Levi's Stadium",
+        "city": "San Francisco Bay Area (Santa Clara)"
+      },
+      "score": {
+        "ft": [
+          1,
+          1
+        ],
+        "ht": [
+          0,
+          1
+        ]
+      },
+      "goals1": [
+        {
+          "name": "Boualem Khoukhi",
+          "minute": "90+4"
+        }
+      ],
+      "goals2": [
+        {
+          "name": "Breel Embolo",
+          "minute": "17",
+          "penalty": true
+        }
+      ],
+      "source": {
+        "date": "2026-06-13",
+        "time": "12:00 UTC-7"
+      }
+    },
+    {
+      "reference_id": 9,
+      "round": "Matchday 8",
+      "group": "Group B",
+      "match_date": "2026-06-18",
+      "match_time": "21:00",
+      "starts_at": "2026-06-18T19:00:00.000Z",
+      "team1": {
+        "source_name": "Switzerland",
+        "fifa_code": "SUI",
+        "name_es": "Suiza"
+      },
+      "team2": {
+        "source_name": "Bosnia & Herzegovina",
+        "fifa_code": "BIH",
+        "name_es": "Bosnia y Herzegovina"
+      },
+      "stadium": {
+        "name": "SoFi Stadium",
+        "city": "Los Angeles (Inglewood)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-18",
+        "time": "12:00 UTC-7"
+      }
+    },
+    {
+      "reference_id": 10,
+      "round": "Matchday 8",
+      "group": "Group B",
+      "match_date": "2026-06-19",
+      "match_time": "00:00",
+      "starts_at": "2026-06-18T22:00:00.000Z",
+      "team1": {
+        "source_name": "Canada",
+        "fifa_code": "CAN",
+        "name_es": "Canadá"
+      },
+      "team2": {
+        "source_name": "Qatar",
+        "fifa_code": "QAT",
+        "name_es": "Catar"
+      },
+      "stadium": {
+        "name": "BC Place",
+        "city": "Vancouver"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-18",
+        "time": "15:00 UTC-7"
+      }
+    },
+    {
+      "reference_id": 11,
+      "round": "Matchday 14",
+      "group": "Group B",
+      "match_date": "2026-06-24",
+      "match_time": "21:00",
+      "starts_at": "2026-06-24T19:00:00.000Z",
+      "team1": {
+        "source_name": "Switzerland",
+        "fifa_code": "SUI",
+        "name_es": "Suiza"
+      },
+      "team2": {
+        "source_name": "Canada",
+        "fifa_code": "CAN",
+        "name_es": "Canadá"
+      },
+      "stadium": {
+        "name": "BC Place",
+        "city": "Vancouver"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-24",
+        "time": "12:00 UTC-7"
+      }
+    },
+    {
+      "reference_id": 12,
+      "round": "Matchday 14",
+      "group": "Group B",
+      "match_date": "2026-06-24",
+      "match_time": "21:00",
+      "starts_at": "2026-06-24T19:00:00.000Z",
+      "team1": {
+        "source_name": "Bosnia & Herzegovina",
+        "fifa_code": "BIH",
+        "name_es": "Bosnia y Herzegovina"
+      },
+      "team2": {
+        "source_name": "Qatar",
+        "fifa_code": "QAT",
+        "name_es": "Catar"
+      },
+      "stadium": {
+        "name": "Lumen Field",
+        "city": "Seattle"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-24",
+        "time": "12:00 UTC-7"
+      }
+    },
+    {
+      "reference_id": 13,
+      "round": "Matchday 3",
+      "group": "Group C",
+      "match_date": "2026-06-14",
+      "match_time": "00:00",
+      "starts_at": "2026-06-13T22:00:00.000Z",
+      "team1": {
+        "source_name": "Brazil",
+        "fifa_code": "BRA",
+        "name_es": "Brasil"
+      },
+      "team2": {
+        "source_name": "Morocco",
+        "fifa_code": "MAR",
+        "name_es": "Marruecos"
+      },
+      "stadium": {
+        "name": "MetLife Stadium",
+        "city": "New York/New Jersey (East Rutherford)"
+      },
+      "score": {
+        "ft": [
+          1,
+          1
+        ],
+        "ht": [
+          1,
+          1
+        ]
+      },
+      "goals1": [
+        {
+          "name": "Vinícius Júnior",
+          "minute": "32"
+        }
+      ],
+      "goals2": [
+        {
+          "name": "Ismael Saibari",
+          "minute": "21"
+        }
+      ],
+      "source": {
+        "date": "2026-06-13",
+        "time": "18:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 14,
+      "round": "Matchday 3",
+      "group": "Group C",
+      "match_date": "2026-06-14",
+      "match_time": "03:00",
+      "starts_at": "2026-06-14T01:00:00.000Z",
+      "team1": {
+        "source_name": "Haiti",
+        "fifa_code": "HAI",
+        "name_es": "Haití"
+      },
+      "team2": {
+        "source_name": "Scotland",
+        "fifa_code": "SCO",
+        "name_es": "Escocia"
+      },
+      "stadium": {
+        "name": "Gillette Stadium",
+        "city": "Boston (Foxborough)"
+      },
+      "score": {
+        "ft": [
+          0,
+          1
+        ],
+        "ht": [
+          0,
+          1
+        ]
+      },
+      "goals1": [],
+      "goals2": [
+        {
+          "name": "John McGinn",
+          "minute": "28"
+        }
+      ],
+      "source": {
+        "date": "2026-06-13",
+        "time": "21:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 15,
+      "round": "Matchday 9",
+      "group": "Group C",
+      "match_date": "2026-06-20",
+      "match_time": "00:00",
+      "starts_at": "2026-06-19T22:00:00.000Z",
+      "team1": {
+        "source_name": "Scotland",
+        "fifa_code": "SCO",
+        "name_es": "Escocia"
+      },
+      "team2": {
+        "source_name": "Morocco",
+        "fifa_code": "MAR",
+        "name_es": "Marruecos"
+      },
+      "stadium": {
+        "name": "Gillette Stadium",
+        "city": "Boston (Foxborough)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-19",
+        "time": "18:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 16,
+      "round": "Matchday 9",
+      "group": "Group C",
+      "match_date": "2026-06-20",
+      "match_time": "02:30",
+      "starts_at": "2026-06-20T00:30:00.000Z",
+      "team1": {
+        "source_name": "Brazil",
+        "fifa_code": "BRA",
+        "name_es": "Brasil"
+      },
+      "team2": {
+        "source_name": "Haiti",
+        "fifa_code": "HAI",
+        "name_es": "Haití"
+      },
+      "stadium": {
+        "name": "Lincoln Financial Field",
+        "city": "Philadelphia"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-19",
+        "time": "20:30 UTC-4"
+      }
+    },
+    {
+      "reference_id": 17,
+      "round": "Matchday 14",
+      "group": "Group C",
+      "match_date": "2026-06-25",
+      "match_time": "00:00",
+      "starts_at": "2026-06-24T22:00:00.000Z",
+      "team1": {
+        "source_name": "Scotland",
+        "fifa_code": "SCO",
+        "name_es": "Escocia"
+      },
+      "team2": {
+        "source_name": "Brazil",
+        "fifa_code": "BRA",
+        "name_es": "Brasil"
+      },
+      "stadium": {
+        "name": "Hard Rock Stadium",
+        "city": "Miami (Miami Gardens)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-24",
+        "time": "18:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 18,
+      "round": "Matchday 14",
+      "group": "Group C",
+      "match_date": "2026-06-25",
+      "match_time": "00:00",
+      "starts_at": "2026-06-24T22:00:00.000Z",
+      "team1": {
+        "source_name": "Morocco",
+        "fifa_code": "MAR",
+        "name_es": "Marruecos"
+      },
+      "team2": {
+        "source_name": "Haiti",
+        "fifa_code": "HAI",
+        "name_es": "Haití"
+      },
+      "stadium": {
+        "name": "Mercedes-Benz Stadium",
+        "city": "Atlanta"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-24",
+        "time": "18:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 19,
+      "round": "Matchday 2",
+      "group": "Group D",
+      "match_date": "2026-06-13",
+      "match_time": "03:00",
+      "starts_at": "2026-06-13T01:00:00.000Z",
+      "team1": {
+        "source_name": "USA",
+        "fifa_code": "USA",
+        "name_es": "Estados Unidos"
+      },
+      "team2": {
+        "source_name": "Paraguay",
+        "fifa_code": "PAR",
+        "name_es": "Paraguay"
+      },
+      "stadium": {
+        "name": "SoFi Stadium",
+        "city": "Los Angeles (Inglewood)"
+      },
+      "score": {
+        "ft": [
+          4,
+          1
+        ],
+        "ht": [
+          3,
+          0
+        ]
+      },
+      "goals1": [
+        {
+          "name": "Damian Bobadilla",
+          "minute": "7",
+          "owngoal": true
+        },
+        {
+          "name": "Folarin Balogun",
+          "minute": "31"
+        },
+        {
+          "name": "Folarin Balogun",
+          "minute": "45+5"
+        },
+        {
+          "name": "Giovanni Reyna",
+          "minute": "90+8"
+        }
+      ],
+      "goals2": [
+        {
+          "name": "Mauricio",
+          "minute": "73"
+        }
+      ],
+      "source": {
+        "date": "2026-06-12",
+        "time": "18:00 UTC-7"
+      }
+    },
+    {
+      "reference_id": 20,
+      "round": "Matchday 3",
+      "group": "Group D",
+      "match_date": "2026-06-14",
+      "match_time": "06:00",
+      "starts_at": "2026-06-14T04:00:00.000Z",
+      "team1": {
+        "source_name": "Australia",
+        "fifa_code": "AUS",
+        "name_es": "Australia"
+      },
+      "team2": {
+        "source_name": "Turkey",
+        "fifa_code": "TUR",
+        "name_es": "Turquía"
+      },
+      "stadium": {
+        "name": "BC Place",
+        "city": "Vancouver"
+      },
+      "score": {
+        "ft": [
+          2,
+          0
+        ],
+        "ht": [
+          1,
+          0
+        ]
+      },
+      "goals1": [
+        {
+          "name": "Nestory Irankunda",
+          "minute": "27"
+        },
+        {
+          "name": "Connor Metcalfe",
+          "minute": "75"
+        }
+      ],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-13",
+        "time": "21:00 UTC-7"
+      }
+    },
+    {
+      "reference_id": 21,
+      "round": "Matchday 9",
+      "group": "Group D",
+      "match_date": "2026-06-19",
+      "match_time": "21:00",
+      "starts_at": "2026-06-19T19:00:00.000Z",
+      "team1": {
+        "source_name": "USA",
+        "fifa_code": "USA",
+        "name_es": "Estados Unidos"
+      },
+      "team2": {
+        "source_name": "Australia",
+        "fifa_code": "AUS",
+        "name_es": "Australia"
+      },
+      "stadium": {
+        "name": "Lumen Field",
+        "city": "Seattle"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-19",
+        "time": "12:00 UTC-7"
+      }
+    },
+    {
+      "reference_id": 22,
+      "round": "Matchday 9",
+      "group": "Group D",
+      "match_date": "2026-06-20",
+      "match_time": "05:00",
+      "starts_at": "2026-06-20T03:00:00.000Z",
+      "team1": {
+        "source_name": "Turkey",
+        "fifa_code": "TUR",
+        "name_es": "Turquía"
+      },
+      "team2": {
+        "source_name": "Paraguay",
+        "fifa_code": "PAR",
+        "name_es": "Paraguay"
+      },
+      "stadium": {
+        "name": "Levi's Stadium",
+        "city": "San Francisco Bay Area (Santa Clara)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-19",
+        "time": "20:00 UTC-7"
+      }
+    },
+    {
+      "reference_id": 23,
+      "round": "Matchday 15",
+      "group": "Group D",
+      "match_date": "2026-06-26",
+      "match_time": "04:00",
+      "starts_at": "2026-06-26T02:00:00.000Z",
+      "team1": {
+        "source_name": "Turkey",
+        "fifa_code": "TUR",
+        "name_es": "Turquía"
+      },
+      "team2": {
+        "source_name": "USA",
+        "fifa_code": "USA",
+        "name_es": "Estados Unidos"
+      },
+      "stadium": {
+        "name": "SoFi Stadium",
+        "city": "Los Angeles (Inglewood)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-25",
+        "time": "19:00 UTC-7"
+      }
+    },
+    {
+      "reference_id": 24,
+      "round": "Matchday 15",
+      "group": "Group D",
+      "match_date": "2026-06-26",
+      "match_time": "04:00",
+      "starts_at": "2026-06-26T02:00:00.000Z",
+      "team1": {
+        "source_name": "Paraguay",
+        "fifa_code": "PAR",
+        "name_es": "Paraguay"
+      },
+      "team2": {
+        "source_name": "Australia",
+        "fifa_code": "AUS",
+        "name_es": "Australia"
+      },
+      "stadium": {
+        "name": "Levi's Stadium",
+        "city": "San Francisco Bay Area (Santa Clara)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-25",
+        "time": "19:00 UTC-7"
+      }
+    },
+    {
+      "reference_id": 25,
+      "round": "Matchday 4",
+      "group": "Group E",
+      "match_date": "2026-06-14",
+      "match_time": "19:00",
+      "starts_at": "2026-06-14T17:00:00.000Z",
+      "team1": {
+        "source_name": "Germany",
+        "fifa_code": "GER",
+        "name_es": "Alemania"
+      },
+      "team2": {
+        "source_name": "Curaçao",
+        "fifa_code": "CUW",
+        "name_es": "Curazao"
+      },
+      "stadium": {
+        "name": "NRG Stadium",
+        "city": "Houston"
+      },
+      "score": {
+        "ft": [
+          7,
+          1
+        ],
+        "ht": [
+          3,
+          1
+        ]
+      },
+      "goals1": [
+        {
+          "name": "Felix Nmecha",
+          "minute": "6"
+        },
+        {
+          "name": "Nico Schlotterbeck",
+          "minute": "38"
+        },
+        {
+          "name": "Kai Havertz",
+          "minute": "45+5",
+          "penalty": true
+        },
+        {
+          "name": "Kai Havertz",
+          "minute": "88"
+        },
+        {
+          "name": "Jamal Musiala",
+          "minute": "47"
+        },
+        {
+          "name": "Nathaniel Brown",
+          "minute": "68"
+        },
+        {
+          "name": "Deniz Undav",
+          "minute": "78"
+        }
+      ],
+      "goals2": [
+        {
+          "name": "Livano Comenencia",
+          "minute": "21"
+        }
+      ],
+      "source": {
+        "date": "2026-06-14",
+        "time": "12:00 UTC-5"
+      }
+    },
+    {
+      "reference_id": 26,
+      "round": "Matchday 4",
+      "group": "Group E",
+      "match_date": "2026-06-15",
+      "match_time": "01:00",
+      "starts_at": "2026-06-14T23:00:00.000Z",
+      "team1": {
+        "source_name": "Ivory Coast",
+        "fifa_code": "CIV",
+        "name_es": "Costa de Marfil"
+      },
+      "team2": {
+        "source_name": "Ecuador",
+        "fifa_code": "ECU",
+        "name_es": "Ecuador"
+      },
+      "stadium": {
+        "name": "Lincoln Financial Field",
+        "city": "Philadelphia"
+      },
+      "score": {
+        "ft": [
+          1,
+          0
+        ],
+        "ht": [
+          0,
+          0
+        ]
+      },
+      "goals1": [
+        {
+          "name": "Amad Diallo",
+          "minute": "90"
+        }
+      ],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-14",
+        "time": "19:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 27,
+      "round": "Matchday 10",
+      "group": "Group E",
+      "match_date": "2026-06-20",
+      "match_time": "22:00",
+      "starts_at": "2026-06-20T20:00:00.000Z",
+      "team1": {
+        "source_name": "Germany",
+        "fifa_code": "GER",
+        "name_es": "Alemania"
+      },
+      "team2": {
+        "source_name": "Ivory Coast",
+        "fifa_code": "CIV",
+        "name_es": "Costa de Marfil"
+      },
+      "stadium": {
+        "name": "BMO Field",
+        "city": "Toronto"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-20",
+        "time": "16:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 28,
+      "round": "Matchday 10",
+      "group": "Group E",
+      "match_date": "2026-06-21",
+      "match_time": "02:00",
+      "starts_at": "2026-06-21T00:00:00.000Z",
+      "team1": {
+        "source_name": "Ecuador",
+        "fifa_code": "ECU",
+        "name_es": "Ecuador"
+      },
+      "team2": {
+        "source_name": "Curaçao",
+        "fifa_code": "CUW",
+        "name_es": "Curazao"
+      },
+      "stadium": {
+        "name": "Arrowhead Stadium",
+        "city": "Kansas City"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-20",
+        "time": "19:00 UTC-5"
+      }
+    },
+    {
+      "reference_id": 29,
+      "round": "Matchday 15",
+      "group": "Group E",
+      "match_date": "2026-06-25",
+      "match_time": "22:00",
+      "starts_at": "2026-06-25T20:00:00.000Z",
+      "team1": {
+        "source_name": "Curaçao",
+        "fifa_code": "CUW",
+        "name_es": "Curazao"
+      },
+      "team2": {
+        "source_name": "Ivory Coast",
+        "fifa_code": "CIV",
+        "name_es": "Costa de Marfil"
+      },
+      "stadium": {
+        "name": "Lincoln Financial Field",
+        "city": "Philadelphia"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-25",
+        "time": "16:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 30,
+      "round": "Matchday 15",
+      "group": "Group E",
+      "match_date": "2026-06-25",
+      "match_time": "22:00",
+      "starts_at": "2026-06-25T20:00:00.000Z",
+      "team1": {
+        "source_name": "Ecuador",
+        "fifa_code": "ECU",
+        "name_es": "Ecuador"
+      },
+      "team2": {
+        "source_name": "Germany",
+        "fifa_code": "GER",
+        "name_es": "Alemania"
+      },
+      "stadium": {
+        "name": "MetLife Stadium",
+        "city": "New York/New Jersey (East Rutherford)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-25",
+        "time": "16:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 31,
+      "round": "Matchday 4",
+      "group": "Group F",
+      "match_date": "2026-06-14",
+      "match_time": "22:00",
+      "starts_at": "2026-06-14T20:00:00.000Z",
+      "team1": {
+        "source_name": "Netherlands",
+        "fifa_code": "NED",
+        "name_es": "Países Bajos"
+      },
+      "team2": {
+        "source_name": "Japan",
+        "fifa_code": "JPN",
+        "name_es": "Japón"
+      },
+      "stadium": {
+        "name": "AT&T Stadium",
+        "city": "Dallas (Arlington)"
+      },
+      "score": {
+        "ft": [
+          2,
+          2
+        ],
+        "ht": [
+          0,
+          0
+        ]
+      },
+      "goals1": [
+        {
+          "name": "Virgil van Dijk",
+          "minute": "51"
+        },
+        {
+          "name": "Crysencio Summerville",
+          "minute": "64"
+        }
+      ],
+      "goals2": [
+        {
+          "name": "Keito Nakamura",
+          "minute": "57"
+        },
+        {
+          "name": "Daichi Kamada",
+          "minute": "88"
+        }
+      ],
+      "source": {
+        "date": "2026-06-14",
+        "time": "15:00 UTC-5"
+      }
+    },
+    {
+      "reference_id": 32,
+      "round": "Matchday 4",
+      "group": "Group F",
+      "match_date": "2026-06-15",
+      "match_time": "04:00",
+      "starts_at": "2026-06-15T02:00:00.000Z",
+      "team1": {
+        "source_name": "Sweden",
+        "fifa_code": "SWE",
+        "name_es": "Suecia"
+      },
+      "team2": {
+        "source_name": "Tunisia",
+        "fifa_code": "TUN",
+        "name_es": "Túnez"
+      },
+      "stadium": {
+        "name": "Estadio BBVA",
+        "city": "Monterrey (Guadalupe)"
+      },
+      "score": {
+        "ft": [
+          5,
+          1
+        ],
+        "ht": [
+          2,
+          1
+        ]
+      },
+      "goals1": [
+        {
+          "name": "Yasin Ayari",
+          "minute": "7"
+        },
+        {
+          "name": "Alexander Isak",
+          "minute": "30"
+        },
+        {
+          "name": "Viktor Gyökeres",
+          "minute": "59"
+        },
+        {
+          "name": "Mattias Svanberg",
+          "minute": "84"
+        },
+        {
+          "name": "Yasin Ayari",
+          "minute": "90+6"
+        }
+      ],
+      "goals2": [
+        {
+          "name": "Omar Rekik",
+          "minute": "43"
+        }
+      ],
+      "source": {
+        "date": "2026-06-14",
+        "time": "20:00 UTC-6"
+      }
+    },
+    {
+      "reference_id": 33,
+      "round": "Matchday 10",
+      "group": "Group F",
+      "match_date": "2026-06-20",
+      "match_time": "19:00",
+      "starts_at": "2026-06-20T17:00:00.000Z",
+      "team1": {
+        "source_name": "Netherlands",
+        "fifa_code": "NED",
+        "name_es": "Países Bajos"
+      },
+      "team2": {
+        "source_name": "Sweden",
+        "fifa_code": "SWE",
+        "name_es": "Suecia"
+      },
+      "stadium": {
+        "name": "NRG Stadium",
+        "city": "Houston"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-20",
+        "time": "12:00 UTC-5"
+      }
+    },
+    {
+      "reference_id": 34,
+      "round": "Matchday 10",
+      "group": "Group F",
+      "match_date": "2026-06-21",
+      "match_time": "06:00",
+      "starts_at": "2026-06-21T04:00:00.000Z",
+      "team1": {
+        "source_name": "Tunisia",
+        "fifa_code": "TUN",
+        "name_es": "Túnez"
+      },
+      "team2": {
+        "source_name": "Japan",
+        "fifa_code": "JPN",
+        "name_es": "Japón"
+      },
+      "stadium": {
+        "name": "Estadio BBVA",
+        "city": "Monterrey (Guadalupe)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-20",
+        "time": "22:00 UTC-6"
+      }
+    },
+    {
+      "reference_id": 35,
+      "round": "Matchday 15",
+      "group": "Group F",
+      "match_date": "2026-06-26",
+      "match_time": "01:00",
+      "starts_at": "2026-06-25T23:00:00.000Z",
+      "team1": {
+        "source_name": "Japan",
+        "fifa_code": "JPN",
+        "name_es": "Japón"
+      },
+      "team2": {
+        "source_name": "Sweden",
+        "fifa_code": "SWE",
+        "name_es": "Suecia"
+      },
+      "stadium": {
+        "name": "AT&T Stadium",
+        "city": "Dallas (Arlington)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-25",
+        "time": "18:00 UTC-5"
+      }
+    },
+    {
+      "reference_id": 36,
+      "round": "Matchday 15",
+      "group": "Group F",
+      "match_date": "2026-06-26",
+      "match_time": "01:00",
+      "starts_at": "2026-06-25T23:00:00.000Z",
+      "team1": {
+        "source_name": "Tunisia",
+        "fifa_code": "TUN",
+        "name_es": "Túnez"
+      },
+      "team2": {
+        "source_name": "Netherlands",
+        "fifa_code": "NED",
+        "name_es": "Países Bajos"
+      },
+      "stadium": {
+        "name": "Arrowhead Stadium",
+        "city": "Kansas City"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-25",
+        "time": "18:00 UTC-5"
+      }
+    },
+    {
+      "reference_id": 37,
+      "round": "Matchday 5",
+      "group": "Group G",
+      "match_date": "2026-06-15",
+      "match_time": "21:00",
+      "starts_at": "2026-06-15T19:00:00.000Z",
+      "team1": {
+        "source_name": "Belgium",
+        "fifa_code": "BEL",
+        "name_es": "Bélgica"
+      },
+      "team2": {
+        "source_name": "Egypt",
+        "fifa_code": "EGY",
+        "name_es": "Egipto"
+      },
+      "stadium": {
+        "name": "Lumen Field",
+        "city": "Seattle"
+      },
+      "score": {
+        "ft": [
+          1,
+          1
+        ],
+        "ht": [
+          0,
+          1
+        ]
+      },
+      "goals1": [
+        {
+          "name": "Mohamed Hany",
+          "minute": "66",
+          "owngoal": true
+        }
+      ],
+      "goals2": [
+        {
+          "name": "Emam Ashour",
+          "minute": "19"
+        }
+      ],
+      "source": {
+        "date": "2026-06-15",
+        "time": "12:00 UTC-7"
+      }
+    },
+    {
+      "reference_id": 38,
+      "round": "Matchday 5",
+      "group": "Group G",
+      "match_date": "2026-06-16",
+      "match_time": "03:00",
+      "starts_at": "2026-06-16T01:00:00.000Z",
+      "team1": {
+        "source_name": "Iran",
+        "fifa_code": "IRN",
+        "name_es": "Irán"
+      },
+      "team2": {
+        "source_name": "New Zealand",
+        "fifa_code": "NZL",
+        "name_es": "Nueva Zelanda"
+      },
+      "stadium": {
+        "name": "SoFi Stadium",
+        "city": "Los Angeles (Inglewood)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-15",
+        "time": "18:00 UTC-7"
+      }
+    },
+    {
+      "reference_id": 39,
+      "round": "Matchday 11",
+      "group": "Group G",
+      "match_date": "2026-06-21",
+      "match_time": "21:00",
+      "starts_at": "2026-06-21T19:00:00.000Z",
+      "team1": {
+        "source_name": "Belgium",
+        "fifa_code": "BEL",
+        "name_es": "Bélgica"
+      },
+      "team2": {
+        "source_name": "Iran",
+        "fifa_code": "IRN",
+        "name_es": "Irán"
+      },
+      "stadium": {
+        "name": "SoFi Stadium",
+        "city": "Los Angeles (Inglewood)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-21",
+        "time": "12:00 UTC-7"
+      }
+    },
+    {
+      "reference_id": 40,
+      "round": "Matchday 11",
+      "group": "Group G",
+      "match_date": "2026-06-22",
+      "match_time": "03:00",
+      "starts_at": "2026-06-22T01:00:00.000Z",
+      "team1": {
+        "source_name": "New Zealand",
+        "fifa_code": "NZL",
+        "name_es": "Nueva Zelanda"
+      },
+      "team2": {
+        "source_name": "Egypt",
+        "fifa_code": "EGY",
+        "name_es": "Egipto"
+      },
+      "stadium": {
+        "name": "BC Place",
+        "city": "Vancouver"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-21",
+        "time": "18:00 UTC-7"
+      }
+    },
+    {
+      "reference_id": 41,
+      "round": "Matchday 16",
+      "group": "Group G",
+      "match_date": "2026-06-27",
+      "match_time": "05:00",
+      "starts_at": "2026-06-27T03:00:00.000Z",
+      "team1": {
+        "source_name": "Egypt",
+        "fifa_code": "EGY",
+        "name_es": "Egipto"
+      },
+      "team2": {
+        "source_name": "Iran",
+        "fifa_code": "IRN",
+        "name_es": "Irán"
+      },
+      "stadium": {
+        "name": "Lumen Field",
+        "city": "Seattle"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-26",
+        "time": "20:00 UTC-7"
+      }
+    },
+    {
+      "reference_id": 42,
+      "round": "Matchday 16",
+      "group": "Group G",
+      "match_date": "2026-06-27",
+      "match_time": "05:00",
+      "starts_at": "2026-06-27T03:00:00.000Z",
+      "team1": {
+        "source_name": "New Zealand",
+        "fifa_code": "NZL",
+        "name_es": "Nueva Zelanda"
+      },
+      "team2": {
+        "source_name": "Belgium",
+        "fifa_code": "BEL",
+        "name_es": "Bélgica"
+      },
+      "stadium": {
+        "name": "BC Place",
+        "city": "Vancouver"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-26",
+        "time": "20:00 UTC-7"
+      }
+    },
+    {
+      "reference_id": 43,
+      "round": "Matchday 5",
+      "group": "Group H",
+      "match_date": "2026-06-15",
+      "match_time": "18:00",
+      "starts_at": "2026-06-15T16:00:00.000Z",
+      "team1": {
+        "source_name": "Spain",
+        "fifa_code": "ESP",
+        "name_es": "España"
+      },
+      "team2": {
+        "source_name": "Cape Verde",
+        "fifa_code": "CPV",
+        "name_es": "Cabo Verde"
+      },
+      "stadium": {
+        "name": "Mercedes-Benz Stadium",
+        "city": "Atlanta"
+      },
+      "score": {
+        "ft": [
+          0,
+          0
+        ],
+        "ht": [
+          0,
+          0
+        ]
+      },
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-15",
+        "time": "12:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 44,
+      "round": "Matchday 5",
+      "group": "Group H",
+      "match_date": "2026-06-16",
+      "match_time": "00:00",
+      "starts_at": "2026-06-15T22:00:00.000Z",
+      "team1": {
+        "source_name": "Saudi Arabia",
+        "fifa_code": "KSA",
+        "name_es": "Arabia Saudí"
+      },
+      "team2": {
+        "source_name": "Uruguay",
+        "fifa_code": "URU",
+        "name_es": "Uruguay"
+      },
+      "stadium": {
+        "name": "Hard Rock Stadium",
+        "city": "Miami (Miami Gardens)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-15",
+        "time": "18:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 45,
+      "round": "Matchday 11",
+      "group": "Group H",
+      "match_date": "2026-06-21",
+      "match_time": "18:00",
+      "starts_at": "2026-06-21T16:00:00.000Z",
+      "team1": {
+        "source_name": "Spain",
+        "fifa_code": "ESP",
+        "name_es": "España"
+      },
+      "team2": {
+        "source_name": "Saudi Arabia",
+        "fifa_code": "KSA",
+        "name_es": "Arabia Saudí"
+      },
+      "stadium": {
+        "name": "Mercedes-Benz Stadium",
+        "city": "Atlanta"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-21",
+        "time": "12:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 46,
+      "round": "Matchday 11",
+      "group": "Group H",
+      "match_date": "2026-06-22",
+      "match_time": "00:00",
+      "starts_at": "2026-06-21T22:00:00.000Z",
+      "team1": {
+        "source_name": "Uruguay",
+        "fifa_code": "URU",
+        "name_es": "Uruguay"
+      },
+      "team2": {
+        "source_name": "Cape Verde",
+        "fifa_code": "CPV",
+        "name_es": "Cabo Verde"
+      },
+      "stadium": {
+        "name": "Hard Rock Stadium",
+        "city": "Miami (Miami Gardens)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-21",
+        "time": "18:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 47,
+      "round": "Matchday 16",
+      "group": "Group H",
+      "match_date": "2026-06-27",
+      "match_time": "02:00",
+      "starts_at": "2026-06-27T00:00:00.000Z",
+      "team1": {
+        "source_name": "Cape Verde",
+        "fifa_code": "CPV",
+        "name_es": "Cabo Verde"
+      },
+      "team2": {
+        "source_name": "Saudi Arabia",
+        "fifa_code": "KSA",
+        "name_es": "Arabia Saudí"
+      },
+      "stadium": {
+        "name": "NRG Stadium",
+        "city": "Houston"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-26",
+        "time": "19:00 UTC-5"
+      }
+    },
+    {
+      "reference_id": 48,
+      "round": "Matchday 16",
+      "group": "Group H",
+      "match_date": "2026-06-27",
+      "match_time": "02:00",
+      "starts_at": "2026-06-27T00:00:00.000Z",
+      "team1": {
+        "source_name": "Uruguay",
+        "fifa_code": "URU",
+        "name_es": "Uruguay"
+      },
+      "team2": {
+        "source_name": "Spain",
+        "fifa_code": "ESP",
+        "name_es": "España"
+      },
+      "stadium": {
+        "name": "Estadio Akron",
+        "city": "Guadalajara (Zapopan)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-26",
+        "time": "18:00 UTC-6"
+      }
+    },
+    {
+      "reference_id": 49,
+      "round": "Matchday 6",
+      "group": "Group I",
+      "match_date": "2026-06-16",
+      "match_time": "21:00",
+      "starts_at": "2026-06-16T19:00:00.000Z",
+      "team1": {
+        "source_name": "France",
+        "fifa_code": "FRA",
+        "name_es": "Francia"
+      },
+      "team2": {
+        "source_name": "Senegal",
+        "fifa_code": "SEN",
+        "name_es": "Senegal"
+      },
+      "stadium": {
+        "name": "MetLife Stadium",
+        "city": "New York/New Jersey (East Rutherford)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-16",
+        "time": "15:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 50,
+      "round": "Matchday 6",
+      "group": "Group I",
+      "match_date": "2026-06-17",
+      "match_time": "00:00",
+      "starts_at": "2026-06-16T22:00:00.000Z",
+      "team1": {
+        "source_name": "Iraq",
+        "fifa_code": "IRQ",
+        "name_es": "Irak"
+      },
+      "team2": {
+        "source_name": "Norway",
+        "fifa_code": "NOR",
+        "name_es": "Noruega"
+      },
+      "stadium": {
+        "name": "Gillette Stadium",
+        "city": "Boston (Foxborough)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-16",
+        "time": "18:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 51,
+      "round": "Matchday 12",
+      "group": "Group I",
+      "match_date": "2026-06-22",
+      "match_time": "23:00",
+      "starts_at": "2026-06-22T21:00:00.000Z",
+      "team1": {
+        "source_name": "France",
+        "fifa_code": "FRA",
+        "name_es": "Francia"
+      },
+      "team2": {
+        "source_name": "Iraq",
+        "fifa_code": "IRQ",
+        "name_es": "Irak"
+      },
+      "stadium": {
+        "name": "Lincoln Financial Field",
+        "city": "Philadelphia"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-22",
+        "time": "17:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 52,
+      "round": "Matchday 12",
+      "group": "Group I",
+      "match_date": "2026-06-23",
+      "match_time": "02:00",
+      "starts_at": "2026-06-23T00:00:00.000Z",
+      "team1": {
+        "source_name": "Norway",
+        "fifa_code": "NOR",
+        "name_es": "Noruega"
+      },
+      "team2": {
+        "source_name": "Senegal",
+        "fifa_code": "SEN",
+        "name_es": "Senegal"
+      },
+      "stadium": {
+        "name": "MetLife Stadium",
+        "city": "New York/New Jersey (East Rutherford)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-22",
+        "time": "20:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 53,
+      "round": "Matchday 16",
+      "group": "Group I",
+      "match_date": "2026-06-26",
+      "match_time": "21:00",
+      "starts_at": "2026-06-26T19:00:00.000Z",
+      "team1": {
+        "source_name": "Norway",
+        "fifa_code": "NOR",
+        "name_es": "Noruega"
+      },
+      "team2": {
+        "source_name": "France",
+        "fifa_code": "FRA",
+        "name_es": "Francia"
+      },
+      "stadium": {
+        "name": "Gillette Stadium",
+        "city": "Boston (Foxborough)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-26",
+        "time": "15:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 54,
+      "round": "Matchday 16",
+      "group": "Group I",
+      "match_date": "2026-06-26",
+      "match_time": "21:00",
+      "starts_at": "2026-06-26T19:00:00.000Z",
+      "team1": {
+        "source_name": "Senegal",
+        "fifa_code": "SEN",
+        "name_es": "Senegal"
+      },
+      "team2": {
+        "source_name": "Iraq",
+        "fifa_code": "IRQ",
+        "name_es": "Irak"
+      },
+      "stadium": {
+        "name": "BMO Field",
+        "city": "Toronto"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-26",
+        "time": "15:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 55,
+      "round": "Matchday 6",
+      "group": "Group J",
+      "match_date": "2026-06-17",
+      "match_time": "03:00",
+      "starts_at": "2026-06-17T01:00:00.000Z",
+      "team1": {
+        "source_name": "Argentina",
+        "fifa_code": "ARG",
+        "name_es": "Argentina"
+      },
+      "team2": {
+        "source_name": "Algeria",
+        "fifa_code": "ALG",
+        "name_es": "Argelia"
+      },
+      "stadium": {
+        "name": "Arrowhead Stadium",
+        "city": "Kansas City"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-16",
+        "time": "20:00 UTC-5"
+      }
+    },
+    {
+      "reference_id": 56,
+      "round": "Matchday 6",
+      "group": "Group J",
+      "match_date": "2026-06-17",
+      "match_time": "06:00",
+      "starts_at": "2026-06-17T04:00:00.000Z",
+      "team1": {
+        "source_name": "Austria",
+        "fifa_code": "AUT",
+        "name_es": "Austria"
+      },
+      "team2": {
+        "source_name": "Jordan",
+        "fifa_code": "JOR",
+        "name_es": "Jordania"
+      },
+      "stadium": {
+        "name": "Levi's Stadium",
+        "city": "San Francisco Bay Area (Santa Clara)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-16",
+        "time": "21:00 UTC-7"
+      }
+    },
+    {
+      "reference_id": 57,
+      "round": "Matchday 12",
+      "group": "Group J",
+      "match_date": "2026-06-22",
+      "match_time": "19:00",
+      "starts_at": "2026-06-22T17:00:00.000Z",
+      "team1": {
+        "source_name": "Argentina",
+        "fifa_code": "ARG",
+        "name_es": "Argentina"
+      },
+      "team2": {
+        "source_name": "Austria",
+        "fifa_code": "AUT",
+        "name_es": "Austria"
+      },
+      "stadium": {
+        "name": "AT&T Stadium",
+        "city": "Dallas (Arlington)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-22",
+        "time": "12:00 UTC-5"
+      }
+    },
+    {
+      "reference_id": 58,
+      "round": "Matchday 12",
+      "group": "Group J",
+      "match_date": "2026-06-23",
+      "match_time": "05:00",
+      "starts_at": "2026-06-23T03:00:00.000Z",
+      "team1": {
+        "source_name": "Jordan",
+        "fifa_code": "JOR",
+        "name_es": "Jordania"
+      },
+      "team2": {
+        "source_name": "Algeria",
+        "fifa_code": "ALG",
+        "name_es": "Argelia"
+      },
+      "stadium": {
+        "name": "Levi's Stadium",
+        "city": "San Francisco Bay Area (Santa Clara)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-22",
+        "time": "20:00 UTC-7"
+      }
+    },
+    {
+      "reference_id": 59,
+      "round": "Matchday 17",
+      "group": "Group J",
+      "match_date": "2026-06-28",
+      "match_time": "04:00",
+      "starts_at": "2026-06-28T02:00:00.000Z",
+      "team1": {
+        "source_name": "Algeria",
+        "fifa_code": "ALG",
+        "name_es": "Argelia"
+      },
+      "team2": {
+        "source_name": "Austria",
+        "fifa_code": "AUT",
+        "name_es": "Austria"
+      },
+      "stadium": {
+        "name": "Arrowhead Stadium",
+        "city": "Kansas City"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-27",
+        "time": "21:00 UTC-5"
+      }
+    },
+    {
+      "reference_id": 60,
+      "round": "Matchday 17",
+      "group": "Group J",
+      "match_date": "2026-06-28",
+      "match_time": "04:00",
+      "starts_at": "2026-06-28T02:00:00.000Z",
+      "team1": {
+        "source_name": "Jordan",
+        "fifa_code": "JOR",
+        "name_es": "Jordania"
+      },
+      "team2": {
+        "source_name": "Argentina",
+        "fifa_code": "ARG",
+        "name_es": "Argentina"
+      },
+      "stadium": {
+        "name": "AT&T Stadium",
+        "city": "Dallas (Arlington)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-27",
+        "time": "21:00 UTC-5"
+      }
+    },
+    {
+      "reference_id": 61,
+      "round": "Matchday 7",
+      "group": "Group K",
+      "match_date": "2026-06-17",
+      "match_time": "19:00",
+      "starts_at": "2026-06-17T17:00:00.000Z",
+      "team1": {
+        "source_name": "Portugal",
+        "fifa_code": "POR",
+        "name_es": "Portugal"
+      },
+      "team2": {
+        "source_name": "DR Congo",
+        "fifa_code": "COD",
+        "name_es": "RD del Congo"
+      },
+      "stadium": {
+        "name": "NRG Stadium",
+        "city": "Houston"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-17",
+        "time": "12:00 UTC-5"
+      }
+    },
+    {
+      "reference_id": 62,
+      "round": "Matchday 7",
+      "group": "Group K",
+      "match_date": "2026-06-18",
+      "match_time": "04:00",
+      "starts_at": "2026-06-18T02:00:00.000Z",
+      "team1": {
+        "source_name": "Uzbekistan",
+        "fifa_code": "UZB",
+        "name_es": "Uzbekistán"
+      },
+      "team2": {
+        "source_name": "Colombia",
+        "fifa_code": "COL",
+        "name_es": "Colombia"
+      },
+      "stadium": {
+        "name": "Estadio Azteca",
+        "city": "Mexico City"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-17",
+        "time": "20:00 UTC-6"
+      }
+    },
+    {
+      "reference_id": 63,
+      "round": "Matchday 13",
+      "group": "Group K",
+      "match_date": "2026-06-23",
+      "match_time": "19:00",
+      "starts_at": "2026-06-23T17:00:00.000Z",
+      "team1": {
+        "source_name": "Portugal",
+        "fifa_code": "POR",
+        "name_es": "Portugal"
+      },
+      "team2": {
+        "source_name": "Uzbekistan",
+        "fifa_code": "UZB",
+        "name_es": "Uzbekistán"
+      },
+      "stadium": {
+        "name": "NRG Stadium",
+        "city": "Houston"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-23",
+        "time": "12:00 UTC-5"
+      }
+    },
+    {
+      "reference_id": 64,
+      "round": "Matchday 13",
+      "group": "Group K",
+      "match_date": "2026-06-24",
+      "match_time": "04:00",
+      "starts_at": "2026-06-24T02:00:00.000Z",
+      "team1": {
+        "source_name": "Colombia",
+        "fifa_code": "COL",
+        "name_es": "Colombia"
+      },
+      "team2": {
+        "source_name": "DR Congo",
+        "fifa_code": "COD",
+        "name_es": "RD del Congo"
+      },
+      "stadium": {
+        "name": "Estadio Akron",
+        "city": "Guadalajara (Zapopan)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-23",
+        "time": "20:00 UTC-6"
+      }
+    },
+    {
+      "reference_id": 65,
+      "round": "Matchday 17",
+      "group": "Group K",
+      "match_date": "2026-06-28",
+      "match_time": "01:30",
+      "starts_at": "2026-06-27T23:30:00.000Z",
+      "team1": {
+        "source_name": "Colombia",
+        "fifa_code": "COL",
+        "name_es": "Colombia"
+      },
+      "team2": {
+        "source_name": "Portugal",
+        "fifa_code": "POR",
+        "name_es": "Portugal"
+      },
+      "stadium": {
+        "name": "Hard Rock Stadium",
+        "city": "Miami (Miami Gardens)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-27",
+        "time": "19:30 UTC-4"
+      }
+    },
+    {
+      "reference_id": 66,
+      "round": "Matchday 17",
+      "group": "Group K",
+      "match_date": "2026-06-28",
+      "match_time": "01:30",
+      "starts_at": "2026-06-27T23:30:00.000Z",
+      "team1": {
+        "source_name": "DR Congo",
+        "fifa_code": "COD",
+        "name_es": "RD del Congo"
+      },
+      "team2": {
+        "source_name": "Uzbekistan",
+        "fifa_code": "UZB",
+        "name_es": "Uzbekistán"
+      },
+      "stadium": {
+        "name": "Mercedes-Benz Stadium",
+        "city": "Atlanta"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-27",
+        "time": "19:30 UTC-4"
+      }
+    },
+    {
+      "reference_id": 67,
+      "round": "Matchday 7",
+      "group": "Group L",
+      "match_date": "2026-06-17",
+      "match_time": "22:00",
+      "starts_at": "2026-06-17T20:00:00.000Z",
+      "team1": {
+        "source_name": "England",
+        "fifa_code": "ENG",
+        "name_es": "Inglaterra"
+      },
+      "team2": {
+        "source_name": "Croatia",
+        "fifa_code": "CRO",
+        "name_es": "Croacia"
+      },
+      "stadium": {
+        "name": "AT&T Stadium",
+        "city": "Dallas (Arlington)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-17",
+        "time": "15:00 UTC-5"
+      }
+    },
+    {
+      "reference_id": 68,
+      "round": "Matchday 7",
+      "group": "Group L",
+      "match_date": "2026-06-18",
+      "match_time": "01:00",
+      "starts_at": "2026-06-17T23:00:00.000Z",
+      "team1": {
+        "source_name": "Ghana",
+        "fifa_code": "GHA",
+        "name_es": "Ghana"
+      },
+      "team2": {
+        "source_name": "Panama",
+        "fifa_code": "PAN",
+        "name_es": "Panamá"
+      },
+      "stadium": {
+        "name": "BMO Field",
+        "city": "Toronto"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-17",
+        "time": "19:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 69,
+      "round": "Matchday 13",
+      "group": "Group L",
+      "match_date": "2026-06-23",
+      "match_time": "22:00",
+      "starts_at": "2026-06-23T20:00:00.000Z",
+      "team1": {
+        "source_name": "England",
+        "fifa_code": "ENG",
+        "name_es": "Inglaterra"
+      },
+      "team2": {
+        "source_name": "Ghana",
+        "fifa_code": "GHA",
+        "name_es": "Ghana"
+      },
+      "stadium": {
+        "name": "Gillette Stadium",
+        "city": "Boston (Foxborough)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-23",
+        "time": "16:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 70,
+      "round": "Matchday 13",
+      "group": "Group L",
+      "match_date": "2026-06-24",
+      "match_time": "01:00",
+      "starts_at": "2026-06-23T23:00:00.000Z",
+      "team1": {
+        "source_name": "Panama",
+        "fifa_code": "PAN",
+        "name_es": "Panamá"
+      },
+      "team2": {
+        "source_name": "Croatia",
+        "fifa_code": "CRO",
+        "name_es": "Croacia"
+      },
+      "stadium": {
+        "name": "BMO Field",
+        "city": "Toronto"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-23",
+        "time": "19:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 71,
+      "round": "Matchday 17",
+      "group": "Group L",
+      "match_date": "2026-06-27",
+      "match_time": "23:00",
+      "starts_at": "2026-06-27T21:00:00.000Z",
+      "team1": {
+        "source_name": "Panama",
+        "fifa_code": "PAN",
+        "name_es": "Panamá"
+      },
+      "team2": {
+        "source_name": "England",
+        "fifa_code": "ENG",
+        "name_es": "Inglaterra"
+      },
+      "stadium": {
+        "name": "MetLife Stadium",
+        "city": "New York/New Jersey (East Rutherford)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-27",
+        "time": "17:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 72,
+      "round": "Matchday 17",
+      "group": "Group L",
+      "match_date": "2026-06-27",
+      "match_time": "23:00",
+      "starts_at": "2026-06-27T21:00:00.000Z",
+      "team1": {
+        "source_name": "Croatia",
+        "fifa_code": "CRO",
+        "name_es": "Croacia"
+      },
+      "team2": {
+        "source_name": "Ghana",
+        "fifa_code": "GHA",
+        "name_es": "Ghana"
+      },
+      "stadium": {
+        "name": "Lincoln Financial Field",
+        "city": "Philadelphia"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-27",
+        "time": "17:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 73,
+      "round": "Round of 32",
+      "group": null,
+      "match_date": "2026-06-28",
+      "match_time": "21:00",
+      "starts_at": "2026-06-28T19:00:00.000Z",
+      "team1": {
+        "source_name": "2A",
+        "fifa_code": null,
+        "name_es": "2A"
+      },
+      "team2": {
+        "source_name": "2B",
+        "fifa_code": null,
+        "name_es": "2B"
+      },
+      "stadium": {
+        "name": "SoFi Stadium",
+        "city": "Los Angeles (Inglewood)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-28",
+        "time": "12:00 UTC-7"
+      }
+    },
+    {
+      "reference_id": 74,
+      "round": "Round of 32",
+      "group": null,
+      "match_date": "2026-06-29",
+      "match_time": "22:30",
+      "starts_at": "2026-06-29T20:30:00.000Z",
+      "team1": {
+        "source_name": "1E",
+        "fifa_code": null,
+        "name_es": "1E"
+      },
+      "team2": {
+        "source_name": "3A/B/C/D/F",
+        "fifa_code": null,
+        "name_es": "3A/B/C/D/F"
+      },
+      "stadium": {
+        "name": "Gillette Stadium",
+        "city": "Boston (Foxborough)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-29",
+        "time": "16:30 UTC-4"
+      }
+    },
+    {
+      "reference_id": 75,
+      "round": "Round of 32",
+      "group": null,
+      "match_date": "2026-06-30",
+      "match_time": "03:00",
+      "starts_at": "2026-06-30T01:00:00.000Z",
+      "team1": {
+        "source_name": "1F",
+        "fifa_code": null,
+        "name_es": "1F"
+      },
+      "team2": {
+        "source_name": "2C",
+        "fifa_code": null,
+        "name_es": "2C"
+      },
+      "stadium": {
+        "name": "Estadio BBVA",
+        "city": "Monterrey (Guadalupe)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-29",
+        "time": "19:00 UTC-6"
+      }
+    },
+    {
+      "reference_id": 76,
+      "round": "Round of 32",
+      "group": null,
+      "match_date": "2026-06-29",
+      "match_time": "19:00",
+      "starts_at": "2026-06-29T17:00:00.000Z",
+      "team1": {
+        "source_name": "1C",
+        "fifa_code": null,
+        "name_es": "1C"
+      },
+      "team2": {
+        "source_name": "2F",
+        "fifa_code": null,
+        "name_es": "2F"
+      },
+      "stadium": {
+        "name": "NRG Stadium",
+        "city": "Houston"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-29",
+        "time": "12:00 UTC-5"
+      }
+    },
+    {
+      "reference_id": 77,
+      "round": "Round of 32",
+      "group": null,
+      "match_date": "2026-06-30",
+      "match_time": "23:00",
+      "starts_at": "2026-06-30T21:00:00.000Z",
+      "team1": {
+        "source_name": "1I",
+        "fifa_code": null,
+        "name_es": "1I"
+      },
+      "team2": {
+        "source_name": "3C/D/F/G/H",
+        "fifa_code": null,
+        "name_es": "3C/D/F/G/H"
+      },
+      "stadium": {
+        "name": "MetLife Stadium",
+        "city": "New York/New Jersey (East Rutherford)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-30",
+        "time": "17:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 78,
+      "round": "Round of 32",
+      "group": null,
+      "match_date": "2026-06-30",
+      "match_time": "19:00",
+      "starts_at": "2026-06-30T17:00:00.000Z",
+      "team1": {
+        "source_name": "2E",
+        "fifa_code": null,
+        "name_es": "2E"
+      },
+      "team2": {
+        "source_name": "2I",
+        "fifa_code": null,
+        "name_es": "2I"
+      },
+      "stadium": {
+        "name": "AT&T Stadium",
+        "city": "Dallas (Arlington)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-30",
+        "time": "12:00 UTC-5"
+      }
+    },
+    {
+      "reference_id": 79,
+      "round": "Round of 32",
+      "group": null,
+      "match_date": "2026-07-01",
+      "match_time": "03:00",
+      "starts_at": "2026-07-01T01:00:00.000Z",
+      "team1": {
+        "source_name": "1A",
+        "fifa_code": null,
+        "name_es": "1A"
+      },
+      "team2": {
+        "source_name": "3C/E/F/H/I",
+        "fifa_code": null,
+        "name_es": "3C/E/F/H/I"
+      },
+      "stadium": {
+        "name": "Estadio Azteca",
+        "city": "Mexico City"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-06-30",
+        "time": "19:00 UTC-6"
+      }
+    },
+    {
+      "reference_id": 80,
+      "round": "Round of 32",
+      "group": null,
+      "match_date": "2026-07-01",
+      "match_time": "18:00",
+      "starts_at": "2026-07-01T16:00:00.000Z",
+      "team1": {
+        "source_name": "1L",
+        "fifa_code": null,
+        "name_es": "1L"
+      },
+      "team2": {
+        "source_name": "3E/H/I/J/K",
+        "fifa_code": null,
+        "name_es": "3E/H/I/J/K"
+      },
+      "stadium": {
+        "name": "Mercedes-Benz Stadium",
+        "city": "Atlanta"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-07-01",
+        "time": "12:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 81,
+      "round": "Round of 32",
+      "group": null,
+      "match_date": "2026-07-02",
+      "match_time": "02:00",
+      "starts_at": "2026-07-02T00:00:00.000Z",
+      "team1": {
+        "source_name": "1D",
+        "fifa_code": null,
+        "name_es": "1D"
+      },
+      "team2": {
+        "source_name": "3B/E/F/I/J",
+        "fifa_code": null,
+        "name_es": "3B/E/F/I/J"
+      },
+      "stadium": {
+        "name": "Levi's Stadium",
+        "city": "San Francisco Bay Area (Santa Clara)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-07-01",
+        "time": "17:00 UTC-7"
+      }
+    },
+    {
+      "reference_id": 82,
+      "round": "Round of 32",
+      "group": null,
+      "match_date": "2026-07-01",
+      "match_time": "22:00",
+      "starts_at": "2026-07-01T20:00:00.000Z",
+      "team1": {
+        "source_name": "1G",
+        "fifa_code": null,
+        "name_es": "1G"
+      },
+      "team2": {
+        "source_name": "3A/E/H/I/J",
+        "fifa_code": null,
+        "name_es": "3A/E/H/I/J"
+      },
+      "stadium": {
+        "name": "Lumen Field",
+        "city": "Seattle"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-07-01",
+        "time": "13:00 UTC-7"
+      }
+    },
+    {
+      "reference_id": 83,
+      "round": "Round of 32",
+      "group": null,
+      "match_date": "2026-07-03",
+      "match_time": "01:00",
+      "starts_at": "2026-07-02T23:00:00.000Z",
+      "team1": {
+        "source_name": "2K",
+        "fifa_code": null,
+        "name_es": "2K"
+      },
+      "team2": {
+        "source_name": "2L",
+        "fifa_code": null,
+        "name_es": "2L"
+      },
+      "stadium": {
+        "name": "BMO Field",
+        "city": "Toronto"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-07-02",
+        "time": "19:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 84,
+      "round": "Round of 32",
+      "group": null,
+      "match_date": "2026-07-02",
+      "match_time": "21:00",
+      "starts_at": "2026-07-02T19:00:00.000Z",
+      "team1": {
+        "source_name": "1H",
+        "fifa_code": null,
+        "name_es": "1H"
+      },
+      "team2": {
+        "source_name": "2J",
+        "fifa_code": null,
+        "name_es": "2J"
+      },
+      "stadium": {
+        "name": "SoFi Stadium",
+        "city": "Los Angeles (Inglewood)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-07-02",
+        "time": "12:00 UTC-7"
+      }
+    },
+    {
+      "reference_id": 85,
+      "round": "Round of 32",
+      "group": null,
+      "match_date": "2026-07-03",
+      "match_time": "05:00",
+      "starts_at": "2026-07-03T03:00:00.000Z",
+      "team1": {
+        "source_name": "1B",
+        "fifa_code": null,
+        "name_es": "1B"
+      },
+      "team2": {
+        "source_name": "3E/F/G/I/J",
+        "fifa_code": null,
+        "name_es": "3E/F/G/I/J"
+      },
+      "stadium": {
+        "name": "BC Place",
+        "city": "Vancouver"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-07-02",
+        "time": "20:00 UTC-7"
+      }
+    },
+    {
+      "reference_id": 86,
+      "round": "Round of 32",
+      "group": null,
+      "match_date": "2026-07-04",
+      "match_time": "00:00",
+      "starts_at": "2026-07-03T22:00:00.000Z",
+      "team1": {
+        "source_name": "1J",
+        "fifa_code": null,
+        "name_es": "1J"
+      },
+      "team2": {
+        "source_name": "2H",
+        "fifa_code": null,
+        "name_es": "2H"
+      },
+      "stadium": {
+        "name": "Hard Rock Stadium",
+        "city": "Miami (Miami Gardens)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-07-03",
+        "time": "18:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 87,
+      "round": "Round of 32",
+      "group": null,
+      "match_date": "2026-07-04",
+      "match_time": "03:30",
+      "starts_at": "2026-07-04T01:30:00.000Z",
+      "team1": {
+        "source_name": "1K",
+        "fifa_code": null,
+        "name_es": "1K"
+      },
+      "team2": {
+        "source_name": "3D/E/I/J/L",
+        "fifa_code": null,
+        "name_es": "3D/E/I/J/L"
+      },
+      "stadium": {
+        "name": "Arrowhead Stadium",
+        "city": "Kansas City"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-07-03",
+        "time": "20:30 UTC-5"
+      }
+    },
+    {
+      "reference_id": 88,
+      "round": "Round of 32",
+      "group": null,
+      "match_date": "2026-07-03",
+      "match_time": "20:00",
+      "starts_at": "2026-07-03T18:00:00.000Z",
+      "team1": {
+        "source_name": "2D",
+        "fifa_code": null,
+        "name_es": "2D"
+      },
+      "team2": {
+        "source_name": "2G",
+        "fifa_code": null,
+        "name_es": "2G"
+      },
+      "stadium": {
+        "name": "AT&T Stadium",
+        "city": "Dallas (Arlington)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-07-03",
+        "time": "13:00 UTC-5"
+      }
+    },
+    {
+      "reference_id": 89,
+      "round": "Round of 16",
+      "group": null,
+      "match_date": "2026-07-04",
+      "match_time": "23:00",
+      "starts_at": "2026-07-04T21:00:00.000Z",
+      "team1": {
+        "source_name": "W74",
+        "fifa_code": null,
+        "name_es": "W74"
+      },
+      "team2": {
+        "source_name": "W77",
+        "fifa_code": null,
+        "name_es": "W77"
+      },
+      "stadium": {
+        "name": "Lincoln Financial Field",
+        "city": "Philadelphia"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-07-04",
+        "time": "17:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 90,
+      "round": "Round of 16",
+      "group": null,
+      "match_date": "2026-07-04",
+      "match_time": "19:00",
+      "starts_at": "2026-07-04T17:00:00.000Z",
+      "team1": {
+        "source_name": "W73",
+        "fifa_code": null,
+        "name_es": "W73"
+      },
+      "team2": {
+        "source_name": "W75",
+        "fifa_code": null,
+        "name_es": "W75"
+      },
+      "stadium": {
+        "name": "NRG Stadium",
+        "city": "Houston"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-07-04",
+        "time": "12:00 UTC-5"
+      }
+    },
+    {
+      "reference_id": 91,
+      "round": "Round of 16",
+      "group": null,
+      "match_date": "2026-07-05",
+      "match_time": "22:00",
+      "starts_at": "2026-07-05T20:00:00.000Z",
+      "team1": {
+        "source_name": "W76",
+        "fifa_code": null,
+        "name_es": "W76"
+      },
+      "team2": {
+        "source_name": "W78",
+        "fifa_code": null,
+        "name_es": "W78"
+      },
+      "stadium": {
+        "name": "MetLife Stadium",
+        "city": "New York/New Jersey (East Rutherford)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-07-05",
+        "time": "16:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 92,
+      "round": "Round of 16",
+      "group": null,
+      "match_date": "2026-07-06",
+      "match_time": "02:00",
+      "starts_at": "2026-07-06T00:00:00.000Z",
+      "team1": {
+        "source_name": "W79",
+        "fifa_code": null,
+        "name_es": "W79"
+      },
+      "team2": {
+        "source_name": "W80",
+        "fifa_code": null,
+        "name_es": "W80"
+      },
+      "stadium": {
+        "name": "Estadio Azteca",
+        "city": "Mexico City"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-07-05",
+        "time": "18:00 UTC-6"
+      }
+    },
+    {
+      "reference_id": 93,
+      "round": "Round of 16",
+      "group": null,
+      "match_date": "2026-07-06",
+      "match_time": "21:00",
+      "starts_at": "2026-07-06T19:00:00.000Z",
+      "team1": {
+        "source_name": "W83",
+        "fifa_code": null,
+        "name_es": "W83"
+      },
+      "team2": {
+        "source_name": "W84",
+        "fifa_code": null,
+        "name_es": "W84"
+      },
+      "stadium": {
+        "name": "AT&T Stadium",
+        "city": "Dallas (Arlington)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-07-06",
+        "time": "14:00 UTC-5"
+      }
+    },
+    {
+      "reference_id": 94,
+      "round": "Round of 16",
+      "group": null,
+      "match_date": "2026-07-07",
+      "match_time": "02:00",
+      "starts_at": "2026-07-07T00:00:00.000Z",
+      "team1": {
+        "source_name": "W81",
+        "fifa_code": null,
+        "name_es": "W81"
+      },
+      "team2": {
+        "source_name": "W82",
+        "fifa_code": null,
+        "name_es": "W82"
+      },
+      "stadium": {
+        "name": "Lumen Field",
+        "city": "Seattle"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-07-06",
+        "time": "17:00 UTC-7"
+      }
+    },
+    {
+      "reference_id": 95,
+      "round": "Round of 16",
+      "group": null,
+      "match_date": "2026-07-07",
+      "match_time": "18:00",
+      "starts_at": "2026-07-07T16:00:00.000Z",
+      "team1": {
+        "source_name": "W86",
+        "fifa_code": null,
+        "name_es": "W86"
+      },
+      "team2": {
+        "source_name": "W88",
+        "fifa_code": null,
+        "name_es": "W88"
+      },
+      "stadium": {
+        "name": "Mercedes-Benz Stadium",
+        "city": "Atlanta"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-07-07",
+        "time": "12:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 96,
+      "round": "Round of 16",
+      "group": null,
+      "match_date": "2026-07-07",
+      "match_time": "22:00",
+      "starts_at": "2026-07-07T20:00:00.000Z",
+      "team1": {
+        "source_name": "W85",
+        "fifa_code": null,
+        "name_es": "W85"
+      },
+      "team2": {
+        "source_name": "W87",
+        "fifa_code": null,
+        "name_es": "W87"
+      },
+      "stadium": {
+        "name": "BC Place",
+        "city": "Vancouver"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-07-07",
+        "time": "13:00 UTC-7"
+      }
+    },
+    {
+      "reference_id": 97,
+      "round": "Quarter-final",
+      "group": null,
+      "match_date": "2026-07-09",
+      "match_time": "22:00",
+      "starts_at": "2026-07-09T20:00:00.000Z",
+      "team1": {
+        "source_name": "W89",
+        "fifa_code": null,
+        "name_es": "W89"
+      },
+      "team2": {
+        "source_name": "W90",
+        "fifa_code": null,
+        "name_es": "W90"
+      },
+      "stadium": {
+        "name": "Gillette Stadium",
+        "city": "Boston (Foxborough)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-07-09",
+        "time": "16:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 98,
+      "round": "Quarter-final",
+      "group": null,
+      "match_date": "2026-07-10",
+      "match_time": "21:00",
+      "starts_at": "2026-07-10T19:00:00.000Z",
+      "team1": {
+        "source_name": "W93",
+        "fifa_code": null,
+        "name_es": "W93"
+      },
+      "team2": {
+        "source_name": "W94",
+        "fifa_code": null,
+        "name_es": "W94"
+      },
+      "stadium": {
+        "name": "SoFi Stadium",
+        "city": "Los Angeles (Inglewood)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-07-10",
+        "time": "12:00 UTC-7"
+      }
+    },
+    {
+      "reference_id": 99,
+      "round": "Quarter-final",
+      "group": null,
+      "match_date": "2026-07-11",
+      "match_time": "23:00",
+      "starts_at": "2026-07-11T21:00:00.000Z",
+      "team1": {
+        "source_name": "W91",
+        "fifa_code": null,
+        "name_es": "W91"
+      },
+      "team2": {
+        "source_name": "W92",
+        "fifa_code": null,
+        "name_es": "W92"
+      },
+      "stadium": {
+        "name": "Hard Rock Stadium",
+        "city": "Miami (Miami Gardens)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-07-11",
+        "time": "17:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 100,
+      "round": "Quarter-final",
+      "group": null,
+      "match_date": "2026-07-12",
+      "match_time": "03:00",
+      "starts_at": "2026-07-12T01:00:00.000Z",
+      "team1": {
+        "source_name": "W95",
+        "fifa_code": null,
+        "name_es": "W95"
+      },
+      "team2": {
+        "source_name": "W96",
+        "fifa_code": null,
+        "name_es": "W96"
+      },
+      "stadium": {
+        "name": "Arrowhead Stadium",
+        "city": "Kansas City"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-07-11",
+        "time": "20:00 UTC-5"
+      }
+    },
+    {
+      "reference_id": 101,
+      "round": "Semi-final",
+      "group": null,
+      "match_date": "2026-07-14",
+      "match_time": "21:00",
+      "starts_at": "2026-07-14T19:00:00.000Z",
+      "team1": {
+        "source_name": "W97",
+        "fifa_code": null,
+        "name_es": "W97"
+      },
+      "team2": {
+        "source_name": "W98",
+        "fifa_code": null,
+        "name_es": "W98"
+      },
+      "stadium": {
+        "name": "AT&T Stadium",
+        "city": "Dallas (Arlington)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-07-14",
+        "time": "14:00 UTC-5"
+      }
+    },
+    {
+      "reference_id": 102,
+      "round": "Semi-final",
+      "group": null,
+      "match_date": "2026-07-15",
+      "match_time": "21:00",
+      "starts_at": "2026-07-15T19:00:00.000Z",
+      "team1": {
+        "source_name": "W99",
+        "fifa_code": null,
+        "name_es": "W99"
+      },
+      "team2": {
+        "source_name": "W100",
+        "fifa_code": null,
+        "name_es": "W100"
+      },
+      "stadium": {
+        "name": "Mercedes-Benz Stadium",
+        "city": "Atlanta"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-07-15",
+        "time": "15:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 103,
+      "round": "Match for third place",
+      "group": null,
+      "match_date": "2026-07-18",
+      "match_time": "23:00",
+      "starts_at": "2026-07-18T21:00:00.000Z",
+      "team1": {
+        "source_name": "L101",
+        "fifa_code": null,
+        "name_es": "L101"
+      },
+      "team2": {
+        "source_name": "L102",
+        "fifa_code": null,
+        "name_es": "L102"
+      },
+      "stadium": {
+        "name": "Hard Rock Stadium",
+        "city": "Miami (Miami Gardens)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-07-18",
+        "time": "17:00 UTC-4"
+      }
+    },
+    {
+      "reference_id": 104,
+      "round": "Final",
+      "group": null,
+      "match_date": "2026-07-19",
+      "match_time": "21:00",
+      "starts_at": "2026-07-19T19:00:00.000Z",
+      "team1": {
+        "source_name": "W101",
+        "fifa_code": null,
+        "name_es": "W101"
+      },
+      "team2": {
+        "source_name": "W102",
+        "fifa_code": null,
+        "name_es": "W102"
+      },
+      "stadium": {
+        "name": "MetLife Stadium",
+        "city": "New York/New Jersey (East Rutherford)"
+      },
+      "score": null,
+      "goals1": [],
+      "goals2": [],
+      "source": {
+        "date": "2026-07-19",
+        "time": "15:00 UTC-4"
+      }
+    }
+  ]
+}

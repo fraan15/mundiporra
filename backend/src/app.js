@@ -9,6 +9,8 @@ import { db, initDatabase, logAction, now, settings } from "./db/database.js";
 import { hydrateUser, requireAdmin, requireAuth } from "./middleware/auth.js";
 import { autoCloseExpired, calculateWinner, effectiveCloseAt, isExpired, recalculateAll, recalculateMatch } from "./services/matches.js";
 import { createNotification, leaderboardRows, notifyAll, notifyAllExcept, notifyNewTopThree, saveRankingSnapshot } from "./services/notifications.js";
+import { NO_SCORER, NO_SCORER_ID, parseScorerList, parseScorerSelection, serializeActualScorers, serializePredictedScorer } from "./services/scorers.js";
+import { loadWorldCupReference, teamReferenceStats } from "./services/worldcupReference.js";
 
 initDatabase();
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -104,17 +106,46 @@ const madridDateTimeToIso = (value) => {
   }
   return new Date(instant).toISOString();
 };
-const normalizeMatchInstant = (value) => madridDateTimeToIso(String(value || "").trim());
+const normalizeMatchInstant = (value) => {
+  try {
+    const normalized = madridDateTimeToIso(String(value || "").trim());
+    return Number.isNaN(new Date(normalized).getTime()) ? null : normalized;
+  } catch {
+    return null;
+  }
+};
+const dateInTimeZone = (date = new Date(), timeZone = MATCH_TIME_ZONE) => {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
+    timeZone, year: "numeric", month: "2-digit", day: "2-digit"
+  }).formatToParts(date).map(({ type, value }) => [type, value]));
+  return `${parts.year}-${parts.month}-${parts.day}`;
+};
+const addDays = (date, days) => {
+  const value = new Date(`${date}T12:00:00Z`);
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
+};
+const scoringTeamIds = (match, team1Goals, team2Goals) => [
+  team1Goals > 0 ? match.team1_id : null,
+  team2Goals > 0 ? match.team2_id : null
+].filter(Boolean);
 const matchPayload = (body, existing = {}) => {
   const date = body.match_date ?? existing.match_date;
   const time = body.match_time ?? existing.match_time;
   const autoClose = normalizeMatchInstant(body.auto_close_at || `${date}T${time}:00`);
   return {
-    match_date: date, match_time: time, stadium: String(body.stadium ?? existing.stadium ?? "").trim(),
-    team1: String(body.team1 ?? existing.team1 ?? "").trim(), team2: String(body.team2 ?? existing.team2 ?? "").trim(),
+    match_date: date, match_time: time,
+    team1_id: body.team1_id === undefined ? existing.team1_id : Number(body.team1_id),
+    team2_id: body.team2_id === undefined ? existing.team2_id : Number(body.team2_id),
+    team1: String(body.team1 ?? existing.team1 ?? "").trim(),
+    team2: String(body.team2 ?? existing.team2 ?? "").trim(),
+    stadium_id: body.stadium_id === undefined ? existing.stadium_id : body.stadium_id ? Number(body.stadium_id) : null,
     auto_close_at: autoClose,
     force_published: body.force_published === undefined ? Number(existing.force_published || 0) : body.force_published ? 1 : 0,
-    is_star: body.is_star === undefined ? Number(existing.is_star || 0) : body.is_star ? 1 : 0
+    is_star: body.is_star === undefined ? Number(existing.is_star || 0) : body.is_star ? 1 : 0,
+    scorer_enabled: body.scorer_enabled === undefined
+      ? Number(existing.id ? existing.scorer_enabled : body.team1_id && body.team2_id ? 1 : 0)
+      : body.scorer_enabled ? 1 : 0
   };
 };
 const predictionWinner = (g1, g2) => g1 === g2 ? "draw" : g1 > g2 ? "team1" : "team2";
@@ -123,14 +154,55 @@ const matchPublishesAt = (match) => new Date(matchStartsAt(match).getTime() - 24
 const isMatchPublished = (match, current = new Date()) => Boolean(match.force_published) || current >= matchPublishesAt(match);
 const canAccessMatch = (req, match) => req.user.role === "admin" || isMatchPublished(match);
 const isMatchInPlay = (match, current = new Date()) => match.status !== "finished" && current >= matchStartsAt(match);
-const serializeMatch = (match) => ({
-  ...match,
-  published: isMatchPublished(match),
-  publishes_at: matchPublishesAt(match).toISOString(),
-  effective_close_at: effectiveCloseAt(match).toISOString(),
-  betting_open: isMatchPublished(match) && match.status === "open" && !isExpired(match),
-  in_play: isMatchInPlay(match)
-});
+const rowsById = (table, ids, columns = "*") => {
+  const uniqueIds = [...new Set(ids.filter(Boolean).map(Number))];
+  if (!uniqueIds.length) return new Map();
+  const rows = db.prepare(`SELECT ${columns} FROM ${table} WHERE id IN (${uniqueIds.map(() => "?").join(",")})`).all(...uniqueIds);
+  return new Map(rows.map((row) => [row.id, row]));
+};
+const serializeMatches = (matches) => {
+  if (!matches.length) return [];
+  const teams = rowsById("teams", matches.flatMap((match) => [match.team1_id, match.team2_id]));
+  const stadiums = rowsById("stadiums", matches.map((match) => match.stadium_id));
+  const predictedScorers = rowsById(
+    "players",
+    matches.map((match) => match.predicted_scorer_id),
+    "id,name,position,team_fifa_code"
+  );
+  const matchIds = matches.map((match) => match.id);
+  const scorerRows = db.prepare(`
+    SELECT ms.match_id,p.id,p.name,p.position,p.team_fifa_code
+    FROM match_scorers ms JOIN players p ON p.id=ms.player_id
+    WHERE ms.match_id IN (${matchIds.map(() => "?").join(",")})
+    ORDER BY p.name
+  `).all(...matchIds);
+  const scorersByMatch = new Map();
+  scorerRows.forEach(({ match_id, ...player }) => {
+    if (!scorersByMatch.has(match_id)) scorersByMatch.set(match_id, []);
+    scorersByMatch.get(match_id).push(player);
+  });
+  return matches.map((match) => ({
+    ...match,
+    team1_team: teams.get(match.team1_id) || null,
+    team2_team: teams.get(match.team2_id) || null,
+    stadium_info: stadiums.get(match.stadium_id) || null,
+    predicted_scorer: serializePredictedScorer(match, predictedScorers.get(match.predicted_scorer_id)),
+    actual_scorers: serializeActualScorers(match, scorersByMatch.get(match.id) || []),
+    published: isMatchPublished(match),
+    publishes_at: matchPublishesAt(match).toISOString(),
+    effective_close_at: effectiveCloseAt(match).toISOString(),
+    betting_open: isMatchPublished(match) && match.status === "open" && !isExpired(match),
+    in_play: isMatchInPlay(match)
+  }));
+};
+const serializeMatch = (match) => serializeMatches([match])[0];
+
+const selectedMatchEntities = (data) => {
+  const team1 = data.team1_id ? db.prepare("SELECT * FROM teams WHERE id=?").get(data.team1_id) : null;
+  const team2 = data.team2_id ? db.prepare("SELECT * FROM teams WHERE id=?").get(data.team2_id) : null;
+  const stadium = data.stadium_id ? db.prepare("SELECT * FROM stadiums WHERE id=?").get(data.stadium_id) : null;
+  return { team1, team2, stadium };
+};
 
 app.post("/api/auth/login", (req, res) => {
   const user = db.prepare("SELECT * FROM users WHERE username=? COLLATE NOCASE").get(String(req.body.username || "").trim());
@@ -143,18 +215,103 @@ app.post("/api/auth/login", (req, res) => {
 app.post("/api/auth/logout", (req, res) => req.session.destroy(() => res.json({ ok: true })));
 app.get("/api/auth/me", (req, res) => res.json({ user: safeUser(req.user), settings: settings(), client_ip: req.clientIp }));
 
+app.get("/api/teams", requireAuth, (req, res) => {
+  const search = String(req.query.search || "").trim();
+  res.json(search
+    ? db.prepare("SELECT * FROM teams WHERE name LIKE ? COLLATE NOCASE OR fifa_code LIKE ? COLLATE NOCASE ORDER BY name LIMIT 30").all(`%${search}%`, `%${search}%`)
+    : db.prepare("SELECT * FROM teams ORDER BY group_name,name").all());
+});
+app.get("/api/teams/:id/detail", requireAuth, (req, res) => {
+  const team = db.prepare("SELECT * FROM teams WHERE id=?").get(req.params.id);
+  if (!team) return res.status(404).json({ error: "Equipo no encontrado." });
+  const players = db.prepare(`
+    SELECT id,name,number,position,date_of_birth FROM players WHERE team_fifa_code=?
+    ORDER BY CASE position WHEN 'POR' THEN 1 WHEN 'DEF' THEN 2 WHEN 'MED' THEN 3 WHEN 'DEL' THEN 4 ELSE 5 END,number,name
+  `).all(team.fifa_code);
+  const storedMatches = db.prepare(`
+    SELECT id,match_date,match_time,result_team1,result_team2,team1,team2,team1_id,team2_id
+    FROM matches WHERE (team1_id=? OR team2_id=?) AND result_team1 IS NOT NULL AND result_team2 IS NOT NULL
+    ORDER BY match_date DESC,match_time DESC
+  `).all(team.id, team.id);
+  const storedMatchIds = storedMatches.map((match) => match.id);
+  const scorerRows = storedMatchIds.length ? db.prepare(`
+    SELECT ms.match_id,p.name,p.team_fifa_code
+    FROM match_scorers ms JOIN players p ON p.id=ms.player_id
+    WHERE ms.match_id IN (${storedMatchIds.map(() => "?").join(",")})
+    ORDER BY p.name
+  `).all(...storedMatchIds) : [];
+  const scorersByMatch = new Map();
+  scorerRows.forEach(({ match_id, ...scorer }) => {
+    if (!scorersByMatch.has(match_id)) scorersByMatch.set(match_id, []);
+    scorersByMatch.get(match_id).push(scorer);
+  });
+  const manualStats = storedMatches.reduce((summary, match) => {
+    const home = match.team1_id === team.id;
+    const goalsFor = home ? match.result_team1 : match.result_team2;
+    const goalsAgainst = home ? match.result_team2 : match.result_team1;
+    summary.played++;
+    summary.goals_for += goalsFor;
+    summary.goals_against += goalsAgainst;
+    if (goalsFor > goalsAgainst) summary.won++;
+    else if (goalsFor < goalsAgainst) summary.lost++;
+    else summary.drawn++;
+    return summary;
+  }, { played: 0, won: 0, drawn: 0, lost: 0, goals_for: 0, goals_against: 0 });
+  manualStats.goal_difference = manualStats.goals_for - manualStats.goals_against;
+  manualStats.points = manualStats.won * 3 + manualStats.drawn;
+  manualStats.win_percentage = manualStats.played ? Math.round(manualStats.won / manualStats.played * 100) : 0;
+  const manualRecentMatches = storedMatches.slice(0, 5).map((match) => {
+    const home = match.team1_id === team.id;
+    const goals_for = home ? match.result_team1 : match.result_team2;
+    const goals_against = home ? match.result_team2 : match.result_team1;
+    const matchScorers = scorersByMatch.get(match.id) || [];
+    return { ...match, opponent: home ? match.team2 : match.team1, goals_for, goals_against,
+      scorers: {
+        team: matchScorers.filter((scorer) => scorer.team_fifa_code === team.fifa_code).map(({ name }) => ({ name, minute: "" })),
+        opponent: matchScorers.filter((scorer) => scorer.team_fifa_code !== team.fifa_code).map(({ name }) => ({ name, minute: "" }))
+      },
+      outcome: goals_for > goals_against ? "W" : goals_for < goals_against ? "L" : "D" };
+  });
+  const reference = teamReferenceStats(team);
+  res.json({
+    team,
+    stats: reference?.stats || manualStats,
+    players,
+    recent_matches: reference?.recent_matches || manualRecentMatches,
+    stats_source: reference?.source || "manual_results",
+    stats_synced_at: reference?.synced_at || null
+  });
+});
+app.get("/api/players", requireAuth, (req, res) => {
+  const codes = String(req.query.team_fifa_codes || req.query.team_fifa_code || "").split(",").map((code) => code.trim()).filter(Boolean);
+  const search = String(req.query.search || "").trim();
+  const where = [], params = [];
+  if (codes.length) { where.push(`p.team_fifa_code IN (${codes.map(() => "?").join(",")})`); params.push(...codes); }
+  if (search) { where.push("p.name LIKE ? COLLATE NOCASE"); params.push(`%${search}%`); }
+  res.json(db.prepare(`
+    SELECT p.*,t.name team_name,t.flag_icon FROM players p JOIN teams t ON t.fifa_code=p.team_fifa_code
+    ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY t.name,p.number,p.name LIMIT 100
+  `).all(...params));
+});
+app.get("/api/stadiums", requireAuth, (req, res) => {
+  const search = String(req.query.search || "").trim();
+  res.json(search
+    ? db.prepare("SELECT * FROM stadiums WHERE name LIKE ? COLLATE NOCASE OR city LIKE ? COLLATE NOCASE ORDER BY name LIMIT 30").all(`%${search}%`, `%${search}%`)
+    : db.prepare("SELECT * FROM stadiums ORDER BY name").all());
+});
+
 app.get("/api/matches", requireAuth, (req, res) => {
   const matches = db.prepare(`
     SELECT m.*, COUNT(bettor.id) prediction_count,
       mine.id prediction_id, mine.predicted_winner, mine.predicted_team1_goals, mine.predicted_team2_goals,
-      mine.winner_points, mine.exact_result_points, mine.total_points
+      mine.predicted_scorer_id,mine.winner_points, mine.exact_result_points,mine.scorer_points,mine.total_points
     FROM matches m
     LEFT JOIN predictions p ON p.match_id=m.id
     LEFT JOIN users bettor ON bettor.id=p.user_id AND bettor.role='user'
     LEFT JOIN predictions mine ON mine.match_id=m.id AND mine.user_id=?
     GROUP BY m.id ORDER BY m.match_date,m.match_time
   `).all(req.user.id);
-  res.json(matches.filter((match) => canAccessMatch(req, match)).map(serializeMatch));
+  res.json(serializeMatches(matches.filter((match) => canAccessMatch(req, match))));
 });
 
 app.get("/api/admin/matches", requireAdmin, (req, res) => {
@@ -179,10 +336,55 @@ app.get("/api/admin/matches", requireAdmin, (req, res) => {
     LIMIT ? OFFSET ?
   `).all(...params, pageSize, (page - 1) * pageSize);
   res.json({
-    matches: matches.map(serializeMatch),
+    matches: serializeMatches(matches),
     pagination: { page, page_size: pageSize, total, total_pages: totalPages },
     filter
   });
+});
+
+app.get("/api/admin/match-reference", requireAdmin, (req, res) => {
+  const requestedDate = String(req.query.date || "").trim();
+  const from = /^\d{4}-\d{2}-\d{2}$/.test(requestedDate) ? requestedDate : dateInTimeZone();
+  const to = addDays(from, 3);
+  const catalog = loadWorldCupReference();
+  const teams = new Map(db.prepare("SELECT id,fifa_code,name FROM teams").all().map((team) => [team.fifa_code, team]));
+  const stadiums = new Map(db.prepare("SELECT id,name,city FROM stadiums").all().map((stadium) => [`${stadium.name}\n${stadium.city}`, stadium]));
+  const existingMatches = db.prepare(`
+    SELECT id,match_date,match_time,team1_id,team2_id,team1,team2,status
+    FROM matches WHERE match_date BETWEEN ? AND ?
+  `).all(from, to);
+  const matches = catalog.matches
+    .filter((match) => match.match_date >= from && match.match_date <= to)
+    .map((match) => {
+      const team1 = teams.get(match.team1.fifa_code) || null;
+      const team2 = teams.get(match.team2.fifa_code) || null;
+      const stadium = stadiums.get(`${match.stadium.name}\n${match.stadium.city}`) || null;
+      const existing = team1 && team2 ? existingMatches.find((row) =>
+        row.match_date === match.match_date &&
+        ((row.team1_id === team1.id && row.team2_id === team2.id) ||
+          (row.team1_id === team2.id && row.team2_id === team1.id))
+      ) : null;
+      const missing = [
+        !team1 && `Equipo: ${match.team1.name_es}`,
+        !team2 && `Equipo: ${match.team2.name_es}`,
+        !stadium && `Estadio: ${match.stadium.name || match.stadium.city}`
+      ].filter(Boolean);
+      return {
+        reference_id: match.reference_id,
+        round: match.round?.replace(/^Matchday /, "Jornada "),
+        group: match.group?.replace(/^Group /, "Grupo ") || null,
+        match_date: match.match_date,
+        match_time: match.match_time,
+        starts_at: match.starts_at,
+        team1: team1 || { id: null, name: match.team1.name_es },
+        team2: team2 || { id: null, name: match.team2.name_es },
+        stadium: stadium || { id: null, name: match.stadium.name, city: match.stadium.city },
+        existing_match: existing,
+        selectable: missing.length === 0,
+        missing
+      };
+    });
+  res.json({ from, to, timezone: catalog.display_timezone, matches });
 });
 
 const userStats = (userId) => {
@@ -245,7 +447,7 @@ app.get("/api/dashboard", requireAuth, (req, res) => {
   const unfinishedMatches = db.prepare(`
     SELECT m.*, COUNT(bettor.id) prediction_count,
       mine.id prediction_id, mine.predicted_winner, mine.predicted_team1_goals, mine.predicted_team2_goals,
-      mine.winner_points, mine.exact_result_points, mine.total_points
+      mine.predicted_scorer_id,mine.winner_points, mine.exact_result_points,mine.scorer_points,mine.total_points
     FROM matches m
     LEFT JOIN predictions p ON p.match_id=m.id
     LEFT JOIN users bettor ON bettor.id=p.user_id AND bettor.role='user'
@@ -260,8 +462,9 @@ app.get("/api/dashboard", requireAuth, (req, res) => {
     !isExpired(match) &&
     !db.prepare("SELECT id FROM predictions WHERE match_id=? AND user_id=?").get(match.id, req.user.id)
   ).length;
-  const inPlayMatches = unfinishedMatches.filter((match) => isMatchInPlay(match)).map(serializeMatch);
-  const nextMatches = unfinishedMatches.filter((match) => match.status === "open" && !isMatchInPlay(match)).map(serializeMatch);
+  const serializedUnfinished = serializeMatches(unfinishedMatches);
+  const inPlayMatches = serializedUnfinished.filter((match) => match.in_play);
+  const nextMatches = serializedUnfinished.filter((match) => match.status === "open" && !match.in_play);
   res.json({
     summary: { ...stats, today_points: todayPoints, pending },
     in_play_matches: inPlayMatches,
@@ -374,13 +577,13 @@ app.get("/api/activity", requireAuth, (req, res) => {
   const items = db.prepare(`
     SELECT * FROM (
       SELECT 'prediction' type,u.username,m.team1,m.team2,NULL total_points,
-        p.created_at,NULL exact_result_points,p.id event_id,m.is_star,1 scoring_multiplier
+        p.created_at,NULL exact_result_points,NULL scorer_points,p.id event_id,m.is_star,1 scoring_multiplier
       FROM predictions p
       JOIN users u ON u.id=p.user_id
       JOIN matches m ON m.id=p.match_id
       UNION ALL
       SELECT 'points' type,u.username,m.team1,m.team2,p.total_points,
-        p.updated_at created_at,p.exact_result_points,p.id event_id,m.is_star,p.scoring_multiplier
+        p.updated_at created_at,p.exact_result_points,p.scorer_points,p.id event_id,m.is_star,p.scoring_multiplier
       FROM predictions p
       JOIN users u ON u.id=p.user_id
       JOIN matches m ON m.id=p.match_id
@@ -391,7 +594,7 @@ app.get("/api/activity", requireAuth, (req, res) => {
   `).all().map((item) => ({
     ...item,
     text: item.type === "points"
-      ? `${item.username} ${item.exact_result_points > 0 ? "acertó un resultado exacto" : `consiguió ${item.total_points} puntos`}${item.is_star ? ` en un Partido Estrella x2 (${item.total_points / item.scoring_multiplier} ×${item.scoring_multiplier} = ${item.total_points})` : ""}`
+      ? `${item.username} ${item.scorer_points > 0 ? `sumó ${item.scorer_points} puntos por adivinar el goleador` : item.exact_result_points > 0 ? "acertó un resultado exacto" : `consiguió ${item.total_points} puntos`}${item.is_star ? ` en un Partido Estrella x2 (${item.total_points / item.scoring_multiplier} ×${item.scoring_multiplier} = ${item.total_points})` : ""}`
       : `${item.username} registró un pronóstico en ${item.team1} - ${item.team2}`
   }));
   const start = (page - 1) * pageSize;
@@ -437,24 +640,36 @@ app.post("/api/chat/read", requireAuth, (req, res) => {
 
 app.get("/api/matches/:id/detail", requireAuth, (req, res) => {
   const match = db.prepare(`
-    SELECT m.*,p.id prediction_id,p.predicted_winner,p.predicted_team1_goals,p.predicted_team2_goals,p.total_points
+    SELECT m.*,p.id prediction_id,p.predicted_winner,p.predicted_team1_goals,p.predicted_team2_goals,
+      p.predicted_scorer_id,p.scorer_points,p.total_points
     FROM matches m LEFT JOIN predictions p ON p.match_id=m.id AND p.user_id=? WHERE m.id=?
   `).get(req.user.id, req.params.id);
   if (!match || !canAccessMatch(req, match)) return res.status(404).json({ error: "Partido no encontrado." });
   const open = match.status === "open" && !isExpired(match);
-  const participants = db.prepare(`
+  const participantCount = db.prepare(`
+    SELECT COUNT(*) count FROM predictions p
+    JOIN users u ON u.id=p.user_id
+    WHERE p.match_id=? AND u.role='user'
+  `).get(match.id).count;
+  const participants = open ? [] : db.prepare(`
     SELECT u.id,u.username,
       CASE WHEN p.id IS NULL THEN 0 ELSE 1 END participating,
-      p.predicted_winner,p.predicted_team1_goals,p.predicted_team2_goals,p.total_points
+      p.predicted_winner,p.predicted_team1_goals,p.predicted_team2_goals,p.predicted_scorer_id,
+      player.name predicted_scorer_name,p.scorer_points,p.total_points
     FROM users u
     LEFT JOIN predictions p ON p.user_id=u.id AND p.match_id=?
+    LEFT JOIN players player ON player.id=p.predicted_scorer_id
     WHERE u.active=1 AND u.role='user'
-    ORDER BY participating DESC,${open ? "u.username" : "p.total_points DESC,u.username"}
-  `).all(match.id);
+    ORDER BY p.total_points DESC,u.username
+  `).all(match.id).map((participant) => participant.participating &&
+    participant.predicted_team1_goals === 0 &&
+    participant.predicted_team2_goals === 0
+    ? { ...participant, predicted_scorer_id: NO_SCORER_ID, predicted_scorer_name: NO_SCORER.name }
+    : participant);
   const distribution = open ? [] : db.prepare(
     "SELECT predicted_winner winner,COUNT(*) count FROM predictions WHERE match_id=? GROUP BY predicted_winner"
   ).all(match.id);
-  res.json({ match: serializeMatch(match), participants, revealed: !open, distribution });
+  res.json({ match: serializeMatch(match), participants, participant_count: participantCount, revealed: !open, distribution });
 });
 
 app.get("/api/matches/:id/comments", requireAuth, (req, res) => {
@@ -497,10 +712,19 @@ app.delete("/api/comments/:id", requireAuth, (req, res) => {
 
 app.post("/api/matches", requireAdmin, (req, res) => {
   const data = matchPayload(req.body);
-  if (!data.match_date || !data.match_time || !data.team1 || !data.team2) return res.status(400).json({ error: "Fecha, hora y equipos son obligatorios." });
+  const entities = selectedMatchEntities(data);
+  const team1Name = entities.team1?.name || data.team1, team2Name = entities.team2?.name || data.team2;
+  if (!data.match_date || !data.match_time || !data.auto_close_at || !team1Name || !team2Name) return res.status(400).json({ error: "Fecha, hora y equipos válidos son obligatorios." });
+  if (req.body.team1_id !== undefined && !entities.team1) return res.status(400).json({ error: "Equipo local no válido." });
+  if (req.body.team2_id !== undefined && !entities.team2) return res.status(400).json({ error: "Equipo visitante no válido." });
+  if ((entities.team1 && entities.team2 && entities.team1.id === entities.team2.id) || team1Name === team2Name) return res.status(400).json({ error: "Los equipos deben ser distintos." });
+  if (data.stadium_id && !entities.stadium) return res.status(400).json({ error: "Estadio no válido." });
   const stamp = now();
-  const result = db.prepare(`INSERT INTO matches(match_date,match_time,stadium,team1,team2,status,auto_close_at,force_published,is_star,created_at,updated_at) VALUES(?,?,?,?,?,'open',?,?,?,?,?)`)
-    .run(data.match_date, data.match_time, data.stadium, data.team1, data.team2, data.auto_close_at, data.force_published, data.is_star, stamp, stamp);
+  const result = db.prepare(`INSERT INTO matches(match_date,match_time,stadium,team1,team2,team1_id,team2_id,stadium_id,
+    scorer_enabled,status,auto_close_at,force_published,is_star,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,'open',?,?,?,?,?)`)
+    .run(data.match_date, data.match_time, entities.stadium?.name || "", team1Name, team2Name,
+      entities.team1?.id || null, entities.team2?.id || null, entities.stadium?.id || null, data.scorer_enabled,
+      data.auto_close_at, data.force_published, data.is_star, stamp, stamp);
   const created = db.prepare("SELECT * FROM matches WHERE id=?").get(result.lastInsertRowid);
   logAction(req.user.id, "create_match", "match", created.id, "Partido creado", null, created);
   res.status(201).json(serializeMatch(created));
@@ -510,9 +734,30 @@ app.put("/api/matches/:id", requireAdmin, (req, res) => {
   const before = db.prepare("SELECT * FROM matches WHERE id=?").get(req.params.id);
   if (!before) return res.status(404).json({ error: "Partido no encontrado." });
   const data = matchPayload(req.body, before);
-  db.prepare("UPDATE matches SET match_date=?,match_time=?,stadium=?,team1=?,team2=?,auto_close_at=?,force_published=?,is_star=?,updated_at=? WHERE id=?")
-    .run(data.match_date, data.match_time, data.stadium, data.team1, data.team2, data.auto_close_at, data.force_published, data.is_star, now(), before.id);
-  if (before.status === "finished" && Number(before.is_star) !== data.is_star) {
+  const entities = selectedMatchEntities(data);
+  const team1Name = entities.team1?.name || data.team1, team2Name = entities.team2?.name || data.team2;
+  if (!data.match_date || !data.match_time || !data.auto_close_at || !team1Name || !team2Name || team1Name === team2Name) return res.status(400).json({ error: "Selecciona fecha, hora y dos equipos válidos y distintos." });
+  if (req.body.team1_id !== undefined && !entities.team1) return res.status(400).json({ error: "Equipo local no válido." });
+  if (req.body.team2_id !== undefined && !entities.team2) return res.status(400).json({ error: "Equipo visitante no válido." });
+  if (data.stadium_id && !entities.stadium) return res.status(400).json({ error: "Estadio no válido." });
+  const teamsChanged = Number(before.team1_id || 0) !== Number(entities.team1?.id || 0) ||
+    Number(before.team2_id || 0) !== Number(entities.team2?.id || 0);
+  if (teamsChanged && db.prepare("SELECT 1 FROM predictions WHERE match_id=? LIMIT 1").get(before.id)) {
+    return res.status(409).json({ error: "No se pueden cambiar los equipos porque ya existen pronósticos para este partido." });
+  }
+  db.transaction(() => {
+    db.prepare(`UPDATE matches SET match_date=?,match_time=?,stadium=?,team1=?,team2=?,team1_id=?,team2_id=?,
+      stadium_id=?,scorer_enabled=?,auto_close_at=?,force_published=?,is_star=?,updated_at=? WHERE id=?`)
+      .run(data.match_date, data.match_time, entities.stadium?.name || before.stadium || "", team1Name, team2Name,
+        entities.team1?.id || null, entities.team2?.id || null, entities.stadium?.id || null, data.scorer_enabled,
+        data.auto_close_at, data.force_published, data.is_star, now(), before.id);
+    if (!data.scorer_enabled) {
+      db.prepare("DELETE FROM match_scorers WHERE match_id=?").run(before.id);
+      db.prepare("UPDATE predictions SET predicted_scorer_id=NULL,scorer_points=0 WHERE match_id=?").run(before.id);
+    }
+  })();
+  if (before.status === "finished" &&
+      (Number(before.is_star) !== data.is_star || Number(before.scorer_enabled) !== data.scorer_enabled)) {
     recalculateMatch(before.id);
     saveRankingSnapshot();
   }
@@ -585,9 +830,10 @@ app.delete("/api/matches/:id/result", requireAdmin, (req, res) => {
     `).run(nextStatus, closeReason, stamp, before.id);
     db.prepare(`
       UPDATE predictions
-      SET winner_points=0,exact_result_points=0,total_points=0,scoring_multiplier=1,locked=?,updated_at=?
+      SET winner_points=0,exact_result_points=0,scorer_points=0,total_points=0,scoring_multiplier=1,locked=?,updated_at=?
       WHERE match_id=?
     `).run(locked, stamp, before.id);
+    db.prepare("DELETE FROM match_scorers WHERE match_id=?").run(before.id);
   })();
 
   saveRankingSnapshot();
@@ -604,11 +850,34 @@ app.post("/api/matches/:id/finish", requireAdmin, (req, res) => {
   const g1 = parseIntField(req.body.result_team1), g2 = parseIntField(req.body.result_team2);
   if (!before) return res.status(404).json({ error: "Partido no encontrado." });
   if (g1 === null || g2 === null) return res.status(400).json({ error: "Los goles deben ser enteros positivos o cero." });
+  const scorerIds = parseScorerList(req.body.scorer_ids);
+  if (scorerIds === null) return res.status(400).json({ error: "La lista de goleadores no es válida." });
+  const noScorerSelected = scorerIds.includes(NO_SCORER_ID);
+  if (before.scorer_enabled && g1 + g2 > 0 && scorerIds.length === 0) {
+    return res.status(400).json({ error: "Selecciona al menos un goleador. Los autogoles no se incluyen." });
+  }
+  if (g1 + g2 > 0 && noScorerSelected) return res.status(400).json({ error: "Sin goleador solo es válido para resultados 0-0." });
+  if (g1 + g2 === 0 && scorerIds.length && !noScorerSelected) return res.status(400).json({ error: "Un empate 0-0 solo puede tener Sin goleador." });
+  const playerScorerIds = noScorerSelected ? [] : scorerIds;
+  if (playerScorerIds.length) {
+    if (!before.team1_id || !before.team2_id) return res.status(400).json({ error: "El partido debe tener equipos vinculados para guardar goleadores." });
+    const allowedTeamIds = scoringTeamIds(before, g1, g2);
+    const valid = db.prepare(`
+      SELECT p.id FROM players p JOIN teams t ON t.fifa_code=p.team_fifa_code
+      WHERE p.id IN (${playerScorerIds.map(() => "?").join(",")}) AND t.id IN (${allowedTeamIds.map(() => "?").join(",")})
+    `).all(...playerScorerIds, ...allowedTeamIds);
+    if (valid.length !== playerScorerIds.length) return res.status(400).json({ error: "Todos los goleadores deben pertenecer a equipos que hayan marcado." });
+  }
   const winner = calculateWinner(g1, g2);
   if (req.body.winner && req.body.winner !== winner) return res.status(400).json({ error: "El ganador no coincide con el marcador." });
   const leaderboardBefore = leaderboardRows();
-  db.prepare("UPDATE matches SET status='finished',result_team1=?,result_team2=?,winner=?,updated_at=? WHERE id=?")
-    .run(g1, g2, winner, now(), before.id);
+  db.transaction(() => {
+    db.prepare("UPDATE matches SET status='finished',result_team1=?,result_team2=?,winner=?,updated_at=? WHERE id=?")
+      .run(g1, g2, winner, now(), before.id);
+    db.prepare("DELETE FROM match_scorers WHERE match_id=?").run(before.id);
+    const addScorer = db.prepare("INSERT INTO match_scorers(match_id,player_id) VALUES(?,?)");
+    playerScorerIds.forEach((playerId) => addScorer.run(before.id, playerId));
+  })();
   recalculateMatch(before.id);
   saveRankingSnapshot();
   const after = db.prepare("SELECT * FROM matches WHERE id=?").get(before.id);
@@ -642,6 +911,43 @@ app.post("/api/matches/:id/finish", requireAdmin, (req, res) => {
 app.get("/api/predictions/me", requireAuth, (req, res) => {
   res.json(db.prepare("SELECT * FROM predictions WHERE user_id=? ORDER BY match_id").all(req.user.id));
 });
+app.get("/api/matches/:id/scorers", requireAuth, (req, res) => {
+  const match = db.prepare("SELECT * FROM matches WHERE id=?").get(req.params.id);
+  if (!match || !canAccessMatch(req, match)) return res.status(404).json({ error: "Partido no encontrado." });
+  const players = db.prepare(`
+    SELECT p.id,p.name,p.position,p.team_fifa_code FROM match_scorers ms
+    JOIN players p ON p.id=ms.player_id WHERE ms.match_id=? ORDER BY p.name
+  `).all(match.id);
+  res.json(serializeActualScorers(match, players));
+});
+app.put("/api/matches/:id/scorers", requireAdmin, (req, res) => {
+  const match = db.prepare("SELECT * FROM matches WHERE id=?").get(req.params.id);
+  if (!match) return res.status(404).json({ error: "Partido no encontrado." });
+  if (match.result_team1 === null) return res.status(409).json({ error: "Guarda primero el resultado." });
+  const scorerIds = parseScorerList(req.body.scorer_ids);
+  if (scorerIds === null) return res.status(400).json({ error: "La lista de goleadores no es válida." });
+  const noScorerSelected = scorerIds.includes(NO_SCORER_ID);
+  if (match.scorer_enabled && match.result_team1 + match.result_team2 > 0 && !scorerIds.length) {
+    return res.status(400).json({ error: "Selecciona al menos un goleador." });
+  }
+  if (match.result_team1 + match.result_team2 > 0 && noScorerSelected) return res.status(400).json({ error: "Sin goleador solo es válido para resultados 0-0." });
+  if (match.result_team1 + match.result_team2 === 0 && scorerIds.length && !noScorerSelected) return res.status(400).json({ error: "Un empate 0-0 solo puede tener Sin goleador." });
+  const playerScorerIds = noScorerSelected ? [] : scorerIds;
+  const allowedTeamIds = scoringTeamIds(match, match.result_team1, match.result_team2);
+  const valid = playerScorerIds.length ? db.prepare(`
+    SELECT p.id FROM players p JOIN teams t ON t.fifa_code=p.team_fifa_code
+    WHERE p.id IN (${playerScorerIds.map(() => "?").join(",")}) AND t.id IN (${allowedTeamIds.map(() => "?").join(",")})
+  `).all(...playerScorerIds, ...allowedTeamIds) : [];
+  if (valid.length !== playerScorerIds.length) return res.status(400).json({ error: "Goleador no válido para este resultado." });
+  db.transaction(() => {
+    db.prepare("DELETE FROM match_scorers WHERE match_id=?").run(match.id);
+    const insert = db.prepare("INSERT INTO match_scorers(match_id,player_id) VALUES(?,?)");
+    playerScorerIds.forEach((playerId) => insert.run(match.id, playerId));
+  })();
+  recalculateMatch(match.id);
+  saveRankingSnapshot();
+  res.json(serializeMatch(db.prepare("SELECT * FROM matches WHERE id=?").get(match.id)));
+});
 app.get("/api/predictions/match/:matchId", requireAuth, (req, res) => {
   const match = db.prepare("SELECT * FROM matches WHERE id=?").get(req.params.matchId);
   if (!match || !canAccessMatch(req, match)) return res.status(404).json({ error: "Partido no encontrado." });
@@ -651,19 +957,17 @@ app.get("/api/predictions/match/:matchId", requireAuth, (req, res) => {
     WHERE p.match_id=? AND u.role='user'
   `).get(match.id).count;
   if (match.status === "open" && !isExpired(match)) {
-    const participants = db.prepare(`
-      SELECT u.id,u.username FROM predictions p
-      JOIN users u ON u.id=p.user_id
-      WHERE p.match_id=? AND u.role='user' ORDER BY u.username
-    `).all(match.id);
-    return res.json({ revealed: false, count, participants });
+    return res.json({ revealed: false, count, participants: [] });
   }
   const predictions = db.prepare(`
     SELECT p.id,u.username,p.predicted_winner,p.predicted_team1_goals,p.predicted_team2_goals,
-      p.winner_points,p.exact_result_points,p.total_points
-    FROM predictions p JOIN users u ON u.id=p.user_id
+      p.winner_points,p.exact_result_points,p.scorer_points,p.total_points,p.predicted_scorer_id,
+      player.name predicted_scorer_name,player.position predicted_scorer_position
+    FROM predictions p JOIN users u ON u.id=p.user_id LEFT JOIN players player ON player.id=p.predicted_scorer_id
     WHERE p.match_id=? AND u.role='user' ORDER BY u.username
-  `).all(match.id);
+  `).all(match.id).map((prediction) => prediction.predicted_team1_goals === 0 && prediction.predicted_team2_goals === 0
+    ? { ...prediction, predicted_scorer_id: NO_SCORER_ID, predicted_scorer_name: NO_SCORER.name, predicted_scorer_position: NO_SCORER.position }
+    : prediction);
   res.json({ revealed: true, count, predictions });
 });
 
@@ -672,23 +976,37 @@ function savePrediction(req, res, predictionId = null) {
   const match = db.prepare("SELECT * FROM matches WHERE id=?").get(matchId);
   const g1 = parseIntField(req.body.predicted_team1_goals), g2 = parseIntField(req.body.predicted_team2_goals);
   const winner = req.body.predicted_winner;
+  const scorerSelection = parseScorerSelection(req.body.predicted_scorer_id);
   if (!match) return res.status(404).json({ error: "Partido no encontrado." });
   if (!isMatchPublished(match)) return res.status(409).json({ error: "Este partido todavía no está publicado para apostar." });
   if (match.status !== "open" || isExpired(match)) return res.status(409).json({ error: "Las apuestas de este partido ya están cerradas." });
   if (g1 === null || g2 === null || !["team1", "team2", "draw"].includes(winner)) return res.status(400).json({ error: "Predicción no válida." });
+  if (!scorerSelection) return res.status(400).json({ error: "Goleador no válido." });
   if (predictionWinner(g1, g2) !== winner) return res.status(400).json({ error: "El ganador elegido no coincide con el resultado pronosticado." });
+  if (match.scorer_enabled && g1 + g2 > 0 && scorerSelection.type !== "player") return res.status(400).json({ error: "Selecciona un goleador para este pronóstico." });
+  if (g1 + g2 === 0 && scorerSelection.type === "player") return res.status(400).json({ error: "Un pronóstico 0-0 solo puede incluir Sin goleador." });
+  if (g1 + g2 > 0 && scorerSelection.type === "no_scorer") return res.status(400).json({ error: "Sin goleador solo es válido para pronósticos 0-0." });
+  const predictedScorerId = scorerSelection.type === "player" ? scorerSelection.playerId : null;
+  if (predictedScorerId) {
+    const allowedTeamIds = scoringTeamIds(match, g1, g2);
+    const player = db.prepare(`
+      SELECT p.id FROM players p JOIN teams t ON t.fifa_code=p.team_fifa_code
+      WHERE p.id=? AND t.id IN (${allowedTeamIds.map(() => "?").join(",")})
+    `).get(predictedScorerId, ...allowedTeamIds);
+    if (!player) return res.status(400).json({ error: "El goleador debe pertenecer a un equipo que marque en tu pronóstico." });
+  }
   const existing = db.prepare("SELECT * FROM predictions WHERE user_id=? AND match_id=?").get(req.user.id, matchId);
   if (predictionId && (!existing || existing.id !== Number(predictionId))) return res.status(403).json({ error: "No puedes modificar esta predicción." });
   if (existing) {
-    db.prepare("UPDATE predictions SET predicted_winner=?,predicted_team1_goals=?,predicted_team2_goals=?,updated_at=? WHERE id=?")
-      .run(winner, g1, g2, now(), existing.id);
+    db.prepare("UPDATE predictions SET predicted_winner=?,predicted_team1_goals=?,predicted_team2_goals=?,predicted_scorer_id=?,updated_at=? WHERE id=?")
+      .run(winner, g1, g2, predictedScorerId, now(), existing.id);
     return res.json(db.prepare("SELECT * FROM predictions WHERE id=?").get(existing.id));
   }
   const stamp = now();
   const result = db.prepare(`
-    INSERT INTO predictions(user_id,match_id,predicted_winner,predicted_team1_goals,predicted_team2_goals,created_at,updated_at)
-    VALUES(?,?,?,?,?,?,?)
-  `).run(req.user.id, matchId, winner, g1, g2, stamp, stamp);
+    INSERT INTO predictions(user_id,match_id,predicted_winner,predicted_team1_goals,predicted_team2_goals,predicted_scorer_id,created_at,updated_at)
+    VALUES(?,?,?,?,?,?,?,?)
+  `).run(req.user.id, matchId, winner, g1, g2, predictedScorerId, stamp, stamp);
   res.status(201).json(db.prepare("SELECT * FROM predictions WHERE id=?").get(result.lastInsertRowid));
 }
 app.post("/api/predictions", requireAuth, (req, res) => savePrediction(req, res));
@@ -756,8 +1074,9 @@ app.get("/api/history/day/:date", requireAuth, (req, res) => {
     SELECT m.*,p.id prediction_id,p.predicted_winner,p.predicted_team1_goals,p.predicted_team2_goals,p.total_points
     FROM matches m LEFT JOIN predictions p ON p.match_id=m.id AND p.user_id=?
     WHERE m.match_date=? ORDER BY m.match_time
-  `).all(req.user.id, req.params.date).filter((match) => canAccessMatch(req, match)).map(serializeMatch);
-  const details = Object.fromEntries(matches.map((match) => {
+  `).all(req.user.id, req.params.date);
+  const visibleMatches = serializeMatches(matches.filter((match) => canAccessMatch(req, match)));
+  const details = Object.fromEntries(visibleMatches.map((match) => {
     if (match.status === "open" && !isExpired(match)) return [match.id, null];
     return [match.id, db.prepare(`
       SELECT u.username,p.predicted_winner,p.predicted_team1_goals,p.predicted_team2_goals,p.total_points
@@ -765,7 +1084,7 @@ app.get("/api/history/day/:date", requireAuth, (req, res) => {
       WHERE p.match_id=? AND u.role='user' ORDER BY u.username
     `).all(match.id)];
   }));
-  res.json({ matches, predictions: details });
+  res.json({ matches: visibleMatches, predictions: details });
 });
 app.get("/api/history/day/:date/summary", requireAuth, (req, res) => {
   res.json(db.prepare(`
@@ -870,7 +1189,11 @@ app.get("/api/admin/actions-log", requireAdmin, (req, res) => {
 app.post("/api/admin/auto-close-expired-matches", requireAdmin, (_req, res) => res.json({ closed: autoCloseExpired() }));
 app.get("/api/admin/settings", requireAdmin, (_req, res) => res.json(settings()));
 app.put("/api/admin/settings", requireAdmin, (req, res) => {
-  const allowed = ["pool_name", "winner_points", "exact_result_points", "auto_close_enabled", "auto_close_minutes_before"];
+  const allowed = ["pool_name", "winner_points", "exact_result_points", "scorer_points", "auto_close_enabled", "auto_close_minutes_before"];
+  const numeric = ["winner_points", "exact_result_points", "scorer_points", "auto_close_minutes_before"];
+  if (numeric.some((key) => req.body[key] !== undefined && (!Number.isInteger(Number(req.body[key])) || Number(req.body[key]) < 0))) {
+    return res.status(400).json({ error: "Las puntuaciones y los minutos deben ser enteros positivos o cero." });
+  }
   const update = db.prepare("INSERT INTO app_settings(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at");
   db.transaction(() => allowed.forEach((key) => { if (req.body[key] !== undefined) update.run(key, String(req.body[key]), now()); }))();
   logAction(req.user.id, "edit_settings", "settings", null, "Configuración actualizada", null, settings());

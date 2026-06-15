@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { Activity, Calculator, MessageSquareText, Plus, Settings, Shield, Trash2, Users } from "lucide-react";
+import { Activity, Calculator, CalendarSearch, Check, MessageSquareText, Plus, Settings, Shield, Trash2, Users } from "lucide-react";
 import { api } from "../api/client";
+import { SearchSelect } from "../components/SearchSelect";
+import { NO_SCORER, NO_SCORER_ID } from "../constants/scorers";
 
 export function AdminPage() {
   const [tab,setTab]=useState("matches");
@@ -43,7 +45,7 @@ function AdminMessages(){
 }
 
 function AdminMatches(){
-  const blank={match_date:"",match_time:"",stadium:"",team1:"",team2:"",auto_close_at:"",force_published:false,is_star:false};
+  const blank={match_date:"",match_time:"",team1_id:"",team2_id:"",stadium_id:"",use_custom_close:false,auto_close_at:"",force_published:false,is_star:false,scorer_enabled:true};
   const toLocalDateTime=value=>{
     if(!value)return "";
     const date=new Date(value);
@@ -51,12 +53,29 @@ function AdminMatches(){
     return new Date(date.getTime()-offset).toISOString().slice(0,16);
   };
   const [matches,setMatches]=useState([]),[form,setForm]=useState(blank),[edit,setEdit]=useState(null),[notice,setNotice]=useState("");
-  const [filter,setFilter]=useState("all"),[page,setPage]=useState(1),[pagination,setPagination]=useState({page:1,total:0,total_pages:1});
+  const [teams,setTeams]=useState([]),[stadiums,setStadiums]=useState([]),[resultMatch,setResultMatch]=useState(null);
+  const [filter,setFilter]=useState("upcoming"),[page,setPage]=useState(1),[pagination,setPagination]=useState({page:1,total:0,total_pages:1});
+  const [reference,setReference]=useState(null),[referenceLoading,setReferenceLoading]=useState(false),[referenceError,setReferenceError]=useState("");
   const load=()=>api(`/admin/matches?${new URLSearchParams({filter,page:String(page),page_size:"10"})}`).then(data=>{setMatches(data.matches);setPagination(data.pagination);if(data.pagination.page!==page)setPage(data.pagination.page)});
   useEffect(()=>{load()},[filter,page]);
+  useEffect(()=>{Promise.all([api("/teams"),api("/stadiums")]).then(([teamRows,stadiumRows])=>{setTeams(teamRows);setStadiums(stadiumRows)})},[]);
   const selectFilter=value=>{setFilter(value);setPage(1)};
-  const save=async e=>{e.preventDefault();const body={...form,auto_close_at:form.auto_close_at?new Date(form.auto_close_at).toISOString():""};await api(edit?`/matches/${edit}`:"/matches",{method:edit?"PUT":"POST",body});setForm(blank);setEdit(null);setNotice("Partido guardado.");setPage(1);load()};
-  const startEdit=m=>{setEdit(m.id);setForm({match_date:m.match_date,match_time:m.match_time,stadium:m.stadium,team1:m.team1,team2:m.team2,auto_close_at:toLocalDateTime(m.auto_close_at),force_published:Boolean(m.force_published),is_star:Boolean(m.is_star)})};
+  const openReference=async()=>{
+    if(reference){setReference(null);return}
+    setReferenceLoading(true);setReferenceError("");
+    try{setReference(await api("/admin/match-reference"))}catch(error){setReferenceError(error.message)}
+    finally{setReferenceLoading(false)}
+  };
+  const useReferenceMatch=match=>{
+    if(!match.selectable||match.existing_match)return;
+    setEdit(null);
+    setForm({...blank,match_date:match.match_date,match_time:match.match_time,team1_id:match.team1.id,team2_id:match.team2.id,stadium_id:match.stadium.id});
+    setNotice("Datos copiados al formulario. Revísalos y pulsa «Crear partido» para guardarlo.");
+    setReference(null);
+    window.scrollTo({top:0,behavior:"smooth"});
+  };
+  const save=async e=>{e.preventDefault();const body={...form,auto_close_at:form.use_custom_close&&form.auto_close_at?new Date(form.auto_close_at).toISOString():""};delete body.use_custom_close;await api(edit?`/matches/${edit}`:"/matches",{method:edit?"PUT":"POST",body});setForm(blank);setEdit(null);setNotice("Partido guardado.");setPage(1);load()};
+  const startEdit=m=>{const defaultClose=`${m.match_date}T${m.match_time}`;const customClose=toLocalDateTime(m.auto_close_at);setEdit(m.id);setForm({match_date:m.match_date,match_time:m.match_time,team1_id:m.team1_id||"",team2_id:m.team2_id||"",stadium_id:m.stadium_id||"",use_custom_close:Boolean(customClose&&customClose!==defaultClose),auto_close_at:customClose,force_published:Boolean(m.force_published),is_star:Boolean(m.is_star),scorer_enabled:Boolean(m.scorer_enabled)})};
   const status=async(id,value)=>{
     const body={status:value};
     if(value==="open"){
@@ -67,15 +86,33 @@ function AdminMatches(){
     setNotice(value==="open"?`Partido reabierto con cierre ${body.reopen_mode==="automatic"?"automático":"manual"}.`:"Partido cerrado manualmente.");
     load();
   };
-  const finish=async m=>{const score=window.prompt(`Resultado ${m.team1}-${m.team2} (ej. 2-1)`);if(!score)return;const [a,b]=score.split("-").map(Number);await api(`/matches/${m.id}/finish`,{method:"POST",body:{result_team1:a,result_team2:b}});setNotice("Resultado guardado y puntos recalculados.");load()};
+  const finish=m=>setResultMatch(m);
   const deleteResult=async m=>{if(!window.confirm(`¿Eliminar el resultado de ${m.team1} - ${m.team2}? Se quitarán los puntos obtenidos y el partido volverá a abrirse.`))return;await api(`/matches/${m.id}/result`,{method:"DELETE"});setNotice("Resultado eliminado y partido reabierto.");load()};
   const remove=async m=>{if(window.confirm(`¿Eliminar ${m.team1} - ${m.team2}?`)){await api(`/matches/${m.id}`,{method:"DELETE"});load()}};
-  const filters=[["all","Todos"],["upcoming","Próximos"],["open","Abiertos"],["closed","Cerrados"],["finished","Finalizados"]];
-  return <section className="admin-section"><Notice text={notice}/><form className="admin-form" onSubmit={save}><h3>{edit?"Editar partido":"Nuevo partido"}</h3><div className="form-grid"><label>Fecha<input type="date" required value={form.match_date} onChange={e=>setForm({...form,match_date:e.target.value})}/></label><label>Hora<input type="time" required value={form.match_time} onChange={e=>setForm({...form,match_time:e.target.value})}/></label><label>Equipo 1<input required value={form.team1} onChange={e=>setForm({...form,team1:e.target.value})}/></label><label>Equipo 2<input required value={form.team2} onChange={e=>setForm({...form,team2:e.target.value})}/></label><label>Estadio<input value={form.stadium} onChange={e=>setForm({...form,stadium:e.target.value})}/></label><label>Cierre personalizado<input type="datetime-local" value={form.auto_close_at} onChange={e=>setForm({...form,auto_close_at:e.target.value})}/></label><label className="toggle"><input type="checkbox" checked={form.force_published} onChange={e=>setForm({...form,force_published:e.target.checked})}/>Forzar publicación inmediata</label><label className="toggle star-admin-toggle"><input type="checkbox" checked={form.is_star} onChange={e=>setForm({...form,is_star:e.target.checked})}/>⭐ Partido Estrella: puntuación x2</label></div><button className="primary">{edit?"Guardar cambios":"Crear partido"}</button>{edit&&<button type="button" className="secondary" onClick={()=>{setEdit(null);setForm(blank)}}>Cancelar</button>}</form>
+  const filters=[["upcoming","Próximos"],["open","Abiertos"],["closed","Cerrados"],["finished","Finalizados"]];
+  return <section className="admin-section"><Notice text={notice}/>{resultMatch&&<AdminResultEditor match={resultMatch} onCancel={()=>setResultMatch(null)} onSaved={()=>{setResultMatch(null);setNotice("Resultado y goleadores guardados. Puntos recalculados.");load()}}/>}<form className="admin-form" onSubmit={save}><div className="admin-form-title"><h3>{edit?"Editar partido":"Nuevo partido"}</h3>{!edit&&<button type="button" className="reference-toggle" onClick={openReference}><CalendarSearch size={16}/>{reference?"Cerrar buscador":"Buscar en JSON"}</button>}</div>{referenceLoading&&<div className="reference-loading">Consultando calendario…</div>}{referenceError&&<div className="alert error">{referenceError}</div>}{reference&&<MatchReferencePanel data={reference} onSelect={useReferenceMatch}/>}<div className="form-grid"><label>Fecha<input type="date" required value={form.match_date} onChange={e=>setForm({...form,match_date:e.target.value})}/></label><label>Hora<input type="time" required value={form.match_time} onChange={e=>setForm({...form,match_time:e.target.value})}/></label><label>Equipo local<SearchSelect label="Equipo local" items={teams} value={form.team1_id} onChange={team=>setForm({...form,team1_id:team?.id||""})} placeholder="Buscar equipo..." renderItem={team=><><strong>{team.flag_icon} {team.name}</strong><small>{team.fifa_code} · Grupo {team.group_name}</small></>}/></label><label>Equipo visitante<SearchSelect label="Equipo visitante" items={teams} value={form.team2_id} onChange={team=>setForm({...form,team2_id:team?.id||""})} placeholder="Buscar equipo..." renderItem={team=><><strong>{team.flag_icon} {team.name}</strong><small>{team.fifa_code} · Grupo {team.group_name}</small></>}/></label><label>Estadio<SearchSelect label="Estadio" items={stadiums} value={form.stadium_id} onChange={stadium=>setForm({...form,stadium_id:stadium?.id||""})} placeholder="Buscar estadio..." renderItem={stadium=><><strong>{stadium.name}</strong><small>{stadium.city}</small></>}/></label><label className="toggle"><input type="checkbox" checked={form.use_custom_close} onChange={e=>setForm({...form,use_custom_close:e.target.checked,auto_close_at:e.target.checked?form.auto_close_at:""})}/>Usar cierre personalizado</label>{form.use_custom_close&&<label>Cierre personalizado<input type="datetime-local" required value={form.auto_close_at} onChange={e=>setForm({...form,auto_close_at:e.target.value})}/></label>}<label className="toggle"><input type="checkbox" checked={form.scorer_enabled} onChange={e=>setForm({...form,scorer_enabled:e.target.checked})}/>Permitir pronóstico de goleador</label><label className="toggle"><input type="checkbox" checked={form.force_published} onChange={e=>setForm({...form,force_published:e.target.checked})}/>Forzar publicación inmediata</label><label className="toggle star-admin-toggle"><input type="checkbox" checked={form.is_star} onChange={e=>setForm({...form,is_star:e.target.checked})}/>⭐ Partido Estrella: puntuación x2</label></div><button className="primary">{edit?"Guardar cambios":"Crear partido"}</button>{edit&&<button type="button" className="secondary" onClick={()=>{setEdit(null);setForm(blank)}}>Cancelar</button>}</form>
     <div className="admin-match-toolbar"><div className="admin-match-filters">{filters.map(([value,label])=><button type="button" className={filter===value?"active":""} onClick={()=>selectFilter(value)} key={value}>{label}</button>)}</div><span>{pagination.total} partido{pagination.total===1?"":"s"}</span></div>
     <div className="admin-list">{matches.length?matches.map(m=><div key={m.id}><div><strong>{m.is_star?"⭐ Partido Estrella x2 · ":""}{m.team1} – {m.team2}</strong><span>{m.match_date} · {m.match_time} · {m.status} · {m.published?"Publicado":`Oculto hasta ${new Date(m.publishes_at).toLocaleString("es-ES")}`}</span></div><div className="actions"><button onClick={()=>startEdit(m)}>Editar</button>{m.status==="open"&&<button onClick={()=>status(m.id,"closed")}>Cerrar</button>}{m.status==="closed"&&<button onClick={()=>status(m.id,"open")}>Reabrir</button>}<button className="accent" onClick={()=>finish(m)}>Resultado</button>{m.status==="finished"&&<button className="danger" onClick={()=>deleteResult(m)}>Eliminar resultado</button>}<button className="danger" onClick={()=>remove(m)}>Eliminar</button></div></div>):<div className="admin-list-empty">No hay partidos en este filtro.</div>}</div>
     {pagination.total_pages>1&&<nav className="admin-pagination" aria-label="Paginación de partidos"><button type="button" disabled={pagination.page<=1} onClick={()=>setPage(value=>value-1)}>Anterior</button><span>Página {pagination.page} de {pagination.total_pages}</span><button type="button" disabled={pagination.page>=pagination.total_pages} onClick={()=>setPage(value=>value+1)}>Siguiente</button></nav>}
   </section>;
+}
+
+function MatchReferencePanel({data,onSelect}){
+  const dateLabel=date=>new Date(`${date}T12:00:00`).toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"});
+  return <section className="match-reference"><header><div><strong>Calendario de referencia</strong><span>{dateLabel(data.from)} – {dateLabel(data.to)} · hora peninsular</span></div><small>Solo rellena el formulario; nunca crea ni actualiza partidos.</small></header><div className="reference-list">{data.matches.length?data.matches.map(match=><button type="button" key={match.reference_id} disabled={!match.selectable||Boolean(match.existing_match)} onClick={()=>onSelect(match)}><time><b>{dateLabel(match.match_date)}</b><span>{match.match_time}</span></time><div><strong>{match.team1.name} – {match.team2.name}</strong><span>{match.group||match.round} · {match.stadium.name}</span>{match.missing.length>0&&<em>Falta vincular: {match.missing.join(", ")}</em>}</div>{match.existing_match?<mark><Check size={13}/> Ya añadido</mark>:match.selectable?<mark className="available">Usar datos</mark>:<mark>No disponible</mark>}</button>):<div className="reference-empty">No hay partidos entre hoy y los tres días siguientes.</div>}</div></section>;
+}
+
+function AdminResultEditor({match,onCancel,onSaved}){
+  const [score,setScore]=useState({g1:match.result_team1??"",g2:match.result_team2??""}),[players,setPlayers]=useState([]),[scorerIds,setScorerIds]=useState((match.actual_scorers||[]).map(player=>player.id)),[error,setError]=useState("");
+  useEffect(()=>{const codes=[match.team1_team?.fifa_code,match.team2_team?.fifa_code].filter(Boolean);if(codes.length===2)api(`/players?team_fifa_codes=${codes.join(",")}`).then(setPlayers)},[match.id]);
+  const isNilNil=Number(score.g1)+Number(score.g2)===0;
+  const scoringTeamCodes=[Number(score.g1)>0&&match.team1_team?.fifa_code,Number(score.g2)>0&&match.team2_team?.fifa_code].filter(Boolean);
+  const validScorerIds=new Set(players.filter(player=>scoringTeamCodes.includes(player.team_fifa_code)).map(player=>player.id));
+  useEffect(()=>{if(match.scorer_enabled&&score.g1!==""&&score.g2!==""&&isNilNil)setScorerIds([NO_SCORER_ID])},[score.g1,score.g2,isNilNil,match.scorer_enabled]);
+  useEffect(()=>{if(players.length&&!isNilNil)setScorerIds(ids=>ids.filter(id=>validScorerIds.has(id)))},[score.g1,score.g2,players.length,isNilNil]);
+  const available=players.filter(player=>scoringTeamCodes.includes(player.team_fifa_code)&&!scorerIds.includes(player.id));
+  const save=async()=>{setError("");try{await api(`/matches/${match.id}/finish`,{method:"POST",body:{result_team1:Number(score.g1),result_team2:Number(score.g2),scorer_ids:scorerIds}});onSaved()}catch(err){setError(err.message)}};
+  return <section className="admin-form result-admin-editor"><h3>Resultado: {match.team1} - {match.team2}</h3><div className="result-admin-score"><input type="number" min="0" value={score.g1} onChange={e=>setScore({...score,g1:e.target.value})}/><b>:</b><input type="number" min="0" value={score.g2} onChange={e=>setScore({...score,g2:e.target.value})}/></div>{match.scorer_enabled&&isNilNil&&<div><label>Goleadores puntuables<SearchSelect items={[NO_SCORER]} value={NO_SCORER_ID} onChange={()=>setScorerIds([NO_SCORER_ID])} placeholder="Sin goleador" renderItem={player=><><strong>{player.name}</strong><small>{player.team_name} · {player.position}</small></>}/></label></div>}{match.scorer_enabled&&!isNilNil&&<div><label>Goleadores puntuables<SearchSelect items={available} onChange={player=>player&&setScorerIds([...scorerIds,player.id])} placeholder="Buscar y añadir jugador..." renderItem={player=><><strong>{player.name}</strong><small>{player.team_name} · {player.position}</small></>}/></label><div className="selected-scorers">{scorerIds.map(id=>{const player=players.find(row=>row.id===id)||match.actual_scorers?.find(row=>row.id===id);return player&&<button type="button" key={id} onClick={()=>setScorerIds(scorerIds.filter(value=>value!==id))}>{player.name} ×</button>})}</div><small>Selecciona cada jugador una sola vez. Los autogoles no se añaden.</small></div>}{error&&<div className="alert error">{error}</div>}<button className="primary" type="button" onClick={save}>Guardar resultado</button><button className="secondary" type="button" onClick={onCancel}>Cancelar</button></section>;
 }
 function AdminUsers(){
   const [users,setUsers]=useState([]),[form,setForm]=useState({username:"",password:"",role:"user"}),[notice,setNotice]=useState("");
@@ -104,7 +141,7 @@ function AdminRecalculate(){
 function AdminSettings(){
  const [form,setForm]=useState(null),[notice,setNotice]=useState("");useEffect(()=>{api("/admin/settings").then(setForm)},[]);if(!form)return null;
  const save=async e=>{e.preventDefault();setForm(await api("/admin/settings",{method:"PUT",body:form}));setNotice("Configuración guardada.")};
- return <section className="admin-section"><Notice text={notice}/><form className="admin-form" onSubmit={save}><h3>Reglas generales</h3><div className="form-grid"><label>Nombre de la porra<input value={form.pool_name} onChange={e=>setForm({...form,pool_name:e.target.value})}/></label><label>Puntos por ganador<input type="number" min="0" value={form.winner_points} onChange={e=>setForm({...form,winner_points:e.target.value})}/></label><label>Puntos por exacto<input type="number" min="0" value={form.exact_result_points} onChange={e=>setForm({...form,exact_result_points:e.target.value})}/></label><label>Minutos antes del partido<input type="number" min="0" value={form.auto_close_minutes_before} onChange={e=>setForm({...form,auto_close_minutes_before:e.target.value})}/></label><label className="toggle"><input type="checkbox" checked={form.auto_close_enabled==="1"} onChange={e=>setForm({...form,auto_close_enabled:e.target.checked?"1":"0"})}/>Activar cierre automático</label></div><button className="primary">Guardar configuración</button></form></section>;
+ return <section className="admin-section"><Notice text={notice}/><form className="admin-form" onSubmit={save}><h3>Reglas generales</h3><div className="form-grid"><label>Nombre de la porra<input value={form.pool_name} onChange={e=>setForm({...form,pool_name:e.target.value})}/></label><label>Puntos por ganador<input type="number" min="0" step="1" value={form.winner_points} onChange={e=>setForm({...form,winner_points:e.target.value})}/></label><label>Puntos por exacto<input type="number" min="0" step="1" value={form.exact_result_points} onChange={e=>setForm({...form,exact_result_points:e.target.value})}/></label><label>Puntos por goleador<input type="number" min="0" step="1" value={form.scorer_points} onChange={e=>setForm({...form,scorer_points:e.target.value})}/></label><label>Minutos antes del partido<input type="number" min="0" step="1" value={form.auto_close_minutes_before} onChange={e=>setForm({...form,auto_close_minutes_before:e.target.value})}/></label><label className="toggle"><input type="checkbox" checked={form.auto_close_enabled==="1"} onChange={e=>setForm({...form,auto_close_enabled:e.target.checked?"1":"0"})}/>Activar cierre automático</label></div><button className="primary">Guardar configuración</button></form></section>;
 }
 function AdminLogs(){
  const [rows,setRows]=useState([]),[filters,setFilters]=useState({action_type:"",entity_type:"",date:""});

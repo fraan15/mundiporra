@@ -1,0 +1,7808 @@
+[
+  {
+    "name": "República Checa",
+    "fifa_code": "CZE",
+    "group": "A",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Matěj Kovář",
+        "date_of_birth": "2000-05-17"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "David Zima",
+        "date_of_birth": "2000-11-08"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Tomáš Holeš",
+        "date_of_birth": "1993-03-31"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Robin Hranáč",
+        "date_of_birth": "2000-01-29"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Vladimír Coufal",
+        "date_of_birth": "1992-08-22"
+      },
+      {
+        "number": 6,
+        "pos": "DEF",
+        "name": "Štěpán Chaloupek",
+        "date_of_birth": "2003-03-08"
+      },
+      {
+        "number": 7,
+        "pos": "DEF",
+        "name": "Ladislav Krejčí",
+        "date_of_birth": "1999-04-20"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Vladimír Darida",
+        "date_of_birth": "1990-08-08"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Adam Hložek",
+        "date_of_birth": "2002-07-25"
+      },
+      {
+        "number": 10,
+        "pos": "DEL",
+        "name": "Patrik Schick",
+        "date_of_birth": "1996-01-24"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "Jan Kuchta",
+        "date_of_birth": "1997-01-08"
+      },
+      {
+        "number": 12,
+        "pos": "MED",
+        "name": "Lukáš Červ",
+        "date_of_birth": "2001-04-10"
+      },
+      {
+        "number": 13,
+        "pos": "DEL",
+        "name": "Mojmír Chytil",
+        "date_of_birth": "1999-04-29"
+      },
+      {
+        "number": 14,
+        "pos": "DEF",
+        "name": "David Jurásek",
+        "date_of_birth": "2000-08-07"
+      },
+      {
+        "number": 15,
+        "pos": "DEL",
+        "name": "Pavel Šulc",
+        "date_of_birth": "2000-12-29"
+      },
+      {
+        "number": 16,
+        "pos": "POR",
+        "name": "Jindřich Staněk",
+        "date_of_birth": "1996-04-27"
+      },
+      {
+        "number": 17,
+        "pos": "MED",
+        "name": "Lukáš Provod",
+        "date_of_birth": "1996-10-23"
+      },
+      {
+        "number": 18,
+        "pos": "MED",
+        "name": "Michal Sadílek",
+        "date_of_birth": "1999-05-31"
+      },
+      {
+        "number": 19,
+        "pos": "DEL",
+        "name": "Tomáš Chorý",
+        "date_of_birth": "1995-01-26"
+      },
+      {
+        "number": 20,
+        "pos": "DEF",
+        "name": "Jaroslav Zelený",
+        "date_of_birth": "1992-08-20"
+      },
+      {
+        "number": 21,
+        "pos": "DEF",
+        "name": "David Douděra",
+        "date_of_birth": "1998-05-31"
+      },
+      {
+        "number": 22,
+        "pos": "MED",
+        "name": "Tomáš Souček",
+        "date_of_birth": "1995-02-27"
+      },
+      {
+        "number": 23,
+        "pos": "POR",
+        "name": "Lukáš Horníček",
+        "date_of_birth": "2002-07-13"
+      },
+      {
+        "number": 24,
+        "pos": "MED",
+        "name": "Alexandr Sojka",
+        "date_of_birth": "2003-04-02"
+      },
+      {
+        "number": 25,
+        "pos": "MED",
+        "name": "Hugo Sochůrek",
+        "date_of_birth": "2008-06-07"
+      },
+      {
+        "number": 26,
+        "pos": "DEL",
+        "name": "Denis Višinský",
+        "date_of_birth": "2003-03-21"
+      }
+    ]
+  },
+  {
+    "name": "México",
+    "fifa_code": "MEX",
+    "group": "A",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Raúl Rangel",
+        "date_of_birth": "2000-02-25"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Jorge Sánchez",
+        "date_of_birth": "1997-12-10"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "César Montes",
+        "date_of_birth": "1997-02-24"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Edson Álvarez",
+        "date_of_birth": "1997-10-24"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Johan Vásquez",
+        "date_of_birth": "1998-10-22"
+      },
+      {
+        "number": 6,
+        "pos": "MED",
+        "name": "Érik Lira",
+        "date_of_birth": "2000-05-08"
+      },
+      {
+        "number": 7,
+        "pos": "MED",
+        "name": "Luis Romo",
+        "date_of_birth": "1995-06-05"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Álvaro Fidalgo",
+        "date_of_birth": "1997-04-09"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Raúl Jiménez",
+        "date_of_birth": "1991-05-05"
+      },
+      {
+        "number": 10,
+        "pos": "DEL",
+        "name": "Alexis Vega",
+        "date_of_birth": "1997-11-25"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "Santiago Giménez",
+        "date_of_birth": "2001-04-18"
+      },
+      {
+        "number": 12,
+        "pos": "POR",
+        "name": "Carlos Acevedo",
+        "date_of_birth": "1996-04-19"
+      },
+      {
+        "number": 13,
+        "pos": "POR",
+        "name": "Guillermo Ochoa",
+        "date_of_birth": "1985-07-13"
+      },
+      {
+        "number": 14,
+        "pos": "DEL",
+        "name": "Armando González",
+        "date_of_birth": "2003-04-20"
+      },
+      {
+        "number": 15,
+        "pos": "DEF",
+        "name": "Israel Reyes",
+        "date_of_birth": "2000-05-23"
+      },
+      {
+        "number": 16,
+        "pos": "DEL",
+        "name": "Julián Quiñones",
+        "date_of_birth": "1997-03-24"
+      },
+      {
+        "number": 17,
+        "pos": "MED",
+        "name": "Orbelín Pineda",
+        "date_of_birth": "1996-03-24"
+      },
+      {
+        "number": 18,
+        "pos": "MED",
+        "name": "Obed Vargas",
+        "date_of_birth": "2005-08-05"
+      },
+      {
+        "number": 19,
+        "pos": "MED",
+        "name": "Gilberto Mora",
+        "date_of_birth": "2008-10-14"
+      },
+      {
+        "number": 20,
+        "pos": "DEF",
+        "name": "Mateo Chávez",
+        "date_of_birth": "2004-05-12"
+      },
+      {
+        "number": 21,
+        "pos": "DEL",
+        "name": "César Huerta",
+        "date_of_birth": "2000-12-03"
+      },
+      {
+        "number": 22,
+        "pos": "DEL",
+        "name": "Guillermo Martínez",
+        "date_of_birth": "1995-03-15"
+      },
+      {
+        "number": 23,
+        "pos": "DEF",
+        "name": "Jesús Gallardo",
+        "date_of_birth": "1994-08-15"
+      },
+      {
+        "number": 24,
+        "pos": "MED",
+        "name": "Luis Chávez",
+        "date_of_birth": "1996-01-15"
+      },
+      {
+        "number": 25,
+        "pos": "DEL",
+        "name": "Roberto Alvarado",
+        "date_of_birth": "1998-09-07"
+      },
+      {
+        "number": 26,
+        "pos": "MED",
+        "name": "Brian Gutiérrez",
+        "date_of_birth": "2003-06-17"
+      }
+    ]
+  },
+  {
+    "name": "Sudáfrica",
+    "fifa_code": "RSA",
+    "group": "A",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Ronwen Williams",
+        "date_of_birth": "1992-01-21"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Thabang Matuludi",
+        "date_of_birth": "1999-01-14"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Khulumani Ndamane",
+        "date_of_birth": "2004-02-05"
+      },
+      {
+        "number": 4,
+        "pos": "MED",
+        "name": "Teboho Mokoena",
+        "date_of_birth": "1997-01-24"
+      },
+      {
+        "number": 5,
+        "pos": "MED",
+        "name": "Thalente Mbatha",
+        "date_of_birth": "2000-03-06"
+      },
+      {
+        "number": 6,
+        "pos": "DEF",
+        "name": "Aubrey Modiba",
+        "date_of_birth": "1995-07-22"
+      },
+      {
+        "number": 7,
+        "pos": "DEL",
+        "name": "Oswin Appollis",
+        "date_of_birth": "2001-08-25"
+      },
+      {
+        "number": 8,
+        "pos": "DEL",
+        "name": "Tshepang Moremi",
+        "date_of_birth": "2000-10-02"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Lyle Foster",
+        "date_of_birth": "2000-09-03"
+      },
+      {
+        "number": 10,
+        "pos": "DEL",
+        "name": "Relebohile Mofokeng",
+        "date_of_birth": "2004-10-23"
+      },
+      {
+        "number": 11,
+        "pos": "MED",
+        "name": "Themba Zwane",
+        "date_of_birth": "1989-08-03"
+      },
+      {
+        "number": 12,
+        "pos": "DEL",
+        "name": "Thapelo Maseko",
+        "date_of_birth": "2003-11-11"
+      },
+      {
+        "number": 13,
+        "pos": "MED",
+        "name": "Sphephelo Sithole",
+        "date_of_birth": "1999-03-03"
+      },
+      {
+        "number": 14,
+        "pos": "DEF",
+        "name": "Mbekezeli Mbokazi",
+        "date_of_birth": "2005-09-19"
+      },
+      {
+        "number": 15,
+        "pos": "DEL",
+        "name": "Iqraam Rayners",
+        "date_of_birth": "1995-12-19"
+      },
+      {
+        "number": 16,
+        "pos": "POR",
+        "name": "Sipho Chaine",
+        "date_of_birth": "1996-12-14"
+      },
+      {
+        "number": 17,
+        "pos": "DEL",
+        "name": "Evidence Makgopa",
+        "date_of_birth": "2000-06-05"
+      },
+      {
+        "number": 18,
+        "pos": "DEF",
+        "name": "Samukele Kabini",
+        "date_of_birth": "2004-03-15"
+      },
+      {
+        "number": 19,
+        "pos": "DEF",
+        "name": "Nkosinathi Sibisi",
+        "date_of_birth": "1995-09-22"
+      },
+      {
+        "number": 20,
+        "pos": "DEF",
+        "name": "Khuliso Mudau",
+        "date_of_birth": "1995-04-26"
+      },
+      {
+        "number": 21,
+        "pos": "DEF",
+        "name": "Ime Okon",
+        "date_of_birth": "2004-02-20"
+      },
+      {
+        "number": 22,
+        "pos": "POR",
+        "name": "Ricardo Goss",
+        "date_of_birth": "1994-04-02"
+      },
+      {
+        "number": 23,
+        "pos": "MED",
+        "name": "Jayden Adams",
+        "date_of_birth": "2001-05-05"
+      },
+      {
+        "number": 24,
+        "pos": "DEF",
+        "name": "Olwethu Makhanya",
+        "date_of_birth": "2004-04-30"
+      },
+      {
+        "number": 25,
+        "pos": "DEL",
+        "name": "Kamogelo Sebelebele",
+        "date_of_birth": "2002-07-21"
+      },
+      {
+        "number": 26,
+        "pos": "DEF",
+        "name": "Bradley Cross",
+        "date_of_birth": "2001-01-30"
+      }
+    ]
+  },
+  {
+    "name": "Corea del Sur",
+    "fifa_code": "KOR",
+    "group": "A",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Kim Seung-gyu",
+        "date_of_birth": "1990-09-30"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Lee Han-beom",
+        "date_of_birth": "2002-06-17"
+      },
+      {
+        "number": 3,
+        "pos": "MED",
+        "name": "Lee Gi-hyuk",
+        "date_of_birth": "2000-07-07"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Kim Min-jae",
+        "date_of_birth": "1996-11-15"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Kim Tae-hyeon",
+        "date_of_birth": "2000-09-17"
+      },
+      {
+        "number": 6,
+        "pos": "MED",
+        "name": "Hwang In-beom",
+        "date_of_birth": "1996-09-20"
+      },
+      {
+        "number": 7,
+        "pos": "DEL",
+        "name": "Son Heung-min",
+        "date_of_birth": "1992-07-08"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Paik Seung-ho",
+        "date_of_birth": "1997-03-17"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Cho Gue-sung",
+        "date_of_birth": "1998-01-25"
+      },
+      {
+        "number": 10,
+        "pos": "MED",
+        "name": "Lee Jae-sung",
+        "date_of_birth": "1992-08-10"
+      },
+      {
+        "number": 11,
+        "pos": "MED",
+        "name": "Hwang Hee-chan",
+        "date_of_birth": "1996-01-26"
+      },
+      {
+        "number": 12,
+        "pos": "POR",
+        "name": "Song Bum-keun",
+        "date_of_birth": "1997-10-15"
+      },
+      {
+        "number": 13,
+        "pos": "DEF",
+        "name": "Lee Tae-seok",
+        "date_of_birth": "2002-07-28"
+      },
+      {
+        "number": 14,
+        "pos": "DEF",
+        "name": "Cho Wi-je",
+        "date_of_birth": "2001-08-25"
+      },
+      {
+        "number": 15,
+        "pos": "DEF",
+        "name": "Kim Moon-hwan",
+        "date_of_birth": "1995-08-01"
+      },
+      {
+        "number": 16,
+        "pos": "DEF",
+        "name": "Park Jin-seob",
+        "date_of_birth": "1995-10-23"
+      },
+      {
+        "number": 17,
+        "pos": "MED",
+        "name": "Bae Jun-ho",
+        "date_of_birth": "2003-08-21"
+      },
+      {
+        "number": 18,
+        "pos": "DEL",
+        "name": "Oh Hyeon-gyu",
+        "date_of_birth": "2001-04-12"
+      },
+      {
+        "number": 19,
+        "pos": "MED",
+        "name": "Lee Kang-in",
+        "date_of_birth": "2001-02-19"
+      },
+      {
+        "number": 20,
+        "pos": "MED",
+        "name": "Yang Hyun-jun",
+        "date_of_birth": "2002-05-25"
+      },
+      {
+        "number": 21,
+        "pos": "POR",
+        "name": "Jo Hyeon-woo",
+        "date_of_birth": "1991-09-25"
+      },
+      {
+        "number": 22,
+        "pos": "DEF",
+        "name": "Seol Young-woo",
+        "date_of_birth": "1998-12-05"
+      },
+      {
+        "number": 23,
+        "pos": "DEF",
+        "name": "Jens Castrop",
+        "date_of_birth": "2003-07-29"
+      },
+      {
+        "number": 24,
+        "pos": "MED",
+        "name": "Kim Jin-gyu",
+        "date_of_birth": "1997-02-24"
+      },
+      {
+        "number": 25,
+        "pos": "MED",
+        "name": "Eom Ji-sung",
+        "date_of_birth": "2002-05-09"
+      },
+      {
+        "number": 26,
+        "pos": "MED",
+        "name": "Lee Dong-gyeong",
+        "date_of_birth": "1997-09-20"
+      }
+    ]
+  },
+  {
+    "name": "Bosnia y Herzegovina",
+    "fifa_code": "BIH",
+    "group": "B",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Nikola Vasilj",
+        "date_of_birth": "1995-12-02"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Nihad Mujakić",
+        "date_of_birth": "1998-04-15"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Dennis Hadžikadunić",
+        "date_of_birth": "1998-07-09"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Tarik Muharemović",
+        "date_of_birth": "2003-02-28"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Sead Kolašinac",
+        "date_of_birth": "1993-06-20"
+      },
+      {
+        "number": 6,
+        "pos": "MED",
+        "name": "Benjamin Tahirović",
+        "date_of_birth": "2003-03-03"
+      },
+      {
+        "number": 7,
+        "pos": "DEF",
+        "name": "Amar Dedić",
+        "date_of_birth": "2002-08-18"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Armin Gigović",
+        "date_of_birth": "2002-04-06"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Samed Baždar",
+        "date_of_birth": "2004-01-31"
+      },
+      {
+        "number": 10,
+        "pos": "DEL",
+        "name": "Ermedin Demirović",
+        "date_of_birth": "1998-03-25"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "Edin Džeko",
+        "date_of_birth": "1986-03-17"
+      },
+      {
+        "number": 12,
+        "pos": "POR",
+        "name": "Mladen Jurkas",
+        "date_of_birth": "2007-10-07"
+      },
+      {
+        "number": 13,
+        "pos": "MED",
+        "name": "Ivan Bašić",
+        "date_of_birth": "2002-04-30"
+      },
+      {
+        "number": 14,
+        "pos": "MED",
+        "name": "Ivan Šunjić",
+        "date_of_birth": "1996-10-09"
+      },
+      {
+        "number": 15,
+        "pos": "MED",
+        "name": "Amar Memić",
+        "date_of_birth": "2001-01-20"
+      },
+      {
+        "number": 16,
+        "pos": "MED",
+        "name": "Amir Hadžiahmetović",
+        "date_of_birth": "1997-03-08"
+      },
+      {
+        "number": 17,
+        "pos": "MED",
+        "name": "Dženis Burnić",
+        "date_of_birth": "1998-05-22"
+      },
+      {
+        "number": 18,
+        "pos": "DEF",
+        "name": "Nikola Katić",
+        "date_of_birth": "1996-10-10"
+      },
+      {
+        "number": 19,
+        "pos": "DEL",
+        "name": "Kerim Alajbegović",
+        "date_of_birth": "2007-09-21"
+      },
+      {
+        "number": 20,
+        "pos": "DEL",
+        "name": "Esmir Bajraktarević",
+        "date_of_birth": "2005-03-10"
+      },
+      {
+        "number": 21,
+        "pos": "DEF",
+        "name": "Stjepan Radeljić",
+        "date_of_birth": "1997-09-05"
+      },
+      {
+        "number": 22,
+        "pos": "POR",
+        "name": "Martin Zlomislić",
+        "date_of_birth": "1998-08-16"
+      },
+      {
+        "number": 23,
+        "pos": "DEL",
+        "name": "Haris Tabaković",
+        "date_of_birth": "1994-06-20"
+      },
+      {
+        "number": 24,
+        "pos": "DEF",
+        "name": "Nidal Čelik",
+        "date_of_birth": "2006-07-17"
+      },
+      {
+        "number": 25,
+        "pos": "DEL",
+        "name": "Jovo Lukić",
+        "date_of_birth": "1998-11-28"
+      },
+      {
+        "number": 26,
+        "pos": "MED",
+        "name": "Ermin Mahmić",
+        "date_of_birth": "2005-03-14"
+      }
+    ]
+  },
+  {
+    "name": "Canadá",
+    "fifa_code": "CAN",
+    "group": "B",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Dayne St. Clair",
+        "date_of_birth": "1997-05-09"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Alistair Johnston",
+        "date_of_birth": "1998-10-08"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Alfie Jones",
+        "date_of_birth": "1997-10-07"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Luc de Fougerolles",
+        "date_of_birth": "2005-10-12"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Joel Waterman",
+        "date_of_birth": "1996-01-24"
+      },
+      {
+        "number": 6,
+        "pos": "MED",
+        "name": "Mathieu Choinière",
+        "date_of_birth": "1999-02-07"
+      },
+      {
+        "number": 7,
+        "pos": "MED",
+        "name": "Stephen Eustáquio",
+        "date_of_birth": "1996-12-21"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Ismaël Koné",
+        "date_of_birth": "2002-06-16"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Cyle Larin",
+        "date_of_birth": "1995-04-17"
+      },
+      {
+        "number": 10,
+        "pos": "DEL",
+        "name": "Jonathan David",
+        "date_of_birth": "2000-01-14"
+      },
+      {
+        "number": 11,
+        "pos": "MED",
+        "name": "Liam Millar",
+        "date_of_birth": "1999-09-27"
+      },
+      {
+        "number": 12,
+        "pos": "DEL",
+        "name": "Tani Oluwaseyi",
+        "date_of_birth": "2000-05-15"
+      },
+      {
+        "number": 13,
+        "pos": "DEF",
+        "name": "Derek Cornelius",
+        "date_of_birth": "1997-11-25"
+      },
+      {
+        "number": 14,
+        "pos": "MED",
+        "name": "Jacob Shaffelburg",
+        "date_of_birth": "1999-11-26"
+      },
+      {
+        "number": 15,
+        "pos": "DEF",
+        "name": "Moïse Bombito",
+        "date_of_birth": "2000-03-30"
+      },
+      {
+        "number": 16,
+        "pos": "POR",
+        "name": "Maxime Crépeau",
+        "date_of_birth": "1994-05-11"
+      },
+      {
+        "number": 17,
+        "pos": "DEL",
+        "name": "Tajon Buchanan",
+        "date_of_birth": "1999-02-08"
+      },
+      {
+        "number": 18,
+        "pos": "POR",
+        "name": "Owen Goodman",
+        "date_of_birth": "2003-11-27"
+      },
+      {
+        "number": 19,
+        "pos": "DEF",
+        "name": "Alphonso Davies",
+        "date_of_birth": "2000-11-02"
+      },
+      {
+        "number": 20,
+        "pos": "DEL",
+        "name": "Ali Ahmed",
+        "date_of_birth": "2000-10-10"
+      },
+      {
+        "number": 21,
+        "pos": "MED",
+        "name": "Jonathan Osorio",
+        "date_of_birth": "1992-06-12"
+      },
+      {
+        "number": 22,
+        "pos": "DEF",
+        "name": "Richie Laryea",
+        "date_of_birth": "1995-01-07"
+      },
+      {
+        "number": 23,
+        "pos": "DEF",
+        "name": "Niko Sigur",
+        "date_of_birth": "2003-09-09"
+      },
+      {
+        "number": 24,
+        "pos": "DEL",
+        "name": "Promise David",
+        "date_of_birth": "2001-07-03"
+      },
+      {
+        "number": 25,
+        "pos": "MED",
+        "name": "Nathan Saliba",
+        "date_of_birth": "2004-02-07"
+      },
+      {
+        "number": 26,
+        "pos": "MED",
+        "name": "Jayden Nelson",
+        "date_of_birth": "2002-02-07"
+      }
+    ]
+  },
+  {
+    "name": "Catar",
+    "fifa_code": "QAT",
+    "group": "B",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Mahmud Abunada",
+        "date_of_birth": "2000-02-05"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Pedro Miguel",
+        "date_of_birth": "1990-08-06"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Lucas Mendes",
+        "date_of_birth": "1990-07-03"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Issa Laye",
+        "date_of_birth": "1997-12-22"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Jassem Gaber",
+        "date_of_birth": "2002-02-20"
+      },
+      {
+        "number": 6,
+        "pos": "MED",
+        "name": "Abdulaziz Hatem",
+        "date_of_birth": "1990-01-01"
+      },
+      {
+        "number": 7,
+        "pos": "DEL",
+        "name": "Ahmed Alaaeldin",
+        "date_of_birth": "1993-01-31"
+      },
+      {
+        "number": 8,
+        "pos": "DEL",
+        "name": "Edmilson Junior",
+        "date_of_birth": "1994-08-19"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Mohammed Muntari",
+        "date_of_birth": "1993-12-20"
+      },
+      {
+        "number": 10,
+        "pos": "DEL",
+        "name": "Hassan Al-Haydos",
+        "date_of_birth": "1990-12-11"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "Akram Afif",
+        "date_of_birth": "1996-11-18"
+      },
+      {
+        "number": 12,
+        "pos": "MED",
+        "name": "Karim Boudiaf",
+        "date_of_birth": "1990-09-16"
+      },
+      {
+        "number": 13,
+        "pos": "DEF",
+        "name": "Ayoub Al-Oui",
+        "date_of_birth": "2005-03-11"
+      },
+      {
+        "number": 14,
+        "pos": "DEF",
+        "name": "Homam Ahmed",
+        "date_of_birth": "1999-08-25"
+      },
+      {
+        "number": 15,
+        "pos": "DEL",
+        "name": "Yusuf Abdurisag",
+        "date_of_birth": "1999-08-06"
+      },
+      {
+        "number": 16,
+        "pos": "DEF",
+        "name": "Boualem Khoukhi",
+        "date_of_birth": "1990-07-09"
+      },
+      {
+        "number": 17,
+        "pos": "MED",
+        "name": "Ahmed Al-Ganehi",
+        "date_of_birth": "2000-09-22"
+      },
+      {
+        "number": 18,
+        "pos": "DEF",
+        "name": "Sultan Al-Brake",
+        "date_of_birth": "1996-04-07"
+      },
+      {
+        "number": 19,
+        "pos": "DEL",
+        "name": "Almoez Ali",
+        "date_of_birth": "1996-08-19"
+      },
+      {
+        "number": 20,
+        "pos": "MED",
+        "name": "Ahmed Fathy",
+        "date_of_birth": "1993-01-25"
+      },
+      {
+        "number": 21,
+        "pos": "POR",
+        "name": "Salah Zakaria",
+        "date_of_birth": "1999-04-24"
+      },
+      {
+        "number": 22,
+        "pos": "POR",
+        "name": "Meshaal Barsham",
+        "date_of_birth": "1998-02-14"
+      },
+      {
+        "number": 23,
+        "pos": "MED",
+        "name": "Assim Madibo",
+        "date_of_birth": "1996-10-22"
+      },
+      {
+        "number": 24,
+        "pos": "DEL",
+        "name": "Tahsin Jamshid",
+        "date_of_birth": "2006-06-16"
+      },
+      {
+        "number": 25,
+        "pos": "DEF",
+        "name": "Al-Hashmi Al-Hussain",
+        "date_of_birth": "2003-08-15"
+      },
+      {
+        "number": 26,
+        "pos": "DEL",
+        "name": "Mohamed Manai",
+        "date_of_birth": "2002-10-25"
+      }
+    ]
+  },
+  {
+    "name": "Suiza",
+    "fifa_code": "SUI",
+    "group": "B",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Gregor Kobel",
+        "date_of_birth": "1997-12-06"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Miro Muheim",
+        "date_of_birth": "1998-03-24"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Silvan Widmer",
+        "date_of_birth": "1993-03-05"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Nico Elvedi",
+        "date_of_birth": "1996-09-30"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Manuel Akanji",
+        "date_of_birth": "1995-07-19"
+      },
+      {
+        "number": 6,
+        "pos": "MED",
+        "name": "Denis Zakaria",
+        "date_of_birth": "1996-11-20"
+      },
+      {
+        "number": 7,
+        "pos": "DEL",
+        "name": "Breel Embolo",
+        "date_of_birth": "1997-02-14"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Remo Freuler",
+        "date_of_birth": "1992-04-15"
+      },
+      {
+        "number": 9,
+        "pos": "MED",
+        "name": "Johan Manzambi",
+        "date_of_birth": "2005-10-14"
+      },
+      {
+        "number": 10,
+        "pos": "MED",
+        "name": "Granit Xhaka",
+        "date_of_birth": "1992-09-27"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "Dan Ndoye",
+        "date_of_birth": "2000-10-25"
+      },
+      {
+        "number": 12,
+        "pos": "POR",
+        "name": "Yvon Mvogo",
+        "date_of_birth": "1994-06-06"
+      },
+      {
+        "number": 13,
+        "pos": "DEF",
+        "name": "Ricardo Rodriguez",
+        "date_of_birth": "1992-08-25"
+      },
+      {
+        "number": 14,
+        "pos": "MED",
+        "name": "Ardon Jashari",
+        "date_of_birth": "2002-07-30"
+      },
+      {
+        "number": 15,
+        "pos": "MED",
+        "name": "Djibril Sow",
+        "date_of_birth": "1997-02-06"
+      },
+      {
+        "number": 16,
+        "pos": "DEL",
+        "name": "Christian Fassnacht",
+        "date_of_birth": "1993-11-11"
+      },
+      {
+        "number": 17,
+        "pos": "DEL",
+        "name": "Rubén Vargas",
+        "date_of_birth": "1998-08-05"
+      },
+      {
+        "number": 18,
+        "pos": "DEF",
+        "name": "Eray Cömert",
+        "date_of_birth": "1998-02-04"
+      },
+      {
+        "number": 19,
+        "pos": "DEL",
+        "name": "Noah Okafor",
+        "date_of_birth": "2000-05-24"
+      },
+      {
+        "number": 20,
+        "pos": "MED",
+        "name": "Michel Aebischer",
+        "date_of_birth": "1997-01-06"
+      },
+      {
+        "number": 21,
+        "pos": "POR",
+        "name": "Marvin Keller",
+        "date_of_birth": "2002-07-03"
+      },
+      {
+        "number": 22,
+        "pos": "MED",
+        "name": "Fabian Rieder",
+        "date_of_birth": "2002-02-16"
+      },
+      {
+        "number": 23,
+        "pos": "DEL",
+        "name": "Zeki Amdouni",
+        "date_of_birth": "2000-12-04"
+      },
+      {
+        "number": 24,
+        "pos": "DEF",
+        "name": "Aurèle Amenda",
+        "date_of_birth": "2003-07-31"
+      },
+      {
+        "number": 25,
+        "pos": "DEF",
+        "name": "Luca Jaquez",
+        "date_of_birth": "2003-06-02"
+      },
+      {
+        "number": 26,
+        "pos": "DEL",
+        "name": "Cedric Itten",
+        "date_of_birth": "1996-12-27"
+      }
+    ]
+  },
+  {
+    "name": "Brasil",
+    "fifa_code": "BRA",
+    "group": "C",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Alisson",
+        "date_of_birth": "1992-10-02"
+      },
+      {
+        "number": 2,
+        "pos": "MED",
+        "name": "Éderson Silva",
+        "date_of_birth": "1999-07-07"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Gabriel Magalhães",
+        "date_of_birth": "1997-12-19"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Marquinhos",
+        "date_of_birth": "1994-05-14"
+      },
+      {
+        "number": 5,
+        "pos": "MED",
+        "name": "Casemiro",
+        "date_of_birth": "1992-02-23"
+      },
+      {
+        "number": 6,
+        "pos": "DEF",
+        "name": "Alex Sandro",
+        "date_of_birth": "1991-01-26"
+      },
+      {
+        "number": 7,
+        "pos": "DEL",
+        "name": "Vinícius Júnior",
+        "date_of_birth": "2000-07-12"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Bruno Guimarães",
+        "date_of_birth": "1997-11-16"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Matheus Cunha",
+        "date_of_birth": "1999-05-27"
+      },
+      {
+        "number": 10,
+        "pos": "DEL",
+        "name": "Neymar",
+        "date_of_birth": "1992-02-05"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "Raphinha",
+        "date_of_birth": "1996-12-14"
+      },
+      {
+        "number": 12,
+        "pos": "POR",
+        "name": "Weverton",
+        "date_of_birth": "1987-12-13"
+      },
+      {
+        "number": 13,
+        "pos": "DEF",
+        "name": "Danilo Luiz",
+        "date_of_birth": "1991-07-15"
+      },
+      {
+        "number": 14,
+        "pos": "DEF",
+        "name": "Bremer",
+        "date_of_birth": "1997-03-18"
+      },
+      {
+        "number": 15,
+        "pos": "DEF",
+        "name": "Léo Pereira",
+        "date_of_birth": "1996-01-31"
+      },
+      {
+        "number": 16,
+        "pos": "DEF",
+        "name": "Douglas Santos",
+        "date_of_birth": "1994-03-22"
+      },
+      {
+        "number": 17,
+        "pos": "MED",
+        "name": "Fabinho",
+        "date_of_birth": "1993-10-23"
+      },
+      {
+        "number": 18,
+        "pos": "MED",
+        "name": "Danilo Santos",
+        "date_of_birth": "2001-04-29"
+      },
+      {
+        "number": 19,
+        "pos": "DEL",
+        "name": "Endrick",
+        "date_of_birth": "2006-07-21"
+      },
+      {
+        "number": 20,
+        "pos": "MED",
+        "name": "Lucas Paquetá",
+        "date_of_birth": "1997-08-27"
+      },
+      {
+        "number": 21,
+        "pos": "DEL",
+        "name": "Luiz Henrique",
+        "date_of_birth": "2001-01-02"
+      },
+      {
+        "number": 22,
+        "pos": "DEL",
+        "name": "Gabriel Martinelli",
+        "date_of_birth": "2001-06-18"
+      },
+      {
+        "number": 23,
+        "pos": "POR",
+        "name": "Ederson Moraes",
+        "date_of_birth": "1993-08-17"
+      },
+      {
+        "number": 24,
+        "pos": "DEF",
+        "name": "Roger Ibañez",
+        "date_of_birth": "1998-11-23"
+      },
+      {
+        "number": 25,
+        "pos": "DEL",
+        "name": "Igor Thiago",
+        "date_of_birth": "2001-06-26"
+      },
+      {
+        "number": 26,
+        "pos": "DEL",
+        "name": "Rayan",
+        "date_of_birth": "2006-08-03"
+      }
+    ]
+  },
+  {
+    "name": "Haití",
+    "fifa_code": "HAI",
+    "group": "C",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Johny Placide",
+        "date_of_birth": "1988-01-29"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Carlens Arcus",
+        "date_of_birth": "1996-06-28"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Keeto Thermoncy",
+        "date_of_birth": "2006-03-29"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Ricardo Adé",
+        "date_of_birth": "1990-05-21"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Hannes Delcroix",
+        "date_of_birth": "1999-02-28"
+      },
+      {
+        "number": 6,
+        "pos": "MED",
+        "name": "Carl Sainté",
+        "date_of_birth": "2002-08-09"
+      },
+      {
+        "number": 7,
+        "pos": "DEL",
+        "name": "Derrick Etienne Jr.",
+        "date_of_birth": "1996-11-25"
+      },
+      {
+        "number": 8,
+        "pos": "DEF",
+        "name": "Martin Expérience",
+        "date_of_birth": "1999-03-09"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Duckens Nazon",
+        "date_of_birth": "1994-04-07"
+      },
+      {
+        "number": 10,
+        "pos": "MED",
+        "name": "Jean-Ricner Bellegarde",
+        "date_of_birth": "1998-06-27"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "Louicius Deedson",
+        "date_of_birth": "2001-02-11"
+      },
+      {
+        "number": 12,
+        "pos": "POR",
+        "name": "Alexandre Pierre",
+        "date_of_birth": "2001-02-25"
+      },
+      {
+        "number": 13,
+        "pos": "DEF",
+        "name": "Duke Lacroix",
+        "date_of_birth": "1993-10-14"
+      },
+      {
+        "number": 14,
+        "pos": "MED",
+        "name": "Leverton Pierre",
+        "date_of_birth": "1998-03-09"
+      },
+      {
+        "number": 15,
+        "pos": "DEL",
+        "name": "Ruben Providence",
+        "date_of_birth": "2001-07-07"
+      },
+      {
+        "number": 16,
+        "pos": "DEL",
+        "name": "Lenny Joseph",
+        "date_of_birth": "2000-10-12"
+      },
+      {
+        "number": 17,
+        "pos": "MED",
+        "name": "Danley Jean Jacques",
+        "date_of_birth": "2000-05-20"
+      },
+      {
+        "number": 18,
+        "pos": "DEL",
+        "name": "Wilson Isidor",
+        "date_of_birth": "2000-08-27"
+      },
+      {
+        "number": 19,
+        "pos": "DEL",
+        "name": "Yassin Fortuné",
+        "date_of_birth": "1999-01-30"
+      },
+      {
+        "number": 20,
+        "pos": "DEL",
+        "name": "Frantzdy Pierrot",
+        "date_of_birth": "1995-03-29"
+      },
+      {
+        "number": 21,
+        "pos": "DEL",
+        "name": "Josué Casimir",
+        "date_of_birth": "2001-09-24"
+      },
+      {
+        "number": 22,
+        "pos": "DEF",
+        "name": "Jean-Kévin Duverne",
+        "date_of_birth": "1997-07-12"
+      },
+      {
+        "number": 23,
+        "pos": "POR",
+        "name": "Josué Duverger",
+        "date_of_birth": "2000-04-27"
+      },
+      {
+        "number": 24,
+        "pos": "DEF",
+        "name": "Wilguens Paugain",
+        "date_of_birth": "2001-08-24"
+      },
+      {
+        "number": 25,
+        "pos": "MED",
+        "name": "Dominique Simon",
+        "date_of_birth": "2000-07-29"
+      },
+      {
+        "number": 26,
+        "pos": "MED",
+        "name": "Woodensky Pierre",
+        "date_of_birth": "2004-12-30"
+      }
+    ]
+  },
+  {
+    "name": "Marruecos",
+    "fifa_code": "MAR",
+    "group": "C",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Yassine Bounou",
+        "date_of_birth": "1991-04-05"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Achraf Hakimi",
+        "date_of_birth": "1998-11-04"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Noussair Mazraoui",
+        "date_of_birth": "1997-11-14"
+      },
+      {
+        "number": 4,
+        "pos": "MED",
+        "name": "Sofyan Amrabat",
+        "date_of_birth": "1996-08-21"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Nayef Aguerd",
+        "date_of_birth": "1996-03-30"
+      },
+      {
+        "number": 6,
+        "pos": "MED",
+        "name": "Ayyoub Bouaddi",
+        "date_of_birth": "2007-10-02"
+      },
+      {
+        "number": 7,
+        "pos": "MED",
+        "name": "Chemsdine Talbi",
+        "date_of_birth": "2005-05-09"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Azzedine Ounahi",
+        "date_of_birth": "2000-04-19"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Soufiane Rahimi",
+        "date_of_birth": "1996-06-02"
+      },
+      {
+        "number": 10,
+        "pos": "DEL",
+        "name": "Brahim Díaz",
+        "date_of_birth": "1999-08-03"
+      },
+      {
+        "number": 11,
+        "pos": "MED",
+        "name": "Ismael Saibari",
+        "date_of_birth": "2001-01-28"
+      },
+      {
+        "number": 12,
+        "pos": "POR",
+        "name": "Munir Mohamedi",
+        "date_of_birth": "1989-05-10"
+      },
+      {
+        "number": 13,
+        "pos": "DEF",
+        "name": "Zakaria El Ouahdi",
+        "date_of_birth": "2001-12-31"
+      },
+      {
+        "number": 14,
+        "pos": "DEF",
+        "name": "Issa Diop",
+        "date_of_birth": "1997-01-09"
+      },
+      {
+        "number": 15,
+        "pos": "MED",
+        "name": "Samir El Mourabet",
+        "date_of_birth": "2005-10-06"
+      },
+      {
+        "number": 16,
+        "pos": "MED",
+        "name": "Gessime Yassine",
+        "date_of_birth": "2005-11-22"
+      },
+      {
+        "number": 17,
+        "pos": "DEL",
+        "name": "Abde Ezzalzouli",
+        "date_of_birth": "2001-12-17"
+      },
+      {
+        "number": 18,
+        "pos": "DEF",
+        "name": "Chadi Riad",
+        "date_of_birth": "2003-06-17"
+      },
+      {
+        "number": 19,
+        "pos": "DEF",
+        "name": "Youssef Belammari",
+        "date_of_birth": "1998-09-20"
+      },
+      {
+        "number": 20,
+        "pos": "DEL",
+        "name": "Ayoub El Kaabi",
+        "date_of_birth": "1993-06-25"
+      },
+      {
+        "number": 21,
+        "pos": "DEL",
+        "name": "Ayoube Amaimouni",
+        "date_of_birth": "2004-11-30"
+      },
+      {
+        "number": 22,
+        "pos": "POR",
+        "name": "Ahmed Reda Tagnaouti",
+        "date_of_birth": "1996-04-05"
+      },
+      {
+        "number": 23,
+        "pos": "MED",
+        "name": "Bilal El Khannouss",
+        "date_of_birth": "2004-05-10"
+      },
+      {
+        "number": 24,
+        "pos": "MED",
+        "name": "Neil El Aynaoui",
+        "date_of_birth": "2001-07-02"
+      },
+      {
+        "number": 25,
+        "pos": "DEF",
+        "name": "Redouane Halhal",
+        "date_of_birth": "2003-03-05"
+      },
+      {
+        "number": 26,
+        "pos": "DEF",
+        "name": "Anass Salah-Eddine",
+        "date_of_birth": "2002-01-18"
+      }
+    ]
+  },
+  {
+    "name": "Escocia",
+    "fifa_code": "SCO",
+    "group": "C",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Angus Gunn",
+        "date_of_birth": "1996-01-22"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Aaron Hickey",
+        "date_of_birth": "2002-06-10"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Andy Robertson",
+        "date_of_birth": "1994-03-11"
+      },
+      {
+        "number": 4,
+        "pos": "MED",
+        "name": "Scott McTominay",
+        "date_of_birth": "1996-12-08"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Grant Hanley",
+        "date_of_birth": "1991-11-20"
+      },
+      {
+        "number": 6,
+        "pos": "DEF",
+        "name": "Kieran Tierney",
+        "date_of_birth": "1997-06-05"
+      },
+      {
+        "number": 7,
+        "pos": "MED",
+        "name": "John McGinn",
+        "date_of_birth": "1994-10-18"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Tyler Fletcher",
+        "date_of_birth": "2007-03-19"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Lyndon Dykes",
+        "date_of_birth": "1995-10-07"
+      },
+      {
+        "number": 10,
+        "pos": "DEL",
+        "name": "Ché Adams",
+        "date_of_birth": "1996-07-13"
+      },
+      {
+        "number": 11,
+        "pos": "MED",
+        "name": "Ryan Christie",
+        "date_of_birth": "1995-02-22"
+      },
+      {
+        "number": 12,
+        "pos": "POR",
+        "name": "Liam Kelly",
+        "date_of_birth": "1996-01-23"
+      },
+      {
+        "number": 13,
+        "pos": "DEF",
+        "name": "Jack Hendry",
+        "date_of_birth": "1995-05-07"
+      },
+      {
+        "number": 14,
+        "pos": "DEL",
+        "name": "Ross Stewart",
+        "date_of_birth": "1996-07-11"
+      },
+      {
+        "number": 15,
+        "pos": "DEF",
+        "name": "John Souttar",
+        "date_of_birth": "1996-09-25"
+      },
+      {
+        "number": 16,
+        "pos": "DEF",
+        "name": "Dominic Hyam",
+        "date_of_birth": "1995-12-20"
+      },
+      {
+        "number": 17,
+        "pos": "DEL",
+        "name": "Ben Gannon-Doak",
+        "date_of_birth": "2005-11-11"
+      },
+      {
+        "number": 18,
+        "pos": "DEL",
+        "name": "George Hirst",
+        "date_of_birth": "1999-02-15"
+      },
+      {
+        "number": 19,
+        "pos": "MED",
+        "name": "Lewis Ferguson",
+        "date_of_birth": "1999-08-24"
+      },
+      {
+        "number": 20,
+        "pos": "DEL",
+        "name": "Lawrence Shankland",
+        "date_of_birth": "1995-08-10"
+      },
+      {
+        "number": 21,
+        "pos": "POR",
+        "name": "Craig Gordon",
+        "date_of_birth": "1982-12-31"
+      },
+      {
+        "number": 22,
+        "pos": "DEF",
+        "name": "Nathan Patterson",
+        "date_of_birth": "2001-10-16"
+      },
+      {
+        "number": 23,
+        "pos": "MED",
+        "name": "Kenny McLean",
+        "date_of_birth": "1992-01-08"
+      },
+      {
+        "number": 24,
+        "pos": "DEF",
+        "name": "Anthony Ralston",
+        "date_of_birth": "1998-11-16"
+      },
+      {
+        "number": 25,
+        "pos": "DEL",
+        "name": "Findlay Curtis",
+        "date_of_birth": "2006-06-09"
+      },
+      {
+        "number": 26,
+        "pos": "DEF",
+        "name": "Scott McKenna",
+        "date_of_birth": "1996-11-12"
+      }
+    ]
+  },
+  {
+    "name": "Australia",
+    "fifa_code": "AUS",
+    "group": "D",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Mathew Ryan",
+        "date_of_birth": "1992-04-08"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Miloš Degenek",
+        "date_of_birth": "1994-04-28"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Alessandro Circati",
+        "date_of_birth": "2003-10-10"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Jacob Italiano",
+        "date_of_birth": "2001-07-30"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Jordan Bos",
+        "date_of_birth": "2002-10-29"
+      },
+      {
+        "number": 6,
+        "pos": "DEF",
+        "name": "Jason Geria",
+        "date_of_birth": "1993-05-10"
+      },
+      {
+        "number": 7,
+        "pos": "DEL",
+        "name": "Mathew Leckie",
+        "date_of_birth": "1991-02-04"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Connor Metcalfe",
+        "date_of_birth": "1999-11-05"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Mohamed Touré",
+        "date_of_birth": "2004-03-26"
+      },
+      {
+        "number": 10,
+        "pos": "DEL",
+        "name": "Ajdin Hrustic",
+        "date_of_birth": "1996-07-05"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "Awer Mabil",
+        "date_of_birth": "1995-09-15"
+      },
+      {
+        "number": 12,
+        "pos": "POR",
+        "name": "Paul Izzo",
+        "date_of_birth": "1995-01-06"
+      },
+      {
+        "number": 13,
+        "pos": "MED",
+        "name": "Aiden O'Neill",
+        "date_of_birth": "1998-07-04"
+      },
+      {
+        "number": 14,
+        "pos": "MED",
+        "name": "Cammy Devlin",
+        "date_of_birth": "1998-06-07"
+      },
+      {
+        "number": 15,
+        "pos": "DEF",
+        "name": "Kai Trewin",
+        "date_of_birth": "2001-05-18"
+      },
+      {
+        "number": 16,
+        "pos": "DEF",
+        "name": "Aziz Behich",
+        "date_of_birth": "1990-12-16"
+      },
+      {
+        "number": 17,
+        "pos": "DEL",
+        "name": "Nestory Irankunda",
+        "date_of_birth": "2006-02-09"
+      },
+      {
+        "number": 18,
+        "pos": "POR",
+        "name": "Patrick Beach",
+        "date_of_birth": "2003-08-06"
+      },
+      {
+        "number": 19,
+        "pos": "DEF",
+        "name": "Harry Souttar",
+        "date_of_birth": "1998-10-22"
+      },
+      {
+        "number": 20,
+        "pos": "DEL",
+        "name": "Cristian Volpato",
+        "date_of_birth": "2003-11-15"
+      },
+      {
+        "number": 21,
+        "pos": "DEF",
+        "name": "Cameron Burgess",
+        "date_of_birth": "1995-10-21"
+      },
+      {
+        "number": 22,
+        "pos": "MED",
+        "name": "Jackson Irvine",
+        "date_of_birth": "1993-03-07"
+      },
+      {
+        "number": 23,
+        "pos": "DEL",
+        "name": "Nishan Velupillay",
+        "date_of_birth": "2001-05-07"
+      },
+      {
+        "number": 24,
+        "pos": "MED",
+        "name": "Paul Okon-Engstler",
+        "date_of_birth": "2005-01-24"
+      },
+      {
+        "number": 25,
+        "pos": "DEF",
+        "name": "Lucas Herrington",
+        "date_of_birth": "2007-09-05"
+      },
+      {
+        "number": 26,
+        "pos": "DEL",
+        "name": "Tete Yengi",
+        "date_of_birth": "2000-11-28"
+      }
+    ]
+  },
+  {
+    "name": "Paraguay",
+    "fifa_code": "PAR",
+    "group": "D",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Gatito Fernández",
+        "date_of_birth": "1988-03-29"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Gustavo Velázquez",
+        "date_of_birth": "1991-04-17"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Omar Alderete",
+        "date_of_birth": "1996-12-26"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Juan José Cáceres",
+        "date_of_birth": "2000-06-01"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Fabián Balbuena",
+        "date_of_birth": "1991-08-23"
+      },
+      {
+        "number": 6,
+        "pos": "DEF",
+        "name": "Júnior Alonso",
+        "date_of_birth": "1993-02-09"
+      },
+      {
+        "number": 7,
+        "pos": "MED",
+        "name": "Ramón Sosa",
+        "date_of_birth": "1999-08-31"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Diego Gómez",
+        "date_of_birth": "2003-03-27"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Antonio Sanabria",
+        "date_of_birth": "1996-03-04"
+      },
+      {
+        "number": 10,
+        "pos": "MED",
+        "name": "Miguel Almirón",
+        "date_of_birth": "1994-02-10"
+      },
+      {
+        "number": 11,
+        "pos": "MED",
+        "name": "Maurício",
+        "date_of_birth": "2001-06-22"
+      },
+      {
+        "number": 12,
+        "pos": "POR",
+        "name": "Orlando Gill",
+        "date_of_birth": "2000-06-11"
+      },
+      {
+        "number": 13,
+        "pos": "DEF",
+        "name": "José Canale",
+        "date_of_birth": "1996-07-20"
+      },
+      {
+        "number": 14,
+        "pos": "MED",
+        "name": "Andrés Cubas",
+        "date_of_birth": "1996-05-11"
+      },
+      {
+        "number": 15,
+        "pos": "DEF",
+        "name": "Gustavo Gómez",
+        "date_of_birth": "1993-05-06"
+      },
+      {
+        "number": 16,
+        "pos": "MED",
+        "name": "Damián Bobadilla",
+        "date_of_birth": "2001-07-11"
+      },
+      {
+        "number": 17,
+        "pos": "DEL",
+        "name": "Kaku",
+        "date_of_birth": "1995-01-11"
+      },
+      {
+        "number": 18,
+        "pos": "DEL",
+        "name": "Álex Arce",
+        "date_of_birth": "1995-06-16"
+      },
+      {
+        "number": 19,
+        "pos": "DEL",
+        "name": "Julio Enciso",
+        "date_of_birth": "2004-01-23"
+      },
+      {
+        "number": 20,
+        "pos": "MED",
+        "name": "Braian Ojeda",
+        "date_of_birth": "2000-06-27"
+      },
+      {
+        "number": 21,
+        "pos": "DEL",
+        "name": "Gabriel Ávalos",
+        "date_of_birth": "1990-10-12"
+      },
+      {
+        "number": 22,
+        "pos": "POR",
+        "name": "Gastón Olveira",
+        "date_of_birth": "1993-04-21"
+      },
+      {
+        "number": 23,
+        "pos": "MED",
+        "name": "Matías Galarza",
+        "date_of_birth": "2002-02-11"
+      },
+      {
+        "number": 24,
+        "pos": "MED",
+        "name": "Gustavo Caballero",
+        "date_of_birth": "2001-09-21"
+      },
+      {
+        "number": 25,
+        "pos": "DEL",
+        "name": "Isidro Pitta",
+        "date_of_birth": "1999-08-14"
+      },
+      {
+        "number": 26,
+        "pos": "DEF",
+        "name": "Alexandro Maidana",
+        "date_of_birth": "2005-07-26"
+      }
+    ]
+  },
+  {
+    "name": "Turquía",
+    "fifa_code": "TUR",
+    "group": "D",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Mert Günok",
+        "date_of_birth": "1989-03-01"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Zeki Çelik",
+        "date_of_birth": "1997-02-17"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Merih Demiral",
+        "date_of_birth": "1998-03-05"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Çağlar Söyüncü",
+        "date_of_birth": "1996-05-23"
+      },
+      {
+        "number": 5,
+        "pos": "MED",
+        "name": "Salih Özcan",
+        "date_of_birth": "1998-01-11"
+      },
+      {
+        "number": 6,
+        "pos": "MED",
+        "name": "Orkun Kökçü",
+        "date_of_birth": "2000-12-29"
+      },
+      {
+        "number": 7,
+        "pos": "DEL",
+        "name": "Kerem Aktürkoğlu",
+        "date_of_birth": "1998-10-21"
+      },
+      {
+        "number": 8,
+        "pos": "DEL",
+        "name": "Arda Güler",
+        "date_of_birth": "2005-02-25"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Deniz Gül",
+        "date_of_birth": "2004-07-02"
+      },
+      {
+        "number": 10,
+        "pos": "MED",
+        "name": "Hakan Çalhanoğlu",
+        "date_of_birth": "1994-02-08"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "Kenan Yıldız",
+        "date_of_birth": "2005-05-04"
+      },
+      {
+        "number": 12,
+        "pos": "POR",
+        "name": "Altay Bayındır",
+        "date_of_birth": "1998-04-14"
+      },
+      {
+        "number": 13,
+        "pos": "DEF",
+        "name": "Eren Elmalı",
+        "date_of_birth": "2000-07-07"
+      },
+      {
+        "number": 14,
+        "pos": "DEF",
+        "name": "Abdülkerim Bardakcı",
+        "date_of_birth": "1994-09-07"
+      },
+      {
+        "number": 15,
+        "pos": "DEF",
+        "name": "Ozan Kabak",
+        "date_of_birth": "2000-03-25"
+      },
+      {
+        "number": 16,
+        "pos": "MED",
+        "name": "İsmail Yüksek",
+        "date_of_birth": "1999-01-26"
+      },
+      {
+        "number": 17,
+        "pos": "DEL",
+        "name": "İrfan Can Kahveci",
+        "date_of_birth": "1995-07-15"
+      },
+      {
+        "number": 18,
+        "pos": "DEF",
+        "name": "Mert Müldür",
+        "date_of_birth": "1999-04-03"
+      },
+      {
+        "number": 19,
+        "pos": "DEL",
+        "name": "Yunus Akgün",
+        "date_of_birth": "2000-07-07"
+      },
+      {
+        "number": 20,
+        "pos": "DEF",
+        "name": "Ferdi Kadıoğlu",
+        "date_of_birth": "1999-10-07"
+      },
+      {
+        "number": 21,
+        "pos": "DEL",
+        "name": "Barış Alper Yılmaz",
+        "date_of_birth": "2000-05-23"
+      },
+      {
+        "number": 22,
+        "pos": "MED",
+        "name": "Kaan Ayhan",
+        "date_of_birth": "1994-11-10"
+      },
+      {
+        "number": 23,
+        "pos": "POR",
+        "name": "Uğurcan Çakır",
+        "date_of_birth": "1996-04-05"
+      },
+      {
+        "number": 24,
+        "pos": "DEL",
+        "name": "Oğuz Aydın",
+        "date_of_birth": "2000-10-27"
+      },
+      {
+        "number": 25,
+        "pos": "DEF",
+        "name": "Samet Akaydin",
+        "date_of_birth": "1994-03-13"
+      },
+      {
+        "number": 26,
+        "pos": "DEL",
+        "name": "Can Uzun",
+        "date_of_birth": "2005-11-11"
+      }
+    ]
+  },
+  {
+    "name": "United States",
+    "fifa_code": "USA",
+    "group": "D",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Matt Turner",
+        "date_of_birth": "1994-06-24"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Sergiño Dest",
+        "date_of_birth": "2000-11-03"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Chris Richards",
+        "date_of_birth": "2000-03-28"
+      },
+      {
+        "number": 4,
+        "pos": "MED",
+        "name": "Tyler Adams",
+        "date_of_birth": "1999-02-14"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Antonee Robinson",
+        "date_of_birth": "1997-08-08"
+      },
+      {
+        "number": 6,
+        "pos": "DEF",
+        "name": "Auston Trusty",
+        "date_of_birth": "1998-08-12"
+      },
+      {
+        "number": 7,
+        "pos": "MED",
+        "name": "Giovanni Reyna",
+        "date_of_birth": "2002-11-13"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Weston McKennie",
+        "date_of_birth": "1998-08-28"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Ricardo Pepi",
+        "date_of_birth": "2003-01-09"
+      },
+      {
+        "number": 10,
+        "pos": "DEL",
+        "name": "Christian Pulisic",
+        "date_of_birth": "1998-09-18"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "Brenden Aaronson",
+        "date_of_birth": "2000-10-22"
+      },
+      {
+        "number": 12,
+        "pos": "DEF",
+        "name": "Miles Robinson",
+        "date_of_birth": "1997-03-14"
+      },
+      {
+        "number": 13,
+        "pos": "DEF",
+        "name": "Tim Ream",
+        "date_of_birth": "1987-10-05"
+      },
+      {
+        "number": 14,
+        "pos": "MED",
+        "name": "Sebastian Berhalter",
+        "date_of_birth": "2001-05-10"
+      },
+      {
+        "number": 15,
+        "pos": "MED",
+        "name": "Cristian Roldan",
+        "date_of_birth": "1995-06-03"
+      },
+      {
+        "number": 16,
+        "pos": "DEF",
+        "name": "Alex Freeman",
+        "date_of_birth": "2004-08-09"
+      },
+      {
+        "number": 17,
+        "pos": "MED",
+        "name": "Malik Tillman",
+        "date_of_birth": "2002-05-28"
+      },
+      {
+        "number": 18,
+        "pos": "DEF",
+        "name": "Max Arfsten",
+        "date_of_birth": "2001-04-19"
+      },
+      {
+        "number": 19,
+        "pos": "DEL",
+        "name": "Haji Wright",
+        "date_of_birth": "1998-03-27"
+      },
+      {
+        "number": 20,
+        "pos": "DEL",
+        "name": "Folarin Balogun",
+        "date_of_birth": "2001-07-03"
+      },
+      {
+        "number": 21,
+        "pos": "DEL",
+        "name": "Timothy Weah",
+        "date_of_birth": "2000-02-22"
+      },
+      {
+        "number": 22,
+        "pos": "DEF",
+        "name": "Mark McKenzie",
+        "date_of_birth": "1999-02-25"
+      },
+      {
+        "number": 23,
+        "pos": "DEF",
+        "name": "Joe Scally",
+        "date_of_birth": "2002-12-31"
+      },
+      {
+        "number": 24,
+        "pos": "POR",
+        "name": "Matt Freese",
+        "date_of_birth": "1998-09-02"
+      },
+      {
+        "number": 25,
+        "pos": "POR",
+        "name": "Chris Brady",
+        "date_of_birth": "2004-03-03"
+      },
+      {
+        "number": 26,
+        "pos": "DEL",
+        "name": "Alejandro Zendejas",
+        "date_of_birth": "1998-02-07"
+      }
+    ]
+  },
+  {
+    "name": "Curaçao",
+    "fifa_code": "CUW",
+    "group": "E",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Eloy Room",
+        "date_of_birth": "1989-02-06"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Shurandy Sambo",
+        "date_of_birth": "2001-08-19"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Juriën Gaari",
+        "date_of_birth": "1993-12-23"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Roshon van Eijma",
+        "date_of_birth": "1998-06-09"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Sherel Floranus",
+        "date_of_birth": "1998-08-23"
+      },
+      {
+        "number": 6,
+        "pos": "MED",
+        "name": "Godfried Roemeratoe",
+        "date_of_birth": "1999-08-19"
+      },
+      {
+        "number": 7,
+        "pos": "MED",
+        "name": "Juninho Bacuna",
+        "date_of_birth": "1997-08-07"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Livano Comenencia",
+        "date_of_birth": "2004-02-03"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Jürgen Locadia",
+        "date_of_birth": "1993-11-07"
+      },
+      {
+        "number": 10,
+        "pos": "MED",
+        "name": "Leandro Bacuna",
+        "date_of_birth": "1991-08-21"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "Jeremy Antonisse",
+        "date_of_birth": "2002-03-29"
+      },
+      {
+        "number": 12,
+        "pos": "DEL",
+        "name": "Sontje Hansen",
+        "date_of_birth": "2002-05-18"
+      },
+      {
+        "number": 13,
+        "pos": "DEL",
+        "name": "Tyrese Noslin",
+        "date_of_birth": "2002-09-11"
+      },
+      {
+        "number": 14,
+        "pos": "DEL",
+        "name": "Kenji Gorré",
+        "date_of_birth": "1994-09-29"
+      },
+      {
+        "number": 15,
+        "pos": "MED",
+        "name": "Ar'jany Martha",
+        "date_of_birth": "2003-09-04"
+      },
+      {
+        "number": 16,
+        "pos": "DEL",
+        "name": "Jearl Margaritha",
+        "date_of_birth": "2000-04-10"
+      },
+      {
+        "number": 17,
+        "pos": "DEL",
+        "name": "Brandley Kuwas",
+        "date_of_birth": "1992-09-19"
+      },
+      {
+        "number": 18,
+        "pos": "DEF",
+        "name": "Armando Obispo",
+        "date_of_birth": "1999-03-05"
+      },
+      {
+        "number": 19,
+        "pos": "DEL",
+        "name": "Gervane Kastaneer",
+        "date_of_birth": "1996-06-09"
+      },
+      {
+        "number": 20,
+        "pos": "DEF",
+        "name": "Joshua Brenet",
+        "date_of_birth": "1994-03-20"
+      },
+      {
+        "number": 21,
+        "pos": "MED",
+        "name": "Tahith Chong",
+        "date_of_birth": "1999-12-04"
+      },
+      {
+        "number": 22,
+        "pos": "MED",
+        "name": "Kevin Felida",
+        "date_of_birth": "1999-11-11"
+      },
+      {
+        "number": 23,
+        "pos": "DEF",
+        "name": "Riechedly Bazoer",
+        "date_of_birth": "1996-10-12"
+      },
+      {
+        "number": 24,
+        "pos": "DEF",
+        "name": "Deveron Fonville",
+        "date_of_birth": "2003-05-16"
+      },
+      {
+        "number": 25,
+        "pos": "POR",
+        "name": "Tyrick Bodak",
+        "date_of_birth": "2002-05-15"
+      },
+      {
+        "number": 26,
+        "pos": "POR",
+        "name": "Trevor Doornbusch",
+        "date_of_birth": "1999-07-06"
+      }
+    ]
+  },
+  {
+    "name": "Ecuador",
+    "fifa_code": "ECU",
+    "group": "E",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Hernán Galíndez",
+        "date_of_birth": "1987-03-30"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Félix Torres",
+        "date_of_birth": "1997-01-11"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Piero Hincapié",
+        "date_of_birth": "2002-01-09"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Joel Ordóñez",
+        "date_of_birth": "2004-04-21"
+      },
+      {
+        "number": 5,
+        "pos": "MED",
+        "name": "Jordy Alcívar",
+        "date_of_birth": "1999-08-05"
+      },
+      {
+        "number": 6,
+        "pos": "DEF",
+        "name": "Willian Pacho",
+        "date_of_birth": "2001-10-16"
+      },
+      {
+        "number": 7,
+        "pos": "DEF",
+        "name": "Pervis Estupiñán",
+        "date_of_birth": "1998-01-21"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Anthony Valencia",
+        "date_of_birth": "2003-07-21"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "John Yeboah",
+        "date_of_birth": "2000-06-23"
+      },
+      {
+        "number": 10,
+        "pos": "MED",
+        "name": "Kendry Páez",
+        "date_of_birth": "2007-05-04"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "Kevin Rodríguez",
+        "date_of_birth": "2000-03-04"
+      },
+      {
+        "number": 12,
+        "pos": "POR",
+        "name": "Moisés Ramírez",
+        "date_of_birth": "2000-09-09"
+      },
+      {
+        "number": 13,
+        "pos": "DEL",
+        "name": "Enner Valencia",
+        "date_of_birth": "1989-11-04"
+      },
+      {
+        "number": 14,
+        "pos": "MED",
+        "name": "Alan Minda",
+        "date_of_birth": "2003-05-14"
+      },
+      {
+        "number": 15,
+        "pos": "MED",
+        "name": "Pedro Vite",
+        "date_of_birth": "2002-03-09"
+      },
+      {
+        "number": 16,
+        "pos": "DEL",
+        "name": "Jordy Caicedo",
+        "date_of_birth": "1997-11-18"
+      },
+      {
+        "number": 17,
+        "pos": "DEF",
+        "name": "Ángelo Preciado",
+        "date_of_birth": "1998-02-18"
+      },
+      {
+        "number": 18,
+        "pos": "MED",
+        "name": "Denil Castillo",
+        "date_of_birth": "2004-03-24"
+      },
+      {
+        "number": 19,
+        "pos": "DEL",
+        "name": "Gonzalo Plata",
+        "date_of_birth": "2000-11-01"
+      },
+      {
+        "number": 20,
+        "pos": "DEL",
+        "name": "Nilson Angulo",
+        "date_of_birth": "2003-06-19"
+      },
+      {
+        "number": 21,
+        "pos": "MED",
+        "name": "Alan Franco",
+        "date_of_birth": "1998-08-21"
+      },
+      {
+        "number": 22,
+        "pos": "POR",
+        "name": "Gonzalo Valle",
+        "date_of_birth": "1996-02-28"
+      },
+      {
+        "number": 23,
+        "pos": "MED",
+        "name": "Moisés Caicedo",
+        "date_of_birth": "2001-11-02"
+      },
+      {
+        "number": 24,
+        "pos": "DEL",
+        "name": "Jeremy Arévalo",
+        "date_of_birth": "2005-03-19"
+      },
+      {
+        "number": 25,
+        "pos": "DEF",
+        "name": "Jackson Porozo",
+        "date_of_birth": "2000-08-04"
+      },
+      {
+        "number": 26,
+        "pos": "DEF",
+        "name": "Yaimar Medina",
+        "date_of_birth": "2004-11-05"
+      }
+    ]
+  },
+  {
+    "name": "Germany",
+    "fifa_code": "GER",
+    "group": "E",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Manuel Neuer",
+        "date_of_birth": "1986-03-27"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Antonio Rüdiger",
+        "date_of_birth": "1993-03-03"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Waldemar Anton",
+        "date_of_birth": "1996-07-20"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Jonathan Tah",
+        "date_of_birth": "1996-02-11"
+      },
+      {
+        "number": 5,
+        "pos": "MED",
+        "name": "Aleksandar Pavlović",
+        "date_of_birth": "2004-05-03"
+      },
+      {
+        "number": 6,
+        "pos": "DEF",
+        "name": "Joshua Kimmich",
+        "date_of_birth": "1995-02-08"
+      },
+      {
+        "number": 7,
+        "pos": "DEL",
+        "name": "Kai Havertz",
+        "date_of_birth": "1999-06-11"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Leon Goretzka",
+        "date_of_birth": "1995-02-06"
+      },
+      {
+        "number": 9,
+        "pos": "MED",
+        "name": "Jamie Leweling",
+        "date_of_birth": "2001-02-26"
+      },
+      {
+        "number": 10,
+        "pos": "MED",
+        "name": "Jamal Musiala",
+        "date_of_birth": "2003-02-26"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "Nick Woltemade",
+        "date_of_birth": "2002-02-14"
+      },
+      {
+        "number": 12,
+        "pos": "POR",
+        "name": "Oliver Baumann",
+        "date_of_birth": "1990-06-02"
+      },
+      {
+        "number": 13,
+        "pos": "MED",
+        "name": "Pascal Groß",
+        "date_of_birth": "1991-06-15"
+      },
+      {
+        "number": 14,
+        "pos": "DEL",
+        "name": "Maximilian Beier",
+        "date_of_birth": "2002-10-17"
+      },
+      {
+        "number": 15,
+        "pos": "DEF",
+        "name": "Nico Schlotterbeck",
+        "date_of_birth": "1999-12-01"
+      },
+      {
+        "number": 16,
+        "pos": "MED",
+        "name": "Angelo Stiller",
+        "date_of_birth": "2001-04-04"
+      },
+      {
+        "number": 17,
+        "pos": "MED",
+        "name": "Florian Wirtz",
+        "date_of_birth": "2003-05-03"
+      },
+      {
+        "number": 18,
+        "pos": "DEF",
+        "name": "Nathaniel Brown",
+        "date_of_birth": "2003-06-16"
+      },
+      {
+        "number": 19,
+        "pos": "MED",
+        "name": "Leroy Sané",
+        "date_of_birth": "1996-01-11"
+      },
+      {
+        "number": 20,
+        "pos": "MED",
+        "name": "Nadiem Amiri",
+        "date_of_birth": "1996-10-27"
+      },
+      {
+        "number": 21,
+        "pos": "POR",
+        "name": "Alexander Nübel",
+        "date_of_birth": "1996-09-30"
+      },
+      {
+        "number": 22,
+        "pos": "DEF",
+        "name": "David Raum",
+        "date_of_birth": "1998-04-22"
+      },
+      {
+        "number": 23,
+        "pos": "MED",
+        "name": "Felix Nmecha",
+        "date_of_birth": "2000-10-10"
+      },
+      {
+        "number": 24,
+        "pos": "DEF",
+        "name": "Malick Thiaw",
+        "date_of_birth": "2001-08-08"
+      },
+      {
+        "number": 25,
+        "pos": "MED",
+        "name": "Assan Ouédraogo",
+        "date_of_birth": "2006-05-09"
+      },
+      {
+        "number": 26,
+        "pos": "DEL",
+        "name": "Deniz Undav",
+        "date_of_birth": "1996-07-19"
+      }
+    ]
+  },
+  {
+    "name": "Ivory Coast",
+    "fifa_code": "CIV",
+    "group": "E",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Yahia Fofana",
+        "date_of_birth": "2000-08-21"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Ousmane Diomande",
+        "date_of_birth": "2003-12-04"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Ghislain Konan",
+        "date_of_birth": "1995-12-27"
+      },
+      {
+        "number": 4,
+        "pos": "MED",
+        "name": "Jean Michaël Seri",
+        "date_of_birth": "1991-07-19"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Wilfried Singo",
+        "date_of_birth": "2000-12-25"
+      },
+      {
+        "number": 6,
+        "pos": "MED",
+        "name": "Seko Fofana",
+        "date_of_birth": "1995-05-07"
+      },
+      {
+        "number": 7,
+        "pos": "DEF",
+        "name": "Odilon Kossounou",
+        "date_of_birth": "2001-01-04"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Franck Kessié",
+        "date_of_birth": "1996-12-19"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Ange-Yoan Bonny",
+        "date_of_birth": "2003-10-25"
+      },
+      {
+        "number": 10,
+        "pos": "DEL",
+        "name": "Simon Adingra",
+        "date_of_birth": "2002-01-01"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "Yan Diomande",
+        "date_of_birth": "2006-11-14"
+      },
+      {
+        "number": 12,
+        "pos": "DEL",
+        "name": "Elye Wahi",
+        "date_of_birth": "2003-01-02"
+      },
+      {
+        "number": 13,
+        "pos": "DEF",
+        "name": "Christopher Opéri",
+        "date_of_birth": "1997-04-29"
+      },
+      {
+        "number": 14,
+        "pos": "DEL",
+        "name": "Oumar Diakité",
+        "date_of_birth": "2003-12-20"
+      },
+      {
+        "number": 15,
+        "pos": "DEL",
+        "name": "Amad Diallo",
+        "date_of_birth": "2002-07-11"
+      },
+      {
+        "number": 16,
+        "pos": "POR",
+        "name": "Mohamed Koné",
+        "date_of_birth": "2002-03-07"
+      },
+      {
+        "number": 17,
+        "pos": "DEF",
+        "name": "Guéla Doué",
+        "date_of_birth": "2002-10-17"
+      },
+      {
+        "number": 18,
+        "pos": "MED",
+        "name": "Ibrahim Sangaré",
+        "date_of_birth": "1997-12-02"
+      },
+      {
+        "number": 19,
+        "pos": "DEL",
+        "name": "Nicolas Pépé",
+        "date_of_birth": "1995-05-29"
+      },
+      {
+        "number": 20,
+        "pos": "DEF",
+        "name": "Emmanuel Agbadou",
+        "date_of_birth": "1997-06-17"
+      },
+      {
+        "number": 21,
+        "pos": "DEF",
+        "name": "Evan Ndicka",
+        "date_of_birth": "1999-08-20"
+      },
+      {
+        "number": 22,
+        "pos": "DEL",
+        "name": "Evann Guessand",
+        "date_of_birth": "2001-07-01"
+      },
+      {
+        "number": 23,
+        "pos": "POR",
+        "name": "Alban Lafont",
+        "date_of_birth": "1999-01-23"
+      },
+      {
+        "number": 24,
+        "pos": "DEL",
+        "name": "Bazoumana Touré",
+        "date_of_birth": "2006-03-02"
+      },
+      {
+        "number": 25,
+        "pos": "MED",
+        "name": "Parfait Guiagon",
+        "date_of_birth": "2001-02-22"
+      },
+      {
+        "number": 26,
+        "pos": "MED",
+        "name": "Christ Inao Oulaï",
+        "date_of_birth": "2006-04-06"
+      }
+    ]
+  },
+  {
+    "name": "Japan",
+    "fifa_code": "JPN",
+    "group": "F",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Zion Suzuki",
+        "date_of_birth": "2002-08-21"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Yukinari Sugawara",
+        "date_of_birth": "2000-06-28"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Shōgo Taniguchi",
+        "date_of_birth": "1991-07-15"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Kō Itakura",
+        "date_of_birth": "1997-01-27"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Yūto Nagatomo",
+        "date_of_birth": "1986-09-12"
+      },
+      {
+        "number": 6,
+        "pos": "MED",
+        "name": "Wataru Endo",
+        "date_of_birth": "1993-02-09"
+      },
+      {
+        "number": 7,
+        "pos": "MED",
+        "name": "Ao Tanaka",
+        "date_of_birth": "1998-09-10"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Takefusa Kubo",
+        "date_of_birth": "2001-06-04"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Keisuke Gotō",
+        "date_of_birth": "2005-06-03"
+      },
+      {
+        "number": 10,
+        "pos": "MED",
+        "name": "Ritsu Dōan",
+        "date_of_birth": "1998-06-16"
+      },
+      {
+        "number": 11,
+        "pos": "MED",
+        "name": "Daizen Maeda",
+        "date_of_birth": "1997-10-20"
+      },
+      {
+        "number": 12,
+        "pos": "POR",
+        "name": "Keisuke Ōsako",
+        "date_of_birth": "1999-07-28"
+      },
+      {
+        "number": 13,
+        "pos": "MED",
+        "name": "Keito Nakamura",
+        "date_of_birth": "2000-07-28"
+      },
+      {
+        "number": 14,
+        "pos": "MED",
+        "name": "Junya Itō",
+        "date_of_birth": "1993-03-09"
+      },
+      {
+        "number": 15,
+        "pos": "MED",
+        "name": "Daichi Kamada",
+        "date_of_birth": "1996-08-05"
+      },
+      {
+        "number": 16,
+        "pos": "DEF",
+        "name": "Tsuyoshi Watanabe",
+        "date_of_birth": "1997-02-05"
+      },
+      {
+        "number": 17,
+        "pos": "MED",
+        "name": "Yuito Suzuki",
+        "date_of_birth": "2001-10-25"
+      },
+      {
+        "number": 18,
+        "pos": "DEL",
+        "name": "Ayase Ueda",
+        "date_of_birth": "1998-08-28"
+      },
+      {
+        "number": 19,
+        "pos": "DEL",
+        "name": "Kōki Ogawa",
+        "date_of_birth": "1997-08-08"
+      },
+      {
+        "number": 20,
+        "pos": "DEF",
+        "name": "Ayumu Seko",
+        "date_of_birth": "2000-06-07"
+      },
+      {
+        "number": 21,
+        "pos": "DEF",
+        "name": "Hiroki Itō",
+        "date_of_birth": "1999-05-12"
+      },
+      {
+        "number": 22,
+        "pos": "DEF",
+        "name": "Takehiro Tomiyasu",
+        "date_of_birth": "1998-11-05"
+      },
+      {
+        "number": 23,
+        "pos": "POR",
+        "name": "Tomoki Hayakawa",
+        "date_of_birth": "1999-03-03"
+      },
+      {
+        "number": 24,
+        "pos": "MED",
+        "name": "Kaishū Sano",
+        "date_of_birth": "2000-12-30"
+      },
+      {
+        "number": 25,
+        "pos": "DEF",
+        "name": "Junnosuke Suzuki",
+        "date_of_birth": "2003-07-12"
+      },
+      {
+        "number": 26,
+        "pos": "DEL",
+        "name": "Kento Shiogai",
+        "date_of_birth": "2005-03-26"
+      }
+    ]
+  },
+  {
+    "name": "Netherlands",
+    "fifa_code": "NED",
+    "group": "F",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Bart Verbruggen",
+        "date_of_birth": "2002-08-18"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Lutsharel Geertruida",
+        "date_of_birth": "2000-07-18"
+      },
+      {
+        "number": 3,
+        "pos": "MED",
+        "name": "Marten de Roon",
+        "date_of_birth": "1991-03-29"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Virgil van Dijk",
+        "date_of_birth": "1991-07-08"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Nathan Aké",
+        "date_of_birth": "1995-02-18"
+      },
+      {
+        "number": 6,
+        "pos": "DEF",
+        "name": "Jan Paul van Hecke",
+        "date_of_birth": "2000-06-08"
+      },
+      {
+        "number": 7,
+        "pos": "MED",
+        "name": "Justin Kluivert",
+        "date_of_birth": "1999-05-05"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Ryan Gravenberch",
+        "date_of_birth": "2002-05-16"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Wout Weghorst",
+        "date_of_birth": "1992-08-07"
+      },
+      {
+        "number": 10,
+        "pos": "DEL",
+        "name": "Memphis Depay",
+        "date_of_birth": "1994-02-13"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "Cody Gakpo",
+        "date_of_birth": "1999-05-07"
+      },
+      {
+        "number": 12,
+        "pos": "DEF",
+        "name": "Mats Wieffer",
+        "date_of_birth": "1999-11-16"
+      },
+      {
+        "number": 13,
+        "pos": "POR",
+        "name": "Robin Roefs",
+        "date_of_birth": "2003-01-17"
+      },
+      {
+        "number": 14,
+        "pos": "MED",
+        "name": "Tijjani Reijnders",
+        "date_of_birth": "1998-07-29"
+      },
+      {
+        "number": 15,
+        "pos": "DEF",
+        "name": "Micky van de Ven",
+        "date_of_birth": "2001-04-19"
+      },
+      {
+        "number": 16,
+        "pos": "MED",
+        "name": "Guus Til",
+        "date_of_birth": "1997-12-22"
+      },
+      {
+        "number": 17,
+        "pos": "DEL",
+        "name": "Noa Lang",
+        "date_of_birth": "1999-06-17"
+      },
+      {
+        "number": 18,
+        "pos": "DEL",
+        "name": "Donyell Malen",
+        "date_of_birth": "1999-01-19"
+      },
+      {
+        "number": 19,
+        "pos": "DEL",
+        "name": "Brian Brobbey",
+        "date_of_birth": "2002-02-01"
+      },
+      {
+        "number": 20,
+        "pos": "MED",
+        "name": "Teun Koopmeiners",
+        "date_of_birth": "1998-02-28"
+      },
+      {
+        "number": 21,
+        "pos": "MED",
+        "name": "Frenkie de Jong",
+        "date_of_birth": "1997-05-12"
+      },
+      {
+        "number": 22,
+        "pos": "DEF",
+        "name": "Denzel Dumfries",
+        "date_of_birth": "1996-04-18"
+      },
+      {
+        "number": 23,
+        "pos": "POR",
+        "name": "Mark Flekken",
+        "date_of_birth": "1993-06-13"
+      },
+      {
+        "number": 24,
+        "pos": "DEL",
+        "name": "Crysencio Summerville",
+        "date_of_birth": "2001-10-30"
+      },
+      {
+        "number": 25,
+        "pos": "DEF",
+        "name": "Jorrel Hato",
+        "date_of_birth": "2006-03-07"
+      },
+      {
+        "number": 26,
+        "pos": "MED",
+        "name": "Quinten Timber",
+        "date_of_birth": "2001-06-17"
+      }
+    ]
+  },
+  {
+    "name": "Sweden",
+    "fifa_code": "SWE",
+    "group": "F",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Jacob Widell Zetterström",
+        "date_of_birth": "1998-07-11"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Gustaf Lagerbielke",
+        "date_of_birth": "2000-04-10"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Victor Lindelöf",
+        "date_of_birth": "1994-07-17"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Isak Hien",
+        "date_of_birth": "1999-01-13"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Gabriel Gudmundsson",
+        "date_of_birth": "1999-04-29"
+      },
+      {
+        "number": 6,
+        "pos": "DEF",
+        "name": "Herman Johansson",
+        "date_of_birth": "1997-10-16"
+      },
+      {
+        "number": 7,
+        "pos": "MED",
+        "name": "Lucas Bergvall",
+        "date_of_birth": "2006-02-02"
+      },
+      {
+        "number": 8,
+        "pos": "DEF",
+        "name": "Daniel Svensson",
+        "date_of_birth": "2002-02-12"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Alexander Isak",
+        "date_of_birth": "1999-09-21"
+      },
+      {
+        "number": 10,
+        "pos": "MED",
+        "name": "Benjamin Nygren",
+        "date_of_birth": "2001-07-08"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "Anthony Elanga",
+        "date_of_birth": "2002-04-27"
+      },
+      {
+        "number": 12,
+        "pos": "POR",
+        "name": "Viktor Johansson",
+        "date_of_birth": "1998-09-14"
+      },
+      {
+        "number": 13,
+        "pos": "MED",
+        "name": "Ken Sema",
+        "date_of_birth": "1993-09-30"
+      },
+      {
+        "number": 14,
+        "pos": "DEF",
+        "name": "Hjalmar Ekdal",
+        "date_of_birth": "1998-10-21"
+      },
+      {
+        "number": 15,
+        "pos": "DEF",
+        "name": "Carl Starfelt",
+        "date_of_birth": "1995-06-01"
+      },
+      {
+        "number": 16,
+        "pos": "MED",
+        "name": "Jesper Karlström",
+        "date_of_birth": "1995-06-21"
+      },
+      {
+        "number": 17,
+        "pos": "DEL",
+        "name": "Viktor Gyökeres",
+        "date_of_birth": "1998-06-04"
+      },
+      {
+        "number": 18,
+        "pos": "MED",
+        "name": "Yasin Ayari",
+        "date_of_birth": "2003-10-06"
+      },
+      {
+        "number": 19,
+        "pos": "MED",
+        "name": "Mattias Svanberg",
+        "date_of_birth": "1999-01-05"
+      },
+      {
+        "number": 20,
+        "pos": "DEF",
+        "name": "Eric Smith",
+        "date_of_birth": "1997-01-08"
+      },
+      {
+        "number": 21,
+        "pos": "DEF",
+        "name": "Alexander Bernhardsson",
+        "date_of_birth": "1998-09-08"
+      },
+      {
+        "number": 22,
+        "pos": "MED",
+        "name": "Besfort Zeneli",
+        "date_of_birth": "2002-11-21"
+      },
+      {
+        "number": 23,
+        "pos": "POR",
+        "name": "Kristoffer Nordfeldt",
+        "date_of_birth": "1989-06-23"
+      },
+      {
+        "number": 24,
+        "pos": "DEF",
+        "name": "Elliot Stroud",
+        "date_of_birth": "2002-06-22"
+      },
+      {
+        "number": 25,
+        "pos": "DEL",
+        "name": "Gustaf Nilsson",
+        "date_of_birth": "1997-05-23"
+      },
+      {
+        "number": 26,
+        "pos": "DEL",
+        "name": "Taha Ali",
+        "date_of_birth": "1998-07-01"
+      }
+    ]
+  },
+  {
+    "name": "Tunisia",
+    "fifa_code": "TUN",
+    "group": "F",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Mouhib Chamakh",
+        "date_of_birth": "2001-08-25"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Ali Abdi",
+        "date_of_birth": "1993-12-20"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Montassar Talbi",
+        "date_of_birth": "1998-05-26"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Omar Rekik",
+        "date_of_birth": "2001-12-20"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Adem Arous",
+        "date_of_birth": "2004-07-17"
+      },
+      {
+        "number": 6,
+        "pos": "DEF",
+        "name": "Dylan Bronn",
+        "date_of_birth": "1995-06-19"
+      },
+      {
+        "number": 7,
+        "pos": "DEL",
+        "name": "Elias Achouri",
+        "date_of_birth": "1999-02-10"
+      },
+      {
+        "number": 8,
+        "pos": "DEL",
+        "name": "Elias Saad",
+        "date_of_birth": "1999-12-27"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Hazem Mastouri",
+        "date_of_birth": "1997-06-18"
+      },
+      {
+        "number": 10,
+        "pos": "MED",
+        "name": "Hannibal Mejbri",
+        "date_of_birth": "2003-01-21"
+      },
+      {
+        "number": 11,
+        "pos": "MED",
+        "name": "Ismaël Gharbi",
+        "date_of_birth": "2004-04-10"
+      },
+      {
+        "number": 12,
+        "pos": "DEF",
+        "name": "Mortadha Ben Ouanes",
+        "date_of_birth": "1994-07-02"
+      },
+      {
+        "number": 13,
+        "pos": "MED",
+        "name": "Rani Khedira",
+        "date_of_birth": "1994-01-27"
+      },
+      {
+        "number": 14,
+        "pos": "MED",
+        "name": "Khalil Ayari",
+        "date_of_birth": "2005-02-02"
+      },
+      {
+        "number": 15,
+        "pos": "MED",
+        "name": "Hadj Mahmoud",
+        "date_of_birth": "2000-04-24"
+      },
+      {
+        "number": 16,
+        "pos": "POR",
+        "name": "Aymen Dahmen",
+        "date_of_birth": "1997-01-28"
+      },
+      {
+        "number": 17,
+        "pos": "MED",
+        "name": "Ellyes Skhiri",
+        "date_of_birth": "1995-05-10"
+      },
+      {
+        "number": 18,
+        "pos": "DEL",
+        "name": "Rayan Elloumi",
+        "date_of_birth": "2007-09-17"
+      },
+      {
+        "number": 19,
+        "pos": "DEL",
+        "name": "Firas Chaouat",
+        "date_of_birth": "1996-05-08"
+      },
+      {
+        "number": 20,
+        "pos": "DEF",
+        "name": "Yan Valery",
+        "date_of_birth": "1999-02-22"
+      },
+      {
+        "number": 21,
+        "pos": "DEF",
+        "name": "Mohamed Amine Ben Hamida",
+        "date_of_birth": "1995-12-15"
+      },
+      {
+        "number": 22,
+        "pos": "POR",
+        "name": "Sabri Ben Hessen",
+        "date_of_birth": "1996-06-13"
+      },
+      {
+        "number": 23,
+        "pos": "DEF",
+        "name": "Moutaz Neffati",
+        "date_of_birth": "2004-09-04"
+      },
+      {
+        "number": 24,
+        "pos": "DEF",
+        "name": "Raed Chikhaoui",
+        "date_of_birth": "2004-06-09"
+      },
+      {
+        "number": 25,
+        "pos": "MED",
+        "name": "Anis Ben Slimane",
+        "date_of_birth": "2001-03-16"
+      },
+      {
+        "number": 26,
+        "pos": "MED",
+        "name": "Sebastian Tounekti",
+        "date_of_birth": "2002-07-13"
+      }
+    ]
+  },
+  {
+    "name": "Belgium",
+    "fifa_code": "BEL",
+    "group": "G",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Thibaut Courtois",
+        "date_of_birth": "1992-05-11"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Zeno Debast",
+        "date_of_birth": "2003-10-24"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Arthur Theate",
+        "date_of_birth": "2000-05-25"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Brandon Mechele",
+        "date_of_birth": "1993-01-28"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Maxim De Cuyper",
+        "date_of_birth": "2000-12-22"
+      },
+      {
+        "number": 6,
+        "pos": "MED",
+        "name": "Axel Witsel",
+        "date_of_birth": "1989-01-12"
+      },
+      {
+        "number": 7,
+        "pos": "MED",
+        "name": "Kevin De Bruyne",
+        "date_of_birth": "1991-06-28"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Youri Tielemans",
+        "date_of_birth": "1997-05-07"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Romelu Lukaku",
+        "date_of_birth": "1993-05-13"
+      },
+      {
+        "number": 10,
+        "pos": "DEL",
+        "name": "Leandro Trossard",
+        "date_of_birth": "1994-12-04"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "Jérémy Doku",
+        "date_of_birth": "2002-05-27"
+      },
+      {
+        "number": 12,
+        "pos": "POR",
+        "name": "Senne Lammens",
+        "date_of_birth": "2002-07-07"
+      },
+      {
+        "number": 13,
+        "pos": "POR",
+        "name": "Mike Penders",
+        "date_of_birth": "2005-07-31"
+      },
+      {
+        "number": 14,
+        "pos": "DEL",
+        "name": "Dodi Lukébakio",
+        "date_of_birth": "1997-09-24"
+      },
+      {
+        "number": 15,
+        "pos": "DEF",
+        "name": "Thomas Meunier",
+        "date_of_birth": "1991-09-12"
+      },
+      {
+        "number": 16,
+        "pos": "DEF",
+        "name": "Koni De Winter",
+        "date_of_birth": "2002-06-12"
+      },
+      {
+        "number": 17,
+        "pos": "DEL",
+        "name": "Charles De Ketelaere",
+        "date_of_birth": "2001-03-10"
+      },
+      {
+        "number": 18,
+        "pos": "DEF",
+        "name": "Joaquin Seys",
+        "date_of_birth": "2005-03-28"
+      },
+      {
+        "number": 19,
+        "pos": "MED",
+        "name": "Diego Moreira",
+        "date_of_birth": "2004-08-06"
+      },
+      {
+        "number": 20,
+        "pos": "MED",
+        "name": "Hans Vanaken",
+        "date_of_birth": "1992-08-24"
+      },
+      {
+        "number": 21,
+        "pos": "DEF",
+        "name": "Timothy Castagne",
+        "date_of_birth": "1995-12-05"
+      },
+      {
+        "number": 22,
+        "pos": "MED",
+        "name": "Alexis Saelemaekers",
+        "date_of_birth": "1999-06-27"
+      },
+      {
+        "number": 23,
+        "pos": "MED",
+        "name": "Nicolas Raskin",
+        "date_of_birth": "2001-02-23"
+      },
+      {
+        "number": 24,
+        "pos": "MED",
+        "name": "Amadou Onana",
+        "date_of_birth": "2001-08-16"
+      },
+      {
+        "number": 25,
+        "pos": "DEF",
+        "name": "Nathan Ngoy",
+        "date_of_birth": "2003-06-10"
+      },
+      {
+        "number": 26,
+        "pos": "DEL",
+        "name": "Matias Fernandez-Pardo",
+        "date_of_birth": "2005-02-03"
+      }
+    ]
+  },
+  {
+    "name": "Egypt",
+    "fifa_code": "EGY",
+    "group": "G",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Mohamed El Shenawy",
+        "date_of_birth": "1988-12-18"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Yasser Ibrahim",
+        "date_of_birth": "1993-02-10"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Mohamed Hany",
+        "date_of_birth": "1996-02-02"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Hossam Abdelmaguid",
+        "date_of_birth": "2001-04-30"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Ramy Rabia",
+        "date_of_birth": "1993-05-20"
+      },
+      {
+        "number": 6,
+        "pos": "DEF",
+        "name": "Mohamed Abdelmonem",
+        "date_of_birth": "1999-02-01"
+      },
+      {
+        "number": 7,
+        "pos": "DEL",
+        "name": "Trézéguet",
+        "date_of_birth": "1994-10-01"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Emam Ashour",
+        "date_of_birth": "1998-02-20"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Hamza Abdelkarim",
+        "date_of_birth": "2008-01-01"
+      },
+      {
+        "number": 10,
+        "pos": "DEL",
+        "name": "Mohamed Salah",
+        "date_of_birth": "1992-06-15"
+      },
+      {
+        "number": 11,
+        "pos": "MED",
+        "name": "Mostafa Ziko",
+        "date_of_birth": "1997-04-27"
+      },
+      {
+        "number": 12,
+        "pos": "DEL",
+        "name": "Haissem Hassan",
+        "date_of_birth": "2002-02-08"
+      },
+      {
+        "number": 13,
+        "pos": "DEF",
+        "name": "Ahmed Fatouh",
+        "date_of_birth": "1998-03-22"
+      },
+      {
+        "number": 14,
+        "pos": "MED",
+        "name": "Hamdy Fathy",
+        "date_of_birth": "1994-09-29"
+      },
+      {
+        "number": 15,
+        "pos": "DEF",
+        "name": "Karim Hafez",
+        "date_of_birth": "1996-03-12"
+      },
+      {
+        "number": 16,
+        "pos": "POR",
+        "name": "El Mahdy Soliman",
+        "date_of_birth": "1987-06-08"
+      },
+      {
+        "number": 17,
+        "pos": "MED",
+        "name": "Mohanad Lasheen",
+        "date_of_birth": "1996-05-29"
+      },
+      {
+        "number": 18,
+        "pos": "MED",
+        "name": "Nabil Emad",
+        "date_of_birth": "1996-04-06"
+      },
+      {
+        "number": 19,
+        "pos": "MED",
+        "name": "Marwan Attia",
+        "date_of_birth": "1998-08-01"
+      },
+      {
+        "number": 20,
+        "pos": "DEL",
+        "name": "Ibrahim Adel",
+        "date_of_birth": "2001-04-23"
+      },
+      {
+        "number": 21,
+        "pos": "MED",
+        "name": "Mahmoud Saber",
+        "date_of_birth": "2001-07-30"
+      },
+      {
+        "number": 22,
+        "pos": "DEL",
+        "name": "Omar Marmoush",
+        "date_of_birth": "1999-02-07"
+      },
+      {
+        "number": 23,
+        "pos": "POR",
+        "name": "Mostafa Shobeir",
+        "date_of_birth": "2000-05-15"
+      },
+      {
+        "number": 24,
+        "pos": "DEF",
+        "name": "Tarek Alaa",
+        "date_of_birth": "2002-01-05"
+      },
+      {
+        "number": 25,
+        "pos": "DEL",
+        "name": "Zizo",
+        "date_of_birth": "1996-01-10"
+      },
+      {
+        "number": 26,
+        "pos": "POR",
+        "name": "Mohamed Alaa",
+        "date_of_birth": "1999-01-01"
+      }
+    ]
+  },
+  {
+    "name": "Iran",
+    "fifa_code": "IRN",
+    "group": "G",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Alireza Beiranvand",
+        "date_of_birth": "1992-09-21"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Saleh Hardani",
+        "date_of_birth": "1998-12-26"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Ehsan Hajsafi",
+        "date_of_birth": "1990-02-25"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Shojae Khalilzadeh",
+        "date_of_birth": "1989-05-14"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Milad Mohammadi",
+        "date_of_birth": "1993-09-29"
+      },
+      {
+        "number": 6,
+        "pos": "MED",
+        "name": "Saeid Ezatolahi",
+        "date_of_birth": "1996-10-01"
+      },
+      {
+        "number": 7,
+        "pos": "MED",
+        "name": "Alireza Jahanbakhsh",
+        "date_of_birth": "1993-08-11"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Mohammad Mohebi",
+        "date_of_birth": "1998-12-20"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Mehdi Taremi",
+        "date_of_birth": "1992-07-18"
+      },
+      {
+        "number": 10,
+        "pos": "DEL",
+        "name": "Mehdi Ghayedi",
+        "date_of_birth": "1998-12-05"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "Ali Alipour",
+        "date_of_birth": "1995-11-11"
+      },
+      {
+        "number": 12,
+        "pos": "POR",
+        "name": "Payam Niazmand",
+        "date_of_birth": "1995-04-06"
+      },
+      {
+        "number": 13,
+        "pos": "DEF",
+        "name": "Hossein Kanaanizadegan",
+        "date_of_birth": "1994-03-23"
+      },
+      {
+        "number": 14,
+        "pos": "MED",
+        "name": "Saman Ghoddos",
+        "date_of_birth": "1993-09-06"
+      },
+      {
+        "number": 15,
+        "pos": "MED",
+        "name": "Rouzbeh Cheshmi",
+        "date_of_birth": "1993-07-24"
+      },
+      {
+        "number": 16,
+        "pos": "MED",
+        "name": "Mehdi Torabi",
+        "date_of_birth": "1994-09-10"
+      },
+      {
+        "number": 17,
+        "pos": "DEF",
+        "name": "Aria Yousefi",
+        "date_of_birth": "2002-04-22"
+      },
+      {
+        "number": 18,
+        "pos": "DEL",
+        "name": "Amirhossein Hosseinzadeh",
+        "date_of_birth": "2000-10-30"
+      },
+      {
+        "number": 19,
+        "pos": "DEF",
+        "name": "Ali Nemati",
+        "date_of_birth": "1996-02-08"
+      },
+      {
+        "number": 20,
+        "pos": "DEL",
+        "name": "Shahriyar Moghanlou",
+        "date_of_birth": "1994-12-21"
+      },
+      {
+        "number": 21,
+        "pos": "MED",
+        "name": "Mohammad Ghorbani",
+        "date_of_birth": "2001-10-07"
+      },
+      {
+        "number": 22,
+        "pos": "POR",
+        "name": "Hossein Hosseini",
+        "date_of_birth": "1992-06-30"
+      },
+      {
+        "number": 23,
+        "pos": "DEF",
+        "name": "Ramin Rezaeian",
+        "date_of_birth": "1990-03-21"
+      },
+      {
+        "number": 24,
+        "pos": "DEL",
+        "name": "Dennis Eckert",
+        "date_of_birth": "1997-01-09"
+      },
+      {
+        "number": 25,
+        "pos": "DEF",
+        "name": "Danial Eiri",
+        "date_of_birth": "2003-10-26"
+      },
+      {
+        "number": 26,
+        "pos": "MED",
+        "name": "Amirmohammad Razzaghinia",
+        "date_of_birth": "2006-04-11"
+      }
+    ]
+  },
+  {
+    "name": "New Zealand",
+    "fifa_code": "NZL",
+    "group": "G",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Max Crocombe",
+        "date_of_birth": "1993-08-12"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Tim Payne",
+        "date_of_birth": "1994-01-10"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Francis de Vries",
+        "date_of_birth": "1994-11-28"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Tyler Bindon",
+        "date_of_birth": "2005-01-27"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Michael Boxall",
+        "date_of_birth": "1988-08-18"
+      },
+      {
+        "number": 6,
+        "pos": "MED",
+        "name": "Joe Bell",
+        "date_of_birth": "1999-04-27"
+      },
+      {
+        "number": 7,
+        "pos": "MED",
+        "name": "Matthew Garbett",
+        "date_of_birth": "2002-04-13"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Marko Stamenić",
+        "date_of_birth": "2002-02-19"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Chris Wood",
+        "date_of_birth": "1991-12-07"
+      },
+      {
+        "number": 10,
+        "pos": "MED",
+        "name": "Sarpreet Singh",
+        "date_of_birth": "1999-02-20"
+      },
+      {
+        "number": 11,
+        "pos": "MED",
+        "name": "Elijah Just",
+        "date_of_birth": "2000-05-01"
+      },
+      {
+        "number": 12,
+        "pos": "POR",
+        "name": "Alex Paulsen",
+        "date_of_birth": "2002-07-04"
+      },
+      {
+        "number": 13,
+        "pos": "DEF",
+        "name": "Liberato Cacace",
+        "date_of_birth": "2000-09-27"
+      },
+      {
+        "number": 14,
+        "pos": "MED",
+        "name": "Alex Rufer",
+        "date_of_birth": "1996-06-12"
+      },
+      {
+        "number": 15,
+        "pos": "DEF",
+        "name": "Nando Pijnaker",
+        "date_of_birth": "1999-02-25"
+      },
+      {
+        "number": 16,
+        "pos": "DEF",
+        "name": "Finn Surman",
+        "date_of_birth": "2003-09-23"
+      },
+      {
+        "number": 17,
+        "pos": "DEL",
+        "name": "Kosta Barbarouses",
+        "date_of_birth": "1990-02-19"
+      },
+      {
+        "number": 18,
+        "pos": "DEL",
+        "name": "Ben Waine",
+        "date_of_birth": "2001-06-11"
+      },
+      {
+        "number": 19,
+        "pos": "MED",
+        "name": "Ben Old",
+        "date_of_birth": "2002-08-13"
+      },
+      {
+        "number": 20,
+        "pos": "MED",
+        "name": "Callum McCowatt",
+        "date_of_birth": "1999-04-30"
+      },
+      {
+        "number": 21,
+        "pos": "DEL",
+        "name": "Jesse Randall",
+        "date_of_birth": "2002-08-19"
+      },
+      {
+        "number": 22,
+        "pos": "POR",
+        "name": "Michael Woud",
+        "date_of_birth": "1999-01-16"
+      },
+      {
+        "number": 23,
+        "pos": "MED",
+        "name": "Ryan Thomas",
+        "date_of_birth": "1994-12-20"
+      },
+      {
+        "number": 24,
+        "pos": "DEF",
+        "name": "Callan Elliot",
+        "date_of_birth": "1999-07-07"
+      },
+      {
+        "number": 25,
+        "pos": "MED",
+        "name": "Lachlan Bayliss",
+        "date_of_birth": "2002-07-24"
+      },
+      {
+        "number": 26,
+        "pos": "DEF",
+        "name": "Tommy Smith",
+        "date_of_birth": "1990-03-31"
+      }
+    ]
+  },
+  {
+    "name": "Cape Verde",
+    "fifa_code": "CPV",
+    "group": "H",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Vozinha",
+        "date_of_birth": "1986-06-03"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Stopira",
+        "date_of_birth": "1988-05-20"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Diney",
+        "date_of_birth": "1995-01-17"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Roberto Lopes",
+        "date_of_birth": "1992-06-17"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Logan Costa",
+        "date_of_birth": "2001-04-01"
+      },
+      {
+        "number": 6,
+        "pos": "MED",
+        "name": "Kevin Pina",
+        "date_of_birth": "1997-01-27"
+      },
+      {
+        "number": 7,
+        "pos": "MED",
+        "name": "Jovane Cabral",
+        "date_of_birth": "1998-06-14"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "João Paulo",
+        "date_of_birth": "1998-05-26"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Gilson Benchimol",
+        "date_of_birth": "2001-12-29"
+      },
+      {
+        "number": 10,
+        "pos": "MED",
+        "name": "Jamiro Monteiro",
+        "date_of_birth": "1993-11-23"
+      },
+      {
+        "number": 11,
+        "pos": "MED",
+        "name": "Garry Rodrigues",
+        "date_of_birth": "1990-11-27"
+      },
+      {
+        "number": 12,
+        "pos": "POR",
+        "name": "Márcio Rosa",
+        "date_of_birth": "1997-02-23"
+      },
+      {
+        "number": 13,
+        "pos": "DEF",
+        "name": "Sidny Lopes Cabral",
+        "date_of_birth": "2002-09-18"
+      },
+      {
+        "number": 14,
+        "pos": "MED",
+        "name": "Deroy Duarte",
+        "date_of_birth": "1999-07-04"
+      },
+      {
+        "number": 15,
+        "pos": "MED",
+        "name": "Laros Duarte",
+        "date_of_birth": "1997-02-28"
+      },
+      {
+        "number": 16,
+        "pos": "MED",
+        "name": "Yannick Semedo",
+        "date_of_birth": "1995-12-29"
+      },
+      {
+        "number": 17,
+        "pos": "MED",
+        "name": "Willy Semedo",
+        "date_of_birth": "1994-04-27"
+      },
+      {
+        "number": 18,
+        "pos": "MED",
+        "name": "Telmo Arcanjo",
+        "date_of_birth": "2001-06-21"
+      },
+      {
+        "number": 19,
+        "pos": "DEL",
+        "name": "Dailon Livramento",
+        "date_of_birth": "2001-05-04"
+      },
+      {
+        "number": 20,
+        "pos": "DEL",
+        "name": "Ryan Mendes",
+        "date_of_birth": "1990-01-08"
+      },
+      {
+        "number": 21,
+        "pos": "MED",
+        "name": "Nuno da Costa",
+        "date_of_birth": "1991-02-10"
+      },
+      {
+        "number": 22,
+        "pos": "DEF",
+        "name": "Steven Moreira",
+        "date_of_birth": "1994-08-13"
+      },
+      {
+        "number": 23,
+        "pos": "POR",
+        "name": "CJ dos Santos",
+        "date_of_birth": "2000-08-24"
+      },
+      {
+        "number": 24,
+        "pos": "DEF",
+        "name": "Wagner Pina",
+        "date_of_birth": "2002-11-03"
+      },
+      {
+        "number": 25,
+        "pos": "DEF",
+        "name": "Kelvin Pires",
+        "date_of_birth": "2000-06-05"
+      },
+      {
+        "number": 26,
+        "pos": "MED",
+        "name": "Hélio Varela",
+        "date_of_birth": "2002-05-03"
+      }
+    ]
+  },
+  {
+    "name": "Saudi Arabia",
+    "fifa_code": "KSA",
+    "group": "H",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Nawaf Al-Aqidi",
+        "date_of_birth": "2000-05-10"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Ali Majrashi",
+        "date_of_birth": "1999-10-02"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Ali Lajami",
+        "date_of_birth": "1996-04-24"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Abdulelah Al-Amri",
+        "date_of_birth": "1997-01-15"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Hassan Al-Tambakti",
+        "date_of_birth": "1999-02-09"
+      },
+      {
+        "number": 6,
+        "pos": "MED",
+        "name": "Nasser Al-Dawsari",
+        "date_of_birth": "1998-12-19"
+      },
+      {
+        "number": 7,
+        "pos": "MED",
+        "name": "Musab Al-Juwayr",
+        "date_of_birth": "2003-06-20"
+      },
+      {
+        "number": 8,
+        "pos": "DEL",
+        "name": "Ayman Yahya",
+        "date_of_birth": "2001-05-14"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Firas Al-Buraikan",
+        "date_of_birth": "2000-05-14"
+      },
+      {
+        "number": 10,
+        "pos": "DEL",
+        "name": "Salem Al-Dawsari",
+        "date_of_birth": "1991-08-19"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "Saleh Al-Shehri",
+        "date_of_birth": "1993-11-01"
+      },
+      {
+        "number": 12,
+        "pos": "DEF",
+        "name": "Saud Abdulhamid",
+        "date_of_birth": "1999-07-18"
+      },
+      {
+        "number": 13,
+        "pos": "DEF",
+        "name": "Nawaf Boushal",
+        "date_of_birth": "1999-09-16"
+      },
+      {
+        "number": 14,
+        "pos": "DEF",
+        "name": "Hassan Kadesh",
+        "date_of_birth": "1992-09-26"
+      },
+      {
+        "number": 15,
+        "pos": "MED",
+        "name": "Abdullah Al-Khaibari",
+        "date_of_birth": "1996-08-16"
+      },
+      {
+        "number": 16,
+        "pos": "MED",
+        "name": "Ziyad Al-Johani",
+        "date_of_birth": "2001-11-11"
+      },
+      {
+        "number": 17,
+        "pos": "DEL",
+        "name": "Khalid Al-Ghannam",
+        "date_of_birth": "2000-11-08"
+      },
+      {
+        "number": 18,
+        "pos": "MED",
+        "name": "Alaa Al-Hejji",
+        "date_of_birth": "1995-12-03"
+      },
+      {
+        "number": 19,
+        "pos": "DEL",
+        "name": "Abdullah Al-Hamdan",
+        "date_of_birth": "1999-09-13"
+      },
+      {
+        "number": 20,
+        "pos": "DEL",
+        "name": "Sultan Mandash",
+        "date_of_birth": "1994-10-17"
+      },
+      {
+        "number": 21,
+        "pos": "POR",
+        "name": "Mohammed Al-Owais",
+        "date_of_birth": "1991-10-10"
+      },
+      {
+        "number": 22,
+        "pos": "POR",
+        "name": "Ahmed Al-Kassar",
+        "date_of_birth": "1991-05-08"
+      },
+      {
+        "number": 23,
+        "pos": "MED",
+        "name": "Mohamed Kanno",
+        "date_of_birth": "1994-09-22"
+      },
+      {
+        "number": 24,
+        "pos": "DEF",
+        "name": "Moteb Al-Harbi",
+        "date_of_birth": "2000-02-20"
+      },
+      {
+        "number": 25,
+        "pos": "DEF",
+        "name": "Jehad Thakri",
+        "date_of_birth": "2001-07-21"
+      },
+      {
+        "number": 26,
+        "pos": "DEF",
+        "name": "Mohammed Abu Al-Shamat",
+        "date_of_birth": "2002-08-11"
+      }
+    ]
+  },
+  {
+    "name": "Spain",
+    "fifa_code": "ESP",
+    "group": "H",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "David Raya",
+        "date_of_birth": "1995-09-15"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Marc Pubill",
+        "date_of_birth": "2003-06-20"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Álex Grimaldo",
+        "date_of_birth": "1995-09-20"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Eric García",
+        "date_of_birth": "2001-01-09"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Marcos Llorente",
+        "date_of_birth": "1995-01-30"
+      },
+      {
+        "number": 6,
+        "pos": "MED",
+        "name": "Mikel Merino",
+        "date_of_birth": "1996-06-22"
+      },
+      {
+        "number": 7,
+        "pos": "DEL",
+        "name": "Ferran Torres",
+        "date_of_birth": "2000-02-29"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Fabián Ruiz",
+        "date_of_birth": "1996-04-03"
+      },
+      {
+        "number": 9,
+        "pos": "MED",
+        "name": "Gavi",
+        "date_of_birth": "2004-08-05"
+      },
+      {
+        "number": 10,
+        "pos": "DEL",
+        "name": "Dani Olmo",
+        "date_of_birth": "1998-05-07"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "Yéremy Pino",
+        "date_of_birth": "2002-10-20"
+      },
+      {
+        "number": 12,
+        "pos": "DEF",
+        "name": "Pedro Porro",
+        "date_of_birth": "1999-09-13"
+      },
+      {
+        "number": 13,
+        "pos": "POR",
+        "name": "Joan Garcia",
+        "date_of_birth": "2001-05-04"
+      },
+      {
+        "number": 14,
+        "pos": "DEF",
+        "name": "Aymeric Laporte",
+        "date_of_birth": "1994-05-27"
+      },
+      {
+        "number": 15,
+        "pos": "MED",
+        "name": "Álex Baena",
+        "date_of_birth": "2001-07-20"
+      },
+      {
+        "number": 16,
+        "pos": "MED",
+        "name": "Rodri",
+        "date_of_birth": "1996-06-22"
+      },
+      {
+        "number": 17,
+        "pos": "DEL",
+        "name": "Nico Williams",
+        "date_of_birth": "2002-07-12"
+      },
+      {
+        "number": 18,
+        "pos": "MED",
+        "name": "Martín Zubimendi",
+        "date_of_birth": "1999-02-02"
+      },
+      {
+        "number": 19,
+        "pos": "DEL",
+        "name": "Lamine Yamal",
+        "date_of_birth": "2007-07-13"
+      },
+      {
+        "number": 20,
+        "pos": "MED",
+        "name": "Pedri",
+        "date_of_birth": "2002-11-25"
+      },
+      {
+        "number": 21,
+        "pos": "DEL",
+        "name": "Mikel Oyarzabal",
+        "date_of_birth": "1997-04-21"
+      },
+      {
+        "number": 22,
+        "pos": "DEF",
+        "name": "Pau Cubarsí",
+        "date_of_birth": "2007-01-22"
+      },
+      {
+        "number": 23,
+        "pos": "POR",
+        "name": "Unai Simón",
+        "date_of_birth": "1997-06-11"
+      },
+      {
+        "number": 24,
+        "pos": "DEF",
+        "name": "Marc Cucurella",
+        "date_of_birth": "1998-07-22"
+      },
+      {
+        "number": 25,
+        "pos": "DEL",
+        "name": "Víctor Muñoz",
+        "date_of_birth": "2003-07-13"
+      },
+      {
+        "number": 26,
+        "pos": "DEL",
+        "name": "Borja Iglesias",
+        "date_of_birth": "1993-01-17"
+      }
+    ]
+  },
+  {
+    "name": "Uruguay",
+    "fifa_code": "URU",
+    "group": "H",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Sergio Rochet",
+        "date_of_birth": "1993-03-23"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "José Giménez",
+        "date_of_birth": "1995-01-20"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Sebastián Cáceres",
+        "date_of_birth": "1999-08-18"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Ronald Araújo",
+        "date_of_birth": "1999-03-07"
+      },
+      {
+        "number": 5,
+        "pos": "MED",
+        "name": "Manuel Ugarte",
+        "date_of_birth": "2001-04-11"
+      },
+      {
+        "number": 6,
+        "pos": "MED",
+        "name": "Rodrigo Bentancur",
+        "date_of_birth": "1997-06-25"
+      },
+      {
+        "number": 7,
+        "pos": "MED",
+        "name": "Nicolás de la Cruz",
+        "date_of_birth": "1997-06-01"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Federico Valverde",
+        "date_of_birth": "1998-07-22"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Darwin Núñez",
+        "date_of_birth": "1999-06-24"
+      },
+      {
+        "number": 10,
+        "pos": "MED",
+        "name": "Giorgian de Arrascaeta",
+        "date_of_birth": "1994-06-01"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "Facundo Pellistri",
+        "date_of_birth": "2001-12-20"
+      },
+      {
+        "number": 12,
+        "pos": "POR",
+        "name": "Santiago Mele",
+        "date_of_birth": "1997-09-06"
+      },
+      {
+        "number": 13,
+        "pos": "DEF",
+        "name": "Guillermo Varela",
+        "date_of_birth": "1993-03-24"
+      },
+      {
+        "number": 14,
+        "pos": "MED",
+        "name": "Agustín Canobbio",
+        "date_of_birth": "1998-10-01"
+      },
+      {
+        "number": 15,
+        "pos": "MED",
+        "name": "Emiliano Martínez",
+        "date_of_birth": "1999-08-17"
+      },
+      {
+        "number": 16,
+        "pos": "DEF",
+        "name": "Mathías Olivera",
+        "date_of_birth": "1997-10-31"
+      },
+      {
+        "number": 17,
+        "pos": "DEF",
+        "name": "Matías Viña",
+        "date_of_birth": "1997-11-09"
+      },
+      {
+        "number": 18,
+        "pos": "DEL",
+        "name": "Brian Rodríguez",
+        "date_of_birth": "2000-05-20"
+      },
+      {
+        "number": 19,
+        "pos": "DEL",
+        "name": "Rodrigo Aguirre",
+        "date_of_birth": "1994-10-01"
+      },
+      {
+        "number": 20,
+        "pos": "MED",
+        "name": "Maximiliano Araújo",
+        "date_of_birth": "2000-02-15"
+      },
+      {
+        "number": 21,
+        "pos": "DEL",
+        "name": "Federico Viñas",
+        "date_of_birth": "1998-06-30"
+      },
+      {
+        "number": 22,
+        "pos": "MED",
+        "name": "Joaquín Piquerez",
+        "date_of_birth": "1998-08-24"
+      },
+      {
+        "number": 23,
+        "pos": "POR",
+        "name": "Fernando Muslera",
+        "date_of_birth": "1986-06-16"
+      },
+      {
+        "number": 24,
+        "pos": "DEF",
+        "name": "Santiago Bueno",
+        "date_of_birth": "1998-11-09"
+      },
+      {
+        "number": 25,
+        "pos": "MED",
+        "name": "Juan Manuel Sanabria",
+        "date_of_birth": "2000-03-29"
+      },
+      {
+        "number": 26,
+        "pos": "MED",
+        "name": "Rodrigo Zalazar",
+        "date_of_birth": "1999-08-12"
+      }
+    ]
+  },
+  {
+    "name": "France",
+    "fifa_code": "FRA",
+    "group": "I",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Brice Samba",
+        "date_of_birth": "1994-04-25"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Malo Gusto",
+        "date_of_birth": "2003-05-19"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Lucas Digne",
+        "date_of_birth": "1993-07-20"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Dayot Upamecano",
+        "date_of_birth": "1998-10-27"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Jules Koundé",
+        "date_of_birth": "1998-11-12"
+      },
+      {
+        "number": 6,
+        "pos": "MED",
+        "name": "Manu Koné",
+        "date_of_birth": "2001-05-17"
+      },
+      {
+        "number": 7,
+        "pos": "DEL",
+        "name": "Ousmane Dembélé",
+        "date_of_birth": "1997-05-15"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Aurélien Tchouaméni",
+        "date_of_birth": "2000-01-27"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Marcus Thuram",
+        "date_of_birth": "1997-08-06"
+      },
+      {
+        "number": 10,
+        "pos": "DEL",
+        "name": "Kylian Mbappé",
+        "date_of_birth": "1998-12-20"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "Michael Olise",
+        "date_of_birth": "2001-12-12"
+      },
+      {
+        "number": 12,
+        "pos": "DEL",
+        "name": "Bradley Barcola",
+        "date_of_birth": "2002-09-02"
+      },
+      {
+        "number": 13,
+        "pos": "MED",
+        "name": "N'Golo Kanté",
+        "date_of_birth": "1991-03-29"
+      },
+      {
+        "number": 14,
+        "pos": "MED",
+        "name": "Adrien Rabiot",
+        "date_of_birth": "1995-04-03"
+      },
+      {
+        "number": 15,
+        "pos": "DEF",
+        "name": "Ibrahima Konaté",
+        "date_of_birth": "1999-05-25"
+      },
+      {
+        "number": 16,
+        "pos": "POR",
+        "name": "Mike Maignan",
+        "date_of_birth": "1995-07-03"
+      },
+      {
+        "number": 17,
+        "pos": "DEF",
+        "name": "William Saliba",
+        "date_of_birth": "2001-03-24"
+      },
+      {
+        "number": 18,
+        "pos": "MED",
+        "name": "Warren Zaïre-Emery",
+        "date_of_birth": "2006-03-08"
+      },
+      {
+        "number": 19,
+        "pos": "DEF",
+        "name": "Théo Hernandez",
+        "date_of_birth": "1997-10-06"
+      },
+      {
+        "number": 20,
+        "pos": "DEL",
+        "name": "Désiré Doué",
+        "date_of_birth": "2005-06-03"
+      },
+      {
+        "number": 21,
+        "pos": "DEF",
+        "name": "Lucas Hernandez",
+        "date_of_birth": "1996-02-14"
+      },
+      {
+        "number": 22,
+        "pos": "DEL",
+        "name": "Jean-Philippe Mateta",
+        "date_of_birth": "1997-06-28"
+      },
+      {
+        "number": 23,
+        "pos": "POR",
+        "name": "Robin Risser",
+        "date_of_birth": "2004-12-02"
+      },
+      {
+        "number": 24,
+        "pos": "MED",
+        "name": "Rayan Cherki",
+        "date_of_birth": "2003-08-17"
+      },
+      {
+        "number": 25,
+        "pos": "MED",
+        "name": "Maghnes Akliouche",
+        "date_of_birth": "2002-02-25"
+      },
+      {
+        "number": 26,
+        "pos": "DEF",
+        "name": "Maxence Lacroix",
+        "date_of_birth": "2000-04-06"
+      }
+    ]
+  },
+  {
+    "name": "Iraq",
+    "fifa_code": "IRQ",
+    "group": "I",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Fahad Talib",
+        "date_of_birth": "1994-10-21"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Rebin Sulaka",
+        "date_of_birth": "1992-04-12"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Hussein Ali",
+        "date_of_birth": "2002-03-01"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Zaid Tahseen",
+        "date_of_birth": "2001-01-29"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Akam Hashim",
+        "date_of_birth": "1998-08-16"
+      },
+      {
+        "number": 6,
+        "pos": "DEF",
+        "name": "Manaf Younis",
+        "date_of_birth": "1996-11-16"
+      },
+      {
+        "number": 7,
+        "pos": "MED",
+        "name": "Youssef Amyn",
+        "date_of_birth": "2003-08-21"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Ibrahim Bayesh",
+        "date_of_birth": "2000-05-01"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Ali Al-Hamadi",
+        "date_of_birth": "2002-03-01"
+      },
+      {
+        "number": 10,
+        "pos": "DEL",
+        "name": "Mohanad Ali",
+        "date_of_birth": "2000-06-20"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "Ahmed Qasem",
+        "date_of_birth": "2003-07-12"
+      },
+      {
+        "number": 12,
+        "pos": "POR",
+        "name": "Jalal Hassan",
+        "date_of_birth": "1991-05-18"
+      },
+      {
+        "number": 13,
+        "pos": "DEL",
+        "name": "Ali Yousif",
+        "date_of_birth": "1996-01-19"
+      },
+      {
+        "number": 14,
+        "pos": "MED",
+        "name": "Zidane Iqbal",
+        "date_of_birth": "2003-04-27"
+      },
+      {
+        "number": 15,
+        "pos": "DEF",
+        "name": "Ahmed Maknzi",
+        "date_of_birth": "2001-09-24"
+      },
+      {
+        "number": 16,
+        "pos": "MED",
+        "name": "Amir Al-Ammari",
+        "date_of_birth": "1997-07-27"
+      },
+      {
+        "number": 17,
+        "pos": "DEL",
+        "name": "Ali Jasim",
+        "date_of_birth": "2004-01-20"
+      },
+      {
+        "number": 18,
+        "pos": "DEL",
+        "name": "Aymen Hussein",
+        "date_of_birth": "1996-03-22"
+      },
+      {
+        "number": 19,
+        "pos": "MED",
+        "name": "Kevin Yakob",
+        "date_of_birth": "2000-10-10"
+      },
+      {
+        "number": 20,
+        "pos": "MED",
+        "name": "Aimar Sher",
+        "date_of_birth": "2002-12-20"
+      },
+      {
+        "number": 21,
+        "pos": "DEL",
+        "name": "Marko Farji",
+        "date_of_birth": "2004-03-16"
+      },
+      {
+        "number": 22,
+        "pos": "POR",
+        "name": "Ahmed Basil",
+        "date_of_birth": "1996-08-19"
+      },
+      {
+        "number": 23,
+        "pos": "DEF",
+        "name": "Merchas Doski",
+        "date_of_birth": "1999-12-07"
+      },
+      {
+        "number": 24,
+        "pos": "MED",
+        "name": "Zaid Ismail",
+        "date_of_birth": "2002-01-03"
+      },
+      {
+        "number": 25,
+        "pos": "DEF",
+        "name": "Mustafa Saadoon",
+        "date_of_birth": "2001-05-25"
+      },
+      {
+        "number": 26,
+        "pos": "DEF",
+        "name": "Frans Putros",
+        "date_of_birth": "1993-07-14"
+      }
+    ]
+  },
+  {
+    "name": "Norway",
+    "fifa_code": "NOR",
+    "group": "I",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Ørjan Nyland",
+        "date_of_birth": "1990-09-10"
+      },
+      {
+        "number": 2,
+        "pos": "MED",
+        "name": "Morten Thorsby",
+        "date_of_birth": "1996-05-05"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Kristoffer Ajer",
+        "date_of_birth": "1998-04-17"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Leo Østigård",
+        "date_of_birth": "1999-11-28"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "David Møller Wolfe",
+        "date_of_birth": "2002-04-23"
+      },
+      {
+        "number": 6,
+        "pos": "MED",
+        "name": "Patrick Berg",
+        "date_of_birth": "1997-11-24"
+      },
+      {
+        "number": 7,
+        "pos": "DEL",
+        "name": "Alexander Sørloth",
+        "date_of_birth": "1995-12-05"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Sander Berge",
+        "date_of_birth": "1998-02-14"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Erling Haaland",
+        "date_of_birth": "2000-07-21"
+      },
+      {
+        "number": 10,
+        "pos": "MED",
+        "name": "Martin Ødegaard",
+        "date_of_birth": "1998-12-17"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "Jørgen Strand Larsen",
+        "date_of_birth": "2000-02-06"
+      },
+      {
+        "number": 12,
+        "pos": "POR",
+        "name": "Sander Tangvik",
+        "date_of_birth": "2002-11-29"
+      },
+      {
+        "number": 13,
+        "pos": "POR",
+        "name": "Egil Selvik",
+        "date_of_birth": "1997-07-30"
+      },
+      {
+        "number": 14,
+        "pos": "MED",
+        "name": "Fredrik Aursnes",
+        "date_of_birth": "1995-12-10"
+      },
+      {
+        "number": 15,
+        "pos": "DEF",
+        "name": "Fredrik André Bjørkan",
+        "date_of_birth": "1998-08-21"
+      },
+      {
+        "number": 16,
+        "pos": "DEF",
+        "name": "Marcus Holmgren Pedersen",
+        "date_of_birth": "2000-07-16"
+      },
+      {
+        "number": 17,
+        "pos": "DEF",
+        "name": "Torbjørn Heggem",
+        "date_of_birth": "1999-01-12"
+      },
+      {
+        "number": 18,
+        "pos": "MED",
+        "name": "Kristian Thorstvedt",
+        "date_of_birth": "1999-03-13"
+      },
+      {
+        "number": 19,
+        "pos": "MED",
+        "name": "Thelo Aasgaard",
+        "date_of_birth": "2002-05-02"
+      },
+      {
+        "number": 20,
+        "pos": "DEL",
+        "name": "Antonio Nusa",
+        "date_of_birth": "2005-04-17"
+      },
+      {
+        "number": 21,
+        "pos": "MED",
+        "name": "Andreas Schjelderup",
+        "date_of_birth": "2004-06-01"
+      },
+      {
+        "number": 22,
+        "pos": "MED",
+        "name": "Oscar Bobb",
+        "date_of_birth": "2003-07-12"
+      },
+      {
+        "number": 23,
+        "pos": "MED",
+        "name": "Jens Petter Hauge",
+        "date_of_birth": "1999-10-12"
+      },
+      {
+        "number": 24,
+        "pos": "DEF",
+        "name": "Sondre Langås",
+        "date_of_birth": "2001-02-02"
+      },
+      {
+        "number": 25,
+        "pos": "DEF",
+        "name": "Henrik Falchener",
+        "date_of_birth": "2003-05-08"
+      },
+      {
+        "number": 26,
+        "pos": "DEL",
+        "name": "Julian Ryerson",
+        "date_of_birth": "1997-11-17"
+      }
+    ]
+  },
+  {
+    "name": "Senegal",
+    "fifa_code": "SEN",
+    "group": "I",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Yehvann Diouf",
+        "date_of_birth": "1999-11-16"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Mamadou Sarr",
+        "date_of_birth": "2005-08-29"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Kalidou Koulibaly",
+        "date_of_birth": "1991-06-20"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Abdoulaye Seck",
+        "date_of_birth": "1992-06-04"
+      },
+      {
+        "number": 5,
+        "pos": "MED",
+        "name": "Idrissa Gueye",
+        "date_of_birth": "1989-09-26"
+      },
+      {
+        "number": 6,
+        "pos": "MED",
+        "name": "Pathé Ciss",
+        "date_of_birth": "1994-03-16"
+      },
+      {
+        "number": 7,
+        "pos": "DEL",
+        "name": "Assane Diao",
+        "date_of_birth": "2005-09-07"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Lamine Camara",
+        "date_of_birth": "2004-01-01"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Bamba Dieng",
+        "date_of_birth": "2000-03-23"
+      },
+      {
+        "number": 10,
+        "pos": "DEL",
+        "name": "Sadio Mané",
+        "date_of_birth": "1992-04-10"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "Nicolas Jackson",
+        "date_of_birth": "2001-06-20"
+      },
+      {
+        "number": 12,
+        "pos": "DEL",
+        "name": "Cherif Ndiaye",
+        "date_of_birth": "1996-01-23"
+      },
+      {
+        "number": 13,
+        "pos": "DEL",
+        "name": "Iliman Ndiaye",
+        "date_of_birth": "2000-03-06"
+      },
+      {
+        "number": 14,
+        "pos": "DEF",
+        "name": "Ismail Jakobs",
+        "date_of_birth": "1999-08-17"
+      },
+      {
+        "number": 15,
+        "pos": "DEF",
+        "name": "Krépin Diatta",
+        "date_of_birth": "1999-02-25"
+      },
+      {
+        "number": 16,
+        "pos": "POR",
+        "name": "Édouard Mendy",
+        "date_of_birth": "1992-03-01"
+      },
+      {
+        "number": 17,
+        "pos": "MED",
+        "name": "Pape Matar Sarr",
+        "date_of_birth": "2002-09-14"
+      },
+      {
+        "number": 18,
+        "pos": "DEL",
+        "name": "Ismaïla Sarr",
+        "date_of_birth": "1998-02-25"
+      },
+      {
+        "number": 19,
+        "pos": "DEF",
+        "name": "Moussa Niakhaté",
+        "date_of_birth": "1996-03-08"
+      },
+      {
+        "number": 20,
+        "pos": "DEL",
+        "name": "Ibrahim Mbaye",
+        "date_of_birth": "2008-01-24"
+      },
+      {
+        "number": 21,
+        "pos": "MED",
+        "name": "Habib Diarra",
+        "date_of_birth": "2004-01-03"
+      },
+      {
+        "number": 22,
+        "pos": "MED",
+        "name": "Bara Sapoko Ndiaye",
+        "date_of_birth": "2007-12-31"
+      },
+      {
+        "number": 23,
+        "pos": "POR",
+        "name": "Mory Diaw",
+        "date_of_birth": "1993-06-22"
+      },
+      {
+        "number": 24,
+        "pos": "DEF",
+        "name": "Antoine Mendy",
+        "date_of_birth": "2004-05-27"
+      },
+      {
+        "number": 25,
+        "pos": "DEF",
+        "name": "El Hadji Malick Diouf",
+        "date_of_birth": "2004-12-29"
+      },
+      {
+        "number": 26,
+        "pos": "MED",
+        "name": "Pape Gueye",
+        "date_of_birth": "1999-01-24"
+      }
+    ]
+  },
+  {
+    "name": "Algeria",
+    "fifa_code": "ALG",
+    "group": "J",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Melvin Mastil",
+        "date_of_birth": "2000-02-19"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Aïssa Mandi",
+        "date_of_birth": "1991-10-22"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Achref Abada",
+        "date_of_birth": "1999-06-15"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Mohamed Amine Tougai",
+        "date_of_birth": "2000-01-22"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Zineddine Belaïd",
+        "date_of_birth": "1999-03-20"
+      },
+      {
+        "number": 6,
+        "pos": "MED",
+        "name": "Ramiz Zerrouki",
+        "date_of_birth": "1998-05-26"
+      },
+      {
+        "number": 7,
+        "pos": "DEL",
+        "name": "Riyad Mahrez",
+        "date_of_birth": "1991-02-21"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Houssem Aouar",
+        "date_of_birth": "1998-06-30"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Amine Gouiri",
+        "date_of_birth": "2000-02-16"
+      },
+      {
+        "number": 10,
+        "pos": "MED",
+        "name": "Farès Chaïbi",
+        "date_of_birth": "2002-11-28"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "Anis Hadj Moussa",
+        "date_of_birth": "2002-02-11"
+      },
+      {
+        "number": 12,
+        "pos": "DEL",
+        "name": "Nadhir Benbouali",
+        "date_of_birth": "2000-04-17"
+      },
+      {
+        "number": 13,
+        "pos": "DEF",
+        "name": "Jaouen Hadjam",
+        "date_of_birth": "2003-03-26"
+      },
+      {
+        "number": 14,
+        "pos": "MED",
+        "name": "Hicham Boudaoui",
+        "date_of_birth": "1999-09-23"
+      },
+      {
+        "number": 15,
+        "pos": "DEF",
+        "name": "Rayan Aït-Nouri",
+        "date_of_birth": "2001-06-06"
+      },
+      {
+        "number": 16,
+        "pos": "POR",
+        "name": "Oussama Benbot",
+        "date_of_birth": "1994-10-11"
+      },
+      {
+        "number": 17,
+        "pos": "DEF",
+        "name": "Rafik Belghali",
+        "date_of_birth": "2002-06-07"
+      },
+      {
+        "number": 18,
+        "pos": "DEL",
+        "name": "Mohamed Amoura",
+        "date_of_birth": "2000-05-09"
+      },
+      {
+        "number": 19,
+        "pos": "MED",
+        "name": "Nabil Bentaleb",
+        "date_of_birth": "1994-11-24"
+      },
+      {
+        "number": 20,
+        "pos": "DEL",
+        "name": "Adil Boulbina",
+        "date_of_birth": "2003-05-02"
+      },
+      {
+        "number": 21,
+        "pos": "DEF",
+        "name": "Ramy Bensebaini",
+        "date_of_birth": "1995-04-16"
+      },
+      {
+        "number": 22,
+        "pos": "MED",
+        "name": "Ibrahim Maza",
+        "date_of_birth": "2005-11-24"
+      },
+      {
+        "number": 23,
+        "pos": "POR",
+        "name": "Luca Zidane",
+        "date_of_birth": "1998-05-13"
+      },
+      {
+        "number": 24,
+        "pos": "MED",
+        "name": "Yacine Titraoui",
+        "date_of_birth": "2003-08-26"
+      },
+      {
+        "number": 25,
+        "pos": "DEL",
+        "name": "Farès Ghedjemis",
+        "date_of_birth": "2002-09-06"
+      },
+      {
+        "number": 26,
+        "pos": "DEF",
+        "name": "Samir Chergui",
+        "date_of_birth": "1999-02-06"
+      }
+    ]
+  },
+  {
+    "name": "Argentina",
+    "fifa_code": "ARG",
+    "group": "J",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Juan Musso",
+        "date_of_birth": "1994-05-06"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Nicolás Tagliafico",
+        "date_of_birth": "1992-08-31"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Gonzalo Montiel",
+        "date_of_birth": "1997-01-01"
+      },
+      {
+        "number": 5,
+        "pos": "MED",
+        "name": "Leandro Paredes",
+        "date_of_birth": "1994-06-29"
+      },
+      {
+        "number": 6,
+        "pos": "DEF",
+        "name": "Lisandro Martínez",
+        "date_of_birth": "1998-01-18"
+      },
+      {
+        "number": 7,
+        "pos": "MED",
+        "name": "Rodrigo De Paul",
+        "date_of_birth": "1994-05-24"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Valentín Barco",
+        "date_of_birth": "2004-07-23"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Julián Alvarez",
+        "date_of_birth": "2000-01-31"
+      },
+      {
+        "number": 10,
+        "pos": "DEL",
+        "name": "Lionel Messi",
+        "date_of_birth": "1987-06-24"
+      },
+      {
+        "number": 11,
+        "pos": "MED",
+        "name": "Giovani Lo Celso",
+        "date_of_birth": "1996-04-09"
+      },
+      {
+        "number": 12,
+        "pos": "POR",
+        "name": "Gerónimo Rulli",
+        "date_of_birth": "1992-05-20"
+      },
+      {
+        "number": 13,
+        "pos": "DEF",
+        "name": "Cristian Romero",
+        "date_of_birth": "1998-04-27"
+      },
+      {
+        "number": 14,
+        "pos": "MED",
+        "name": "Exequiel Palacios",
+        "date_of_birth": "1998-10-05"
+      },
+      {
+        "number": 15,
+        "pos": "MED",
+        "name": "Nicolás González",
+        "date_of_birth": "1998-04-06"
+      },
+      {
+        "number": 16,
+        "pos": "DEL",
+        "name": "Thiago Almada",
+        "date_of_birth": "2001-04-26"
+      },
+      {
+        "number": 17,
+        "pos": "DEL",
+        "name": "Giuliano Simeone",
+        "date_of_birth": "2002-12-18"
+      },
+      {
+        "number": 18,
+        "pos": "DEL",
+        "name": "Nico Paz",
+        "date_of_birth": "2004-09-08"
+      },
+      {
+        "number": 19,
+        "pos": "DEF",
+        "name": "Nicolás Otamendi",
+        "date_of_birth": "1988-02-12"
+      },
+      {
+        "number": 20,
+        "pos": "MED",
+        "name": "Alexis Mac Allister",
+        "date_of_birth": "1998-12-24"
+      },
+      {
+        "number": 21,
+        "pos": "DEL",
+        "name": "José Manuel López",
+        "date_of_birth": "2000-12-06"
+      },
+      {
+        "number": 22,
+        "pos": "DEL",
+        "name": "Lautaro Martínez",
+        "date_of_birth": "1997-08-22"
+      },
+      {
+        "number": 23,
+        "pos": "POR",
+        "name": "Emiliano Martínez",
+        "date_of_birth": "1992-09-02"
+      },
+      {
+        "number": 24,
+        "pos": "MED",
+        "name": "Enzo Fernández",
+        "date_of_birth": "2001-01-17"
+      },
+      {
+        "number": 25,
+        "pos": "DEF",
+        "name": "Facundo Medina",
+        "date_of_birth": "1999-05-28"
+      },
+      {
+        "number": 26,
+        "pos": "DEF",
+        "name": "Nahuel Molina",
+        "date_of_birth": "1998-04-06"
+      }
+    ]
+  },
+  {
+    "name": "Austria",
+    "fifa_code": "AUT",
+    "group": "J",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Alexander Schlager",
+        "date_of_birth": "1996-02-01"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "David Affengruber",
+        "date_of_birth": "2001-03-19"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Kevin Danso",
+        "date_of_birth": "1998-09-19"
+      },
+      {
+        "number": 4,
+        "pos": "MED",
+        "name": "Xaver Schlager",
+        "date_of_birth": "1997-09-28"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Stefan Posch",
+        "date_of_birth": "1997-05-14"
+      },
+      {
+        "number": 6,
+        "pos": "MED",
+        "name": "Nicolas Seiwald",
+        "date_of_birth": "2001-05-04"
+      },
+      {
+        "number": 7,
+        "pos": "DEL",
+        "name": "Marko Arnautović",
+        "date_of_birth": "1989-04-19"
+      },
+      {
+        "number": 8,
+        "pos": "DEF",
+        "name": "David Alaba",
+        "date_of_birth": "1992-06-24"
+      },
+      {
+        "number": 9,
+        "pos": "MED",
+        "name": "Marcel Sabitzer",
+        "date_of_birth": "1994-03-17"
+      },
+      {
+        "number": 10,
+        "pos": "MED",
+        "name": "Florian Grillitsch",
+        "date_of_birth": "1995-08-07"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "Michael Gregoritsch",
+        "date_of_birth": "1994-04-18"
+      },
+      {
+        "number": 12,
+        "pos": "POR",
+        "name": "Florian Wiegele",
+        "date_of_birth": "2001-03-21"
+      },
+      {
+        "number": 13,
+        "pos": "POR",
+        "name": "Patrick Pentz",
+        "date_of_birth": "1997-01-02"
+      },
+      {
+        "number": 14,
+        "pos": "DEL",
+        "name": "Saša Kalajdžić",
+        "date_of_birth": "1997-07-07"
+      },
+      {
+        "number": 15,
+        "pos": "DEF",
+        "name": "Philipp Lienhart",
+        "date_of_birth": "1996-07-11"
+      },
+      {
+        "number": 16,
+        "pos": "DEF",
+        "name": "Phillipp Mwene",
+        "date_of_birth": "1994-01-29"
+      },
+      {
+        "number": 17,
+        "pos": "MED",
+        "name": "Carney Chukwuemeka",
+        "date_of_birth": "2003-10-20"
+      },
+      {
+        "number": 18,
+        "pos": "MED",
+        "name": "Romano Schmid",
+        "date_of_birth": "2000-01-27"
+      },
+      {
+        "number": 20,
+        "pos": "MED",
+        "name": "Konrad Laimer",
+        "date_of_birth": "1997-05-27"
+      },
+      {
+        "number": 21,
+        "pos": "DEL",
+        "name": "Patrick Wimmer",
+        "date_of_birth": "2001-05-30"
+      },
+      {
+        "number": 22,
+        "pos": "MED",
+        "name": "Alexander Prass",
+        "date_of_birth": "2001-05-26"
+      },
+      {
+        "number": 23,
+        "pos": "DEF",
+        "name": "Marco Friedl",
+        "date_of_birth": "1998-03-16"
+      },
+      {
+        "number": 24,
+        "pos": "MED",
+        "name": "Paul Wanner",
+        "date_of_birth": "2005-12-23"
+      },
+      {
+        "number": 25,
+        "pos": "DEF",
+        "name": "Michael Svoboda",
+        "date_of_birth": "1998-10-15"
+      },
+      {
+        "number": 26,
+        "pos": "MED",
+        "name": "Alessandro Schöpf",
+        "date_of_birth": "1994-02-07"
+      }
+    ]
+  },
+  {
+    "name": "Jordan",
+    "fifa_code": "JOR",
+    "group": "J",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Yazeed Abulaila",
+        "date_of_birth": "1993-01-08"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Mohammad Abu Hashish",
+        "date_of_birth": "1995-05-09"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Abdallah Nasib",
+        "date_of_birth": "1994-02-25"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Husam Abu Dahab",
+        "date_of_birth": "2000-05-13"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Yazan Al-Arab",
+        "date_of_birth": "1996-01-31"
+      },
+      {
+        "number": 6,
+        "pos": "MED",
+        "name": "Amer Jamous",
+        "date_of_birth": "2002-07-03"
+      },
+      {
+        "number": 7,
+        "pos": "DEL",
+        "name": "Mohammad Abu Zrayq",
+        "date_of_birth": "1997-12-30"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Noor Al-Rawabdeh",
+        "date_of_birth": "1997-02-24"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Ali Olwan",
+        "date_of_birth": "2000-03-26"
+      },
+      {
+        "number": 10,
+        "pos": "DEL",
+        "name": "Musa Al-Taamari",
+        "date_of_birth": "1997-06-10"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "Odeh Al-Fakhouri",
+        "date_of_birth": "2005-11-22"
+      },
+      {
+        "number": 12,
+        "pos": "POR",
+        "name": "Nour Bani Attiah",
+        "date_of_birth": "1993-01-25"
+      },
+      {
+        "number": 13,
+        "pos": "DEL",
+        "name": "Mahmoud Al-Mardi",
+        "date_of_birth": "1993-10-06"
+      },
+      {
+        "number": 14,
+        "pos": "MED",
+        "name": "Rajaei Ayed",
+        "date_of_birth": "1993-07-25"
+      },
+      {
+        "number": 15,
+        "pos": "MED",
+        "name": "Ibrahim Sadeh",
+        "date_of_birth": "2000-04-27"
+      },
+      {
+        "number": 16,
+        "pos": "DEF",
+        "name": "Mo Abualnadi",
+        "date_of_birth": "2001-02-08"
+      },
+      {
+        "number": 17,
+        "pos": "DEF",
+        "name": "Salim Obaid",
+        "date_of_birth": "1992-01-17"
+      },
+      {
+        "number": 19,
+        "pos": "DEF",
+        "name": "Saed Al-Rosan",
+        "date_of_birth": "1997-02-01"
+      },
+      {
+        "number": 20,
+        "pos": "MED",
+        "name": "Mohannad Abu Taha",
+        "date_of_birth": "2003-02-02"
+      },
+      {
+        "number": 21,
+        "pos": "MED",
+        "name": "Nizar Al-Rashdan",
+        "date_of_birth": "1999-03-23"
+      },
+      {
+        "number": 22,
+        "pos": "POR",
+        "name": "Abdallah Al-Fakhouri",
+        "date_of_birth": "2000-01-22"
+      },
+      {
+        "number": 23,
+        "pos": "DEF",
+        "name": "Ihsan Haddad",
+        "date_of_birth": "1994-02-05"
+      },
+      {
+        "number": 24,
+        "pos": "DEL",
+        "name": "Ali Azaizeh",
+        "date_of_birth": "2004-04-13"
+      },
+      {
+        "number": 25,
+        "pos": "MED",
+        "name": "Mohammad Al-Dawoud",
+        "date_of_birth": "1992-04-12"
+      },
+      {
+        "number": 26,
+        "pos": "DEF",
+        "name": "Anas Badawi",
+        "date_of_birth": "1997-09-13"
+      }
+    ]
+  },
+  {
+    "name": "Colombia",
+    "fifa_code": "COL",
+    "group": "K",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "David Ospina",
+        "date_of_birth": "1988-08-31"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Daniel Muñoz",
+        "date_of_birth": "1996-05-26"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Jhon Lucumí",
+        "date_of_birth": "1998-06-26"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Santiago Arias",
+        "date_of_birth": "1992-01-13"
+      },
+      {
+        "number": 5,
+        "pos": "MED",
+        "name": "Kevin Castaño",
+        "date_of_birth": "2000-09-29"
+      },
+      {
+        "number": 6,
+        "pos": "MED",
+        "name": "Richard Ríos",
+        "date_of_birth": "2000-06-02"
+      },
+      {
+        "number": 7,
+        "pos": "DEL",
+        "name": "Luis Díaz",
+        "date_of_birth": "1997-01-13"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Jorge Carrascal",
+        "date_of_birth": "1998-05-25"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Jhon Córdoba",
+        "date_of_birth": "1993-05-11"
+      },
+      {
+        "number": 10,
+        "pos": "MED",
+        "name": "James Rodríguez",
+        "date_of_birth": "1991-07-12"
+      },
+      {
+        "number": 11,
+        "pos": "MED",
+        "name": "Jhon Arias",
+        "date_of_birth": "1997-09-21"
+      },
+      {
+        "number": 12,
+        "pos": "POR",
+        "name": "Camilo Vargas",
+        "date_of_birth": "1989-03-09"
+      },
+      {
+        "number": 13,
+        "pos": "DEF",
+        "name": "Yerry Mina",
+        "date_of_birth": "1994-09-23"
+      },
+      {
+        "number": 14,
+        "pos": "DEF",
+        "name": "Gustavo Puerta",
+        "date_of_birth": "2003-07-23"
+      },
+      {
+        "number": 15,
+        "pos": "MED",
+        "name": "Juan Portilla",
+        "date_of_birth": "1998-09-12"
+      },
+      {
+        "number": 16,
+        "pos": "MED",
+        "name": "Jefferson Lerma",
+        "date_of_birth": "1994-10-25"
+      },
+      {
+        "number": 17,
+        "pos": "DEF",
+        "name": "Johan Mojica",
+        "date_of_birth": "1992-08-21"
+      },
+      {
+        "number": 18,
+        "pos": "DEF",
+        "name": "Willer Ditta",
+        "date_of_birth": "1998-01-23"
+      },
+      {
+        "number": 19,
+        "pos": "DEL",
+        "name": "Cucho Hernández",
+        "date_of_birth": "1999-04-20"
+      },
+      {
+        "number": 20,
+        "pos": "MED",
+        "name": "Juan Fernando Quintero",
+        "date_of_birth": "1993-01-18"
+      },
+      {
+        "number": 21,
+        "pos": "DEL",
+        "name": "Jaminton Campaz",
+        "date_of_birth": "2000-05-24"
+      },
+      {
+        "number": 22,
+        "pos": "DEF",
+        "name": "Deiver Machado",
+        "date_of_birth": "1993-09-02"
+      },
+      {
+        "number": 23,
+        "pos": "DEF",
+        "name": "Davinson Sánchez",
+        "date_of_birth": "1996-06-12"
+      },
+      {
+        "number": 24,
+        "pos": "POR",
+        "name": "Álvaro Montero",
+        "date_of_birth": "1995-03-29"
+      },
+      {
+        "number": 25,
+        "pos": "DEL",
+        "name": "Luis Suárez",
+        "date_of_birth": "1997-12-02"
+      },
+      {
+        "number": 26,
+        "pos": "DEL",
+        "name": "Andrés Gómez",
+        "date_of_birth": "2002-09-12"
+      }
+    ]
+  },
+  {
+    "name": "DR Congo",
+    "fifa_code": "COD",
+    "group": "K",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Lionel Mpasi",
+        "date_of_birth": "1994-08-01"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Aaron Wan-Bissaka",
+        "date_of_birth": "1997-11-26"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Steve Kapuadi",
+        "date_of_birth": "1998-04-30"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Axel Tuanzebe",
+        "date_of_birth": "1997-11-14"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Dylan Batubinsika",
+        "date_of_birth": "1996-02-15"
+      },
+      {
+        "number": 6,
+        "pos": "MED",
+        "name": "Ngal'ayel Mukau",
+        "date_of_birth": "2004-11-03"
+      },
+      {
+        "number": 7,
+        "pos": "MED",
+        "name": "Nathanaël Mbuku",
+        "date_of_birth": "2002-03-16"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Samuel Moutoussamy",
+        "date_of_birth": "1996-08-12"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Brian Cipenga",
+        "date_of_birth": "1998-03-11"
+      },
+      {
+        "number": 10,
+        "pos": "MED",
+        "name": "Théo Bongonda",
+        "date_of_birth": "1995-11-20"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "Gaël Kakuta",
+        "date_of_birth": "1991-06-21"
+      },
+      {
+        "number": 12,
+        "pos": "DEF",
+        "name": "Joris Kayembe",
+        "date_of_birth": "1994-08-08"
+      },
+      {
+        "number": 13,
+        "pos": "DEL",
+        "name": "Meschak Elia",
+        "date_of_birth": "1997-08-06"
+      },
+      {
+        "number": 14,
+        "pos": "MED",
+        "name": "Noah Sadiki",
+        "date_of_birth": "2004-12-17"
+      },
+      {
+        "number": 15,
+        "pos": "MED",
+        "name": "Aaron Tshibola",
+        "date_of_birth": "1995-01-02"
+      },
+      {
+        "number": 16,
+        "pos": "POR",
+        "name": "Timothy Fayulu",
+        "date_of_birth": "1999-07-24"
+      },
+      {
+        "number": 17,
+        "pos": "DEL",
+        "name": "Cédric Bakambu",
+        "date_of_birth": "1991-04-11"
+      },
+      {
+        "number": 18,
+        "pos": "MED",
+        "name": "Charles Pickel",
+        "date_of_birth": "1997-05-15"
+      },
+      {
+        "number": 19,
+        "pos": "DEL",
+        "name": "Fiston Mayele",
+        "date_of_birth": "1994-06-24"
+      },
+      {
+        "number": 20,
+        "pos": "DEL",
+        "name": "Yoane Wissa",
+        "date_of_birth": "1996-09-03"
+      },
+      {
+        "number": 21,
+        "pos": "POR",
+        "name": "Matthieu Epolo",
+        "date_of_birth": "2005-01-15"
+      },
+      {
+        "number": 22,
+        "pos": "DEF",
+        "name": "Chancel Mbemba",
+        "date_of_birth": "1994-08-08"
+      },
+      {
+        "number": 23,
+        "pos": "DEL",
+        "name": "Simon Banza",
+        "date_of_birth": "1996-08-13"
+      },
+      {
+        "number": 24,
+        "pos": "DEF",
+        "name": "Gédéon Kalulu",
+        "date_of_birth": "1997-08-29"
+      },
+      {
+        "number": 25,
+        "pos": "MED",
+        "name": "Edo Kayembe",
+        "date_of_birth": "1998-06-03"
+      },
+      {
+        "number": 26,
+        "pos": "DEF",
+        "name": "Arthur Masuaku",
+        "date_of_birth": "1993-11-07"
+      }
+    ]
+  },
+  {
+    "name": "Portugal",
+    "fifa_code": "POR",
+    "group": "K",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Diogo Costa",
+        "date_of_birth": "1999-09-19"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Nélson Semedo",
+        "date_of_birth": "1993-11-16"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Rúben Dias",
+        "date_of_birth": "1997-05-14"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Tomás Araújo",
+        "date_of_birth": "2002-05-16"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Diogo Dalot",
+        "date_of_birth": "1999-03-18"
+      },
+      {
+        "number": 6,
+        "pos": "MED",
+        "name": "Matheus Nunes",
+        "date_of_birth": "1998-08-27"
+      },
+      {
+        "number": 7,
+        "pos": "DEL",
+        "name": "Cristiano Ronaldo",
+        "date_of_birth": "1985-02-05"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Bruno Fernandes",
+        "date_of_birth": "1994-09-08"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Gonçalo Ramos",
+        "date_of_birth": "2001-06-20"
+      },
+      {
+        "number": 10,
+        "pos": "MED",
+        "name": "Bernardo Silva",
+        "date_of_birth": "1994-08-10"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "João Félix",
+        "date_of_birth": "1999-11-10"
+      },
+      {
+        "number": 12,
+        "pos": "POR",
+        "name": "José Sá",
+        "date_of_birth": "1993-01-17"
+      },
+      {
+        "number": 13,
+        "pos": "DEF",
+        "name": "Renato Veiga",
+        "date_of_birth": "2003-07-29"
+      },
+      {
+        "number": 14,
+        "pos": "DEF",
+        "name": "Gonçalo Inácio",
+        "date_of_birth": "2001-08-25"
+      },
+      {
+        "number": 15,
+        "pos": "MED",
+        "name": "João Neves",
+        "date_of_birth": "2004-09-27"
+      },
+      {
+        "number": 16,
+        "pos": "DEL",
+        "name": "Francisco Trincão",
+        "date_of_birth": "1999-12-29"
+      },
+      {
+        "number": 17,
+        "pos": "DEL",
+        "name": "Rafael Leão",
+        "date_of_birth": "1999-06-10"
+      },
+      {
+        "number": 18,
+        "pos": "DEL",
+        "name": "Pedro Neto",
+        "date_of_birth": "2000-03-09"
+      },
+      {
+        "number": 19,
+        "pos": "DEL",
+        "name": "Gonçalo Guedes",
+        "date_of_birth": "1996-11-29"
+      },
+      {
+        "number": 20,
+        "pos": "DEF",
+        "name": "João Cancelo",
+        "date_of_birth": "1994-05-27"
+      },
+      {
+        "number": 21,
+        "pos": "MED",
+        "name": "Rúben Neves",
+        "date_of_birth": "1997-03-13"
+      },
+      {
+        "number": 22,
+        "pos": "POR",
+        "name": "Rui Silva",
+        "date_of_birth": "1994-02-07"
+      },
+      {
+        "number": 23,
+        "pos": "MED",
+        "name": "Vitinha",
+        "date_of_birth": "2000-02-13"
+      },
+      {
+        "number": 24,
+        "pos": "DEF",
+        "name": "Samú Costa",
+        "date_of_birth": "2000-11-27"
+      },
+      {
+        "number": 25,
+        "pos": "DEF",
+        "name": "Nuno Mendes",
+        "date_of_birth": "2002-06-19"
+      },
+      {
+        "number": 26,
+        "pos": "DEL",
+        "name": "Francisco Conceição",
+        "date_of_birth": "2002-12-14"
+      }
+    ]
+  },
+  {
+    "name": "Uzbekistan",
+    "fifa_code": "UZB",
+    "group": "K",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Utkir Yusupov",
+        "date_of_birth": "1991-01-04"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Abdukodir Khusanov",
+        "date_of_birth": "2004-02-29"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Khojiakbar Alijonov",
+        "date_of_birth": "1997-04-19"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Farrukh Sayfiev",
+        "date_of_birth": "1991-01-17"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Rustam Ashurmatov",
+        "date_of_birth": "1996-07-07"
+      },
+      {
+        "number": 6,
+        "pos": "MED",
+        "name": "Akmal Mozgovoy",
+        "date_of_birth": "1999-04-02"
+      },
+      {
+        "number": 7,
+        "pos": "MED",
+        "name": "Otabek Shukurov",
+        "date_of_birth": "1996-06-22"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Jamshid Iskanderov",
+        "date_of_birth": "1993-10-16"
+      },
+      {
+        "number": 9,
+        "pos": "MED",
+        "name": "Odiljon Hamrobekov",
+        "date_of_birth": "1996-02-13"
+      },
+      {
+        "number": 10,
+        "pos": "MED",
+        "name": "Jaloliddin Masharipov",
+        "date_of_birth": "1993-09-01"
+      },
+      {
+        "number": 11,
+        "pos": "MED",
+        "name": "Oston Urunov",
+        "date_of_birth": "2000-12-19"
+      },
+      {
+        "number": 12,
+        "pos": "POR",
+        "name": "Abduvohid Nematov",
+        "date_of_birth": "2001-03-20"
+      },
+      {
+        "number": 13,
+        "pos": "DEF",
+        "name": "Sherzod Nasrullaev",
+        "date_of_birth": "1998-07-23"
+      },
+      {
+        "number": 14,
+        "pos": "DEL",
+        "name": "Eldor Shomurodov",
+        "date_of_birth": "1995-06-29"
+      },
+      {
+        "number": 15,
+        "pos": "DEF",
+        "name": "Umar Eshmurodov",
+        "date_of_birth": "1992-11-30"
+      },
+      {
+        "number": 16,
+        "pos": "POR",
+        "name": "Botirali Ergashev",
+        "date_of_birth": "1995-06-23"
+      },
+      {
+        "number": 17,
+        "pos": "MED",
+        "name": "Dostonbek Khamdamov",
+        "date_of_birth": "1996-07-24"
+      },
+      {
+        "number": 18,
+        "pos": "DEF",
+        "name": "Abdulla Abdullaev",
+        "date_of_birth": "1997-09-01"
+      },
+      {
+        "number": 19,
+        "pos": "MED",
+        "name": "Azizjon Ganiev",
+        "date_of_birth": "1998-02-22"
+      },
+      {
+        "number": 20,
+        "pos": "DEL",
+        "name": "Azizbek Amonov",
+        "date_of_birth": "1997-10-30"
+      },
+      {
+        "number": 21,
+        "pos": "DEL",
+        "name": "Igor Sergeev",
+        "date_of_birth": "1993-04-30"
+      },
+      {
+        "number": 22,
+        "pos": "MED",
+        "name": "Abbosbek Fayzullaev",
+        "date_of_birth": "2003-10-03"
+      },
+      {
+        "number": 23,
+        "pos": "MED",
+        "name": "Sherzod Esanov",
+        "date_of_birth": "2003-02-01"
+      },
+      {
+        "number": 24,
+        "pos": "DEF",
+        "name": "Bekhruz Karimov",
+        "date_of_birth": "2007-08-07"
+      },
+      {
+        "number": 25,
+        "pos": "DEF",
+        "name": "Avazbek Ulmasaliev",
+        "date_of_birth": "2000-03-27"
+      },
+      {
+        "number": 26,
+        "pos": "DEF",
+        "name": "Jakhongir Urozov",
+        "date_of_birth": "2004-01-18"
+      }
+    ]
+  },
+  {
+    "name": "Croatia",
+    "fifa_code": "CRO",
+    "group": "L",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Dominik Livaković",
+        "date_of_birth": "1995-01-09"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Josip Stanišić",
+        "date_of_birth": "2000-04-02"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Marin Pongračić",
+        "date_of_birth": "1997-09-11"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Joško Gvardiol",
+        "date_of_birth": "2002-01-23"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Duje Ćaleta-Car",
+        "date_of_birth": "1996-09-17"
+      },
+      {
+        "number": 6,
+        "pos": "DEF",
+        "name": "Josip Šutalo",
+        "date_of_birth": "2000-02-28"
+      },
+      {
+        "number": 7,
+        "pos": "MED",
+        "name": "Nikola Moro",
+        "date_of_birth": "1998-03-12"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Mateo Kovačić",
+        "date_of_birth": "1994-05-06"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Andrej Kramarić",
+        "date_of_birth": "1991-06-19"
+      },
+      {
+        "number": 10,
+        "pos": "MED",
+        "name": "Luka Modrić",
+        "date_of_birth": "1985-09-09"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "Ante Budimir",
+        "date_of_birth": "1991-07-22"
+      },
+      {
+        "number": 12,
+        "pos": "POR",
+        "name": "Ivor Pandur",
+        "date_of_birth": "2000-03-25"
+      },
+      {
+        "number": 13,
+        "pos": "MED",
+        "name": "Nikola Vlašić",
+        "date_of_birth": "1997-10-04"
+      },
+      {
+        "number": 14,
+        "pos": "DEL",
+        "name": "Ivan Perišić",
+        "date_of_birth": "1989-02-02"
+      },
+      {
+        "number": 15,
+        "pos": "MED",
+        "name": "Mario Pašalić",
+        "date_of_birth": "1995-02-09"
+      },
+      {
+        "number": 16,
+        "pos": "MED",
+        "name": "Martin Baturina",
+        "date_of_birth": "2003-02-16"
+      },
+      {
+        "number": 17,
+        "pos": "MED",
+        "name": "Petar Sučić",
+        "date_of_birth": "2003-10-25"
+      },
+      {
+        "number": 18,
+        "pos": "DEF",
+        "name": "Kristijan Jakić",
+        "date_of_birth": "1997-05-14"
+      },
+      {
+        "number": 19,
+        "pos": "MED",
+        "name": "Toni Fruk",
+        "date_of_birth": "2001-03-09"
+      },
+      {
+        "number": 20,
+        "pos": "DEL",
+        "name": "Igor Matanović",
+        "date_of_birth": "2003-03-31"
+      },
+      {
+        "number": 21,
+        "pos": "MED",
+        "name": "Luka Sučić",
+        "date_of_birth": "2002-09-08"
+      },
+      {
+        "number": 22,
+        "pos": "DEF",
+        "name": "Luka Vušković",
+        "date_of_birth": "2007-02-24"
+      },
+      {
+        "number": 23,
+        "pos": "POR",
+        "name": "Dominik Kotarski",
+        "date_of_birth": "2000-02-10"
+      },
+      {
+        "number": 24,
+        "pos": "DEL",
+        "name": "Marco Pašalić",
+        "date_of_birth": "2000-09-14"
+      },
+      {
+        "number": 25,
+        "pos": "DEF",
+        "name": "Martin Erlić",
+        "date_of_birth": "1998-01-24"
+      },
+      {
+        "number": 26,
+        "pos": "DEL",
+        "name": "Petar Musa",
+        "date_of_birth": "1998-03-04"
+      }
+    ]
+  },
+  {
+    "name": "England",
+    "fifa_code": "ENG",
+    "group": "L",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Jordan Pickford",
+        "date_of_birth": "1994-03-07"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Ezri Konsa",
+        "date_of_birth": "1997-10-23"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "Nico O'Reilly",
+        "date_of_birth": "2005-03-21"
+      },
+      {
+        "number": 4,
+        "pos": "MED",
+        "name": "Declan Rice",
+        "date_of_birth": "1999-01-14"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "John Stones",
+        "date_of_birth": "1994-05-28"
+      },
+      {
+        "number": 6,
+        "pos": "DEF",
+        "name": "Marc Guéhi",
+        "date_of_birth": "2000-07-13"
+      },
+      {
+        "number": 7,
+        "pos": "DEL",
+        "name": "Bukayo Saka",
+        "date_of_birth": "2001-09-05"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Elliot Anderson",
+        "date_of_birth": "2002-11-06"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Harry Kane",
+        "date_of_birth": "1993-07-28"
+      },
+      {
+        "number": 10,
+        "pos": "MED",
+        "name": "Jude Bellingham",
+        "date_of_birth": "2003-06-29"
+      },
+      {
+        "number": 11,
+        "pos": "DEL",
+        "name": "Marcus Rashford",
+        "date_of_birth": "1997-10-31"
+      },
+      {
+        "number": 12,
+        "pos": "DEF",
+        "name": "Tino Livramento",
+        "date_of_birth": "2002-11-12"
+      },
+      {
+        "number": 13,
+        "pos": "POR",
+        "name": "Dean Henderson",
+        "date_of_birth": "1997-03-12"
+      },
+      {
+        "number": 14,
+        "pos": "MED",
+        "name": "Jordan Henderson",
+        "date_of_birth": "1990-06-17"
+      },
+      {
+        "number": 15,
+        "pos": "DEF",
+        "name": "Dan Burn",
+        "date_of_birth": "1992-05-09"
+      },
+      {
+        "number": 16,
+        "pos": "MED",
+        "name": "Kobbie Mainoo",
+        "date_of_birth": "2005-04-19"
+      },
+      {
+        "number": 17,
+        "pos": "MED",
+        "name": "Morgan Rogers",
+        "date_of_birth": "2002-07-26"
+      },
+      {
+        "number": 18,
+        "pos": "DEL",
+        "name": "Anthony Gordon",
+        "date_of_birth": "2001-02-24"
+      },
+      {
+        "number": 19,
+        "pos": "DEL",
+        "name": "Ollie Watkins",
+        "date_of_birth": "1995-12-30"
+      },
+      {
+        "number": 20,
+        "pos": "DEL",
+        "name": "Noni Madueke",
+        "date_of_birth": "2002-03-10"
+      },
+      {
+        "number": 21,
+        "pos": "MED",
+        "name": "Eberechi Eze",
+        "date_of_birth": "1998-06-29"
+      },
+      {
+        "number": 22,
+        "pos": "DEL",
+        "name": "Ivan Toney",
+        "date_of_birth": "1996-03-16"
+      },
+      {
+        "number": 23,
+        "pos": "POR",
+        "name": "James Trafford",
+        "date_of_birth": "2002-10-10"
+      },
+      {
+        "number": 24,
+        "pos": "DEF",
+        "name": "Reece James",
+        "date_of_birth": "1999-12-08"
+      },
+      {
+        "number": 25,
+        "pos": "DEF",
+        "name": "Djed Spence",
+        "date_of_birth": "2000-08-09"
+      },
+      {
+        "number": 26,
+        "pos": "DEF",
+        "name": "Jarell Quansah",
+        "date_of_birth": "2003-01-29"
+      }
+    ]
+  },
+  {
+    "name": "Ghana",
+    "fifa_code": "GHA",
+    "group": "L",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Lawrence Ati-Zigi",
+        "date_of_birth": "1996-11-29"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "Alidu Seidu",
+        "date_of_birth": "2000-06-04"
+      },
+      {
+        "number": 3,
+        "pos": "MED",
+        "name": "Caleb Yirenkyi",
+        "date_of_birth": "2006-01-15"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Jonas Adjetey",
+        "date_of_birth": "2003-12-13"
+      },
+      {
+        "number": 5,
+        "pos": "MED",
+        "name": "Thomas Partey",
+        "date_of_birth": "1993-06-13"
+      },
+      {
+        "number": 6,
+        "pos": "DEF",
+        "name": "Abdul Mumin",
+        "date_of_birth": "1998-06-06"
+      },
+      {
+        "number": 7,
+        "pos": "DEL",
+        "name": "Abdul Fatawu",
+        "date_of_birth": "2004-03-08"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Kwasi Sibo",
+        "date_of_birth": "1998-06-24"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Jordan Ayew",
+        "date_of_birth": "1991-09-11"
+      },
+      {
+        "number": 10,
+        "pos": "DEL",
+        "name": "Brandon Thomas-Asante",
+        "date_of_birth": "1998-12-29"
+      },
+      {
+        "number": 11,
+        "pos": "MED",
+        "name": "Antoine Semenyo",
+        "date_of_birth": "2000-01-07"
+      },
+      {
+        "number": 12,
+        "pos": "POR",
+        "name": "Joseph Anang",
+        "date_of_birth": "2000-06-08"
+      },
+      {
+        "number": 13,
+        "pos": "DEL",
+        "name": "Christopher Bonsu Baah",
+        "date_of_birth": "2004-12-14"
+      },
+      {
+        "number": 14,
+        "pos": "DEF",
+        "name": "Gideon Mensah",
+        "date_of_birth": "1998-07-18"
+      },
+      {
+        "number": 15,
+        "pos": "MED",
+        "name": "Elisha Owusu",
+        "date_of_birth": "1997-11-07"
+      },
+      {
+        "number": 16,
+        "pos": "POR",
+        "name": "Benjamin Asare",
+        "date_of_birth": "1992-07-13"
+      },
+      {
+        "number": 17,
+        "pos": "DEF",
+        "name": "Abdul Rahman Baba",
+        "date_of_birth": "1994-07-02"
+      },
+      {
+        "number": 18,
+        "pos": "DEF",
+        "name": "Jerome Opoku",
+        "date_of_birth": "1998-10-14"
+      },
+      {
+        "number": 19,
+        "pos": "DEL",
+        "name": "Iñaki Williams",
+        "date_of_birth": "1994-06-15"
+      },
+      {
+        "number": 20,
+        "pos": "MED",
+        "name": "Augustine Boakye",
+        "date_of_birth": "2000-11-03"
+      },
+      {
+        "number": 21,
+        "pos": "DEF",
+        "name": "Kojo Peprah Oppong",
+        "date_of_birth": "2004-06-04"
+      },
+      {
+        "number": 22,
+        "pos": "DEL",
+        "name": "Kamaldeen Sulemana",
+        "date_of_birth": "2002-02-15"
+      },
+      {
+        "number": 23,
+        "pos": "DEF",
+        "name": "Derrick Luckassen",
+        "date_of_birth": "1995-07-03"
+      },
+      {
+        "number": 24,
+        "pos": "DEL",
+        "name": "Ernest Nuamah",
+        "date_of_birth": "2003-11-01"
+      },
+      {
+        "number": 25,
+        "pos": "DEL",
+        "name": "Prince Kwabena Adu",
+        "date_of_birth": "2003-09-23"
+      },
+      {
+        "number": 26,
+        "pos": "DEF",
+        "name": "Marvin Senaya",
+        "date_of_birth": "2001-01-28"
+      }
+    ]
+  },
+  {
+    "name": "Panama",
+    "fifa_code": "PAN",
+    "group": "L",
+    "players": [
+      {
+        "number": 1,
+        "pos": "POR",
+        "name": "Luis Mejía",
+        "date_of_birth": "1991-03-16"
+      },
+      {
+        "number": 2,
+        "pos": "DEF",
+        "name": "César Blackman",
+        "date_of_birth": "1998-04-02"
+      },
+      {
+        "number": 3,
+        "pos": "DEF",
+        "name": "José Córdoba",
+        "date_of_birth": "2001-06-03"
+      },
+      {
+        "number": 4,
+        "pos": "DEF",
+        "name": "Fidel Escobar",
+        "date_of_birth": "1995-01-09"
+      },
+      {
+        "number": 5,
+        "pos": "DEF",
+        "name": "Edgardo Fariña",
+        "date_of_birth": "2001-10-19"
+      },
+      {
+        "number": 6,
+        "pos": "MED",
+        "name": "Cristian Martínez",
+        "date_of_birth": "1997-02-06"
+      },
+      {
+        "number": 7,
+        "pos": "MED",
+        "name": "José Luis Rodríguez",
+        "date_of_birth": "1998-06-19"
+      },
+      {
+        "number": 8,
+        "pos": "MED",
+        "name": "Adalberto Carrasquilla",
+        "date_of_birth": "1998-11-28"
+      },
+      {
+        "number": 9,
+        "pos": "DEL",
+        "name": "Tomás Rodríguez",
+        "date_of_birth": "1999-03-09"
+      },
+      {
+        "number": 10,
+        "pos": "MED",
+        "name": "Ismael Díaz",
+        "date_of_birth": "1997-05-12"
+      },
+      {
+        "number": 11,
+        "pos": "MED",
+        "name": "Yoel Bárcenas",
+        "date_of_birth": "1993-10-23"
+      },
+      {
+        "number": 12,
+        "pos": "POR",
+        "name": "César Samudio",
+        "date_of_birth": "1994-02-23"
+      },
+      {
+        "number": 13,
+        "pos": "DEF",
+        "name": "Jiovany Ramos",
+        "date_of_birth": "1997-01-26"
+      },
+      {
+        "number": 14,
+        "pos": "DEF",
+        "name": "Carlos Harvey",
+        "date_of_birth": "2000-02-03"
+      },
+      {
+        "number": 15,
+        "pos": "DEF",
+        "name": "Eric Davis",
+        "date_of_birth": "1991-03-31"
+      },
+      {
+        "number": 16,
+        "pos": "DEF",
+        "name": "Andrés Andrade",
+        "date_of_birth": "1998-10-16"
+      },
+      {
+        "number": 17,
+        "pos": "DEL",
+        "name": "José Fajardo",
+        "date_of_birth": "1993-08-18"
+      },
+      {
+        "number": 18,
+        "pos": "DEL",
+        "name": "Cecilio Waterman",
+        "date_of_birth": "1991-04-13"
+      },
+      {
+        "number": 19,
+        "pos": "MED",
+        "name": "Alberto Quintero",
+        "date_of_birth": "1987-12-18"
+      },
+      {
+        "number": 20,
+        "pos": "MED",
+        "name": "Aníbal Godoy",
+        "date_of_birth": "1990-02-10"
+      },
+      {
+        "number": 21,
+        "pos": "MED",
+        "name": "César Yanis",
+        "date_of_birth": "1996-01-28"
+      },
+      {
+        "number": 22,
+        "pos": "POR",
+        "name": "Orlando Mosquera",
+        "date_of_birth": "1994-12-25"
+      },
+      {
+        "number": 23,
+        "pos": "DEF",
+        "name": "Michael Amir Murillo",
+        "date_of_birth": "1996-02-11"
+      },
+      {
+        "number": 24,
+        "pos": "DEL",
+        "name": "Azarias Londoño",
+        "date_of_birth": "2001-06-21"
+      },
+      {
+        "number": 25,
+        "pos": "DEF",
+        "name": "Roderick Miller",
+        "date_of_birth": "1992-04-03"
+      },
+      {
+        "number": 26,
+        "pos": "DEF",
+        "name": "Jorge Gutiérrez",
+        "date_of_birth": "1998-09-01"
+      }
+    ]
+  }
+]

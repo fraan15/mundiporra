@@ -175,6 +175,57 @@ test("el administrador puede paginar y filtrar partidos", async () => {
   assert.equal(forbidden.status, 403);
 });
 
+test("el calendario JSON solo ofrece referencias manuales y marca duplicados", async () => {
+  const admin = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+
+  const first = await admin.get("/api/admin/match-reference?date=2026-06-15");
+  assert.equal(first.status, 200);
+  assert.equal(first.body.from, "2026-06-15");
+  assert.equal(first.body.to, "2026-06-18");
+  assert.ok(first.body.matches.length > 0);
+  const candidate = first.body.matches.find((match) => match.selectable && !match.existing_match);
+  assert.ok(candidate);
+
+  const created = await admin.post("/api/matches").send({
+    match_date: candidate.match_date,
+    match_time: candidate.match_time,
+    team1_id: candidate.team1.id,
+    team2_id: candidate.team2.id,
+    stadium_id: candidate.stadium.id
+  });
+  assert.equal(created.status, 201);
+
+  const second = await admin.get("/api/admin/match-reference?date=2026-06-15");
+  const duplicate = second.body.matches.find((match) => match.reference_id === candidate.reference_id);
+  assert.equal(duplicate.existing_match.id, created.body.id);
+
+  const normalUser = request.agent(app);
+  await normalUser.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
+  assert.equal((await normalUser.get("/api/admin/match-reference?date=2026-06-15")).status, 403);
+});
+
+test("las estadísticas de equipos leen resultados del JSON sin finalizar partidos manuales", async () => {
+  const user = request.agent(app);
+  await user.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
+  const mexico = db.prepare("SELECT * FROM teams WHERE fifa_code='MEX'").get();
+
+  const detail = await user.get(`/api/teams/${mexico.id}/detail`);
+  assert.equal(detail.status, 200);
+  assert.equal(detail.body.stats_source, "worldcup_json");
+  assert.equal(detail.body.stats.played, 1);
+  assert.equal(detail.body.stats.won, 1);
+  assert.equal(detail.body.stats.goals_for, 2);
+  assert.equal(detail.body.stats.goals_against, 0);
+  assert.equal(detail.body.recent_matches[0].opponent, "Sudáfrica");
+
+  const manualMatches = db.prepare(`
+    SELECT COUNT(*) count FROM matches
+    WHERE (team1_id=? OR team2_id=?) AND (result_team1 IS NOT NULL OR result_team2 IS NOT NULL)
+  `).get(mexico.id, mexico.id);
+  assert.equal(manualMatches.count, 0);
+});
+
 test("la clasificación requiere autenticación", async () => {
   const response = await request(app).get("/api/leaderboard");
   assert.equal(response.status, 401);
@@ -265,6 +316,295 @@ test("un Partido Estrella duplica los puntos y deja trazabilidad x2", async () =
   const notifications = await user.get("/api/notifications");
   const notification = notifications.body.notifications.find((item) => item.type === "points_earned" && item.entity_id === created.body.id);
   assert.match(notification.message, /8 puntos base ×2/);
+});
+
+test("importa catálogos sin duplicados y puntúa cualquier goleador válido", async () => {
+  assert.equal(db.prepare("SELECT COUNT(*) count FROM teams").get().count, 48);
+  assert.equal(db.prepare("SELECT COUNT(*) count FROM players").get().count, 1245);
+  assert.equal(db.prepare("SELECT COUNT(*) count FROM stadiums").get().count, 16);
+
+  const admin = request.agent(app);
+  const user = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  await user.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
+  const [team1, team2] = db.prepare("SELECT * FROM teams ORDER BY id LIMIT 2").all();
+  const scorer = db.prepare("SELECT * FROM players WHERE team_fifa_code=? ORDER BY id LIMIT 1").get(team1.fifa_code);
+  const otherScorer = db.prepare("SELECT * FROM players WHERE team_fifa_code=? ORDER BY id LIMIT 1").get(team2.fifa_code);
+  const stadium = db.prepare("SELECT * FROM stadiums ORDER BY id LIMIT 1").get();
+  const future = new Date(Date.now() + 48 * 60 * 60 * 1000);
+  const created = await admin.post("/api/matches").send({
+    match_date: future.toISOString().slice(0, 10),
+    match_time: future.toISOString().slice(11, 16),
+    team1_id: team1.id,
+    team2_id: team2.id,
+    stadium_id: stadium.id,
+    scorer_enabled: true,
+    force_published: true,
+    is_star: true
+  });
+  assert.equal(created.status, 201);
+
+  const missingScorer = await user.post("/api/predictions").send({
+    match_id: created.body.id,
+    predicted_winner: "team1",
+    predicted_team1_goals: 2,
+    predicted_team2_goals: 1
+  });
+  assert.equal(missingScorer.status, 400);
+
+  const prediction = await user.post("/api/predictions").send({
+    match_id: created.body.id,
+    predicted_winner: "team1",
+    predicted_team1_goals: 2,
+    predicted_team2_goals: 1,
+    predicted_scorer_id: scorer.id
+  });
+  assert.equal(prediction.status, 201);
+
+  const finished = await admin.post(`/api/matches/${created.body.id}/finish`).send({
+    result_team1: 2,
+    result_team2: 1,
+    scorer_ids: [scorer.id, otherScorer.id]
+  });
+  assert.equal(finished.status, 200);
+  const detail = await user.get(`/api/matches/${created.body.id}/detail`);
+  const participant = detail.body.participants.find((item) => item.username === "lucia");
+  assert.equal(participant.predicted_scorer_name, scorer.name);
+  const scored = db.prepare("SELECT * FROM predictions WHERE id=?").get(prediction.body.id);
+  assert.equal(scored.winner_points, 6);
+  assert.equal(scored.exact_result_points, 10);
+  assert.equal(scored.scorer_points, 4);
+  assert.equal(scored.total_points, 20);
+});
+
+test("un pronóstico 0-0 usa Sin goleador y puede puntuar el máximo completo", async () => {
+  const admin = request.agent(app);
+  const user = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  await user.post("/api/auth/login").send({ username: "marcos", password: "marcos" });
+  const [team1, team2] = db.prepare("SELECT * FROM teams ORDER BY id LIMIT 2").all();
+  const created = await admin.post("/api/matches").send({
+    match_date: "2099-07-01", match_time: "20:00",
+    team1_id: team1.id, team2_id: team2.id, scorer_enabled: true, force_published: true
+  });
+  const accepted = await user.post("/api/predictions").send({
+    match_id: created.body.id, predicted_winner: "draw",
+    predicted_team1_goals: 0, predicted_team2_goals: 0,
+    predicted_scorer_id: "no_scorer"
+  });
+  assert.equal(accepted.status, 201);
+  const finished = await admin.post(`/api/matches/${created.body.id}/finish`).send({
+    result_team1: 0, result_team2: 0, scorer_ids: ["no_scorer"]
+  });
+  assert.equal(finished.status, 200);
+  assert.equal(finished.body.actual_scorers[0].id, "no_scorer");
+  const detail = await user.get(`/api/matches/${created.body.id}/detail`);
+  const participant = detail.body.participants.find((item) => item.username === "marcos");
+  assert.equal(participant.predicted_scorer_id, "no_scorer");
+  assert.equal(participant.predicted_scorer_name, "Sin goleador");
+  const scored = db.prepare("SELECT * FROM predictions WHERE id=?").get(accepted.body.id);
+  assert.equal(scored.winner_points, 3);
+  assert.equal(scored.exact_result_points, 5);
+  assert.equal(scored.scorer_points, 2);
+  assert.equal(scored.total_points, 10);
+});
+
+test("los goleadores reales solo pueden ser de equipos que hayan marcado", async () => {
+  const admin = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  const [team1, team2] = db.prepare("SELECT * FROM teams ORDER BY id LIMIT 2").all();
+  const scorer1 = db.prepare("SELECT * FROM players WHERE team_fifa_code=? LIMIT 1").get(team1.fifa_code);
+  const scorer2 = db.prepare("SELECT * FROM players WHERE team_fifa_code=? LIMIT 1").get(team2.fifa_code);
+  const createMatch = () => admin.post("/api/matches").send({
+    match_date: "2099-07-02", match_time: "20:00",
+    team1_id: team1.id, team2_id: team2.id, scorer_enabled: true, force_published: true
+  });
+
+  const homeWin = await createMatch();
+  assert.equal((await admin.post(`/api/matches/${homeWin.body.id}/finish`).send({
+    result_team1: 1, result_team2: 0, scorer_ids: [scorer2.id]
+  })).status, 400);
+  assert.equal((await admin.post(`/api/matches/${homeWin.body.id}/finish`).send({
+    result_team1: 1, result_team2: 0, scorer_ids: [scorer1.id]
+  })).status, 200);
+
+  const awayWin = await createMatch();
+  assert.equal((await admin.post(`/api/matches/${awayWin.body.id}/finish`).send({
+    result_team1: 0, result_team2: 1, scorer_ids: [scorer1.id]
+  })).status, 400);
+  assert.equal((await admin.post(`/api/matches/${awayWin.body.id}/finish`).send({
+    result_team1: 0, result_team2: 1, scorer_ids: [scorer2.id]
+  })).status, 200);
+
+  const draw = await createMatch();
+  assert.equal((await admin.post(`/api/matches/${draw.body.id}/finish`).send({
+    result_team1: 1, result_team2: 1, scorer_ids: [scorer1.id, scorer2.id]
+  })).status, 200);
+});
+
+test("el goleador pronosticado debe ser de un equipo que marque", async () => {
+  const admin = request.agent(app);
+  const user = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  await user.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
+  const [team1, team2] = db.prepare("SELECT * FROM teams ORDER BY id LIMIT 2").all();
+  const scorer1 = db.prepare("SELECT * FROM players WHERE team_fifa_code=? LIMIT 1").get(team1.fifa_code);
+  const scorer2 = db.prepare("SELECT * FROM players WHERE team_fifa_code=? LIMIT 1").get(team2.fifa_code);
+  const created = await admin.post("/api/matches").send({
+    match_date: "2099-07-03", match_time: "20:00",
+    team1_id: team1.id, team2_id: team2.id, scorer_enabled: true, force_published: true
+  });
+
+  assert.equal((await user.post("/api/predictions").send({
+    match_id: created.body.id,
+    predicted_winner: "team1",
+    predicted_team1_goals: 2,
+    predicted_team2_goals: 0,
+    predicted_scorer_id: scorer2.id
+  })).status, 400);
+
+  assert.equal((await user.post("/api/predictions").send({
+    match_id: created.body.id,
+    predicted_winner: "team1",
+    predicted_team1_goals: 2,
+    predicted_team2_goals: 0,
+    predicted_scorer_id: scorer1.id
+  })).status, 201);
+});
+
+test("configura los puntos de goleador y los refleja en la clasificación", async () => {
+  const admin = request.agent(app);
+  const user = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  await user.post("/api/auth/login").send({ username: "sara", password: "sara" });
+  const originalSettings = (await admin.get("/api/admin/settings")).body;
+  const configured = await admin.put("/api/admin/settings").send({ ...originalSettings, scorer_points: 7 });
+  assert.equal(configured.status, 200);
+  assert.equal(configured.body.scorer_points, "7");
+  assert.equal((await admin.put("/api/admin/settings").send({ scorer_points: -1 })).status, 400);
+
+  const [team1, team2] = db.prepare("SELECT * FROM teams ORDER BY id LIMIT 2").all();
+  const scorer = db.prepare("SELECT * FROM players WHERE team_fifa_code=? LIMIT 1").get(team1.fifa_code);
+  const created = await admin.post("/api/matches").send({
+    match_date: "2099-07-02", match_time: "20:00",
+    team1_id: team1.id, team2_id: team2.id, scorer_enabled: true, force_published: true
+  });
+  const prediction = await user.post("/api/predictions").send({
+    match_id: created.body.id, predicted_winner: "team1",
+    predicted_team1_goals: 1, predicted_team2_goals: 0, predicted_scorer_id: scorer.id
+  });
+  await admin.post(`/api/matches/${created.body.id}/finish`).send({
+    result_team1: 2, result_team2: 0, scorer_ids: [scorer.id]
+  });
+  const scored = db.prepare("SELECT * FROM predictions WHERE id=?").get(prediction.body.id);
+  assert.equal(scored.winner_points, 3);
+  assert.equal(scored.exact_result_points, 0);
+  assert.equal(scored.scorer_points, 7);
+  assert.equal(scored.total_points, 10);
+  const leaderboard = await user.get("/api/leaderboard");
+  const row = leaderboard.body.find((item) => item.username === "sara");
+  assert.ok(row.scorer_points >= 7);
+  assert.ok(row.scorer_hits >= 1);
+  const activity = await user.get("/api/activity?page_size=30");
+  const event = activity.body.items.find((item) => item.event_id === scored.id && item.type === "points");
+  assert.equal(event.scorer_points, 7);
+  assert.match(event.text, /sara sumó 7 puntos por adivinar el goleador/);
+
+  await admin.put("/api/admin/settings").send(originalSettings);
+});
+
+test("valida, edita y desactiva la regla de goleadores", async () => {
+  const admin = request.agent(app);
+  const user = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  await user.post("/api/auth/login").send({ username: "marcos", password: "marcos" });
+  const [team1, team2, outsiderTeam] = db.prepare("SELECT * FROM teams ORDER BY id LIMIT 3").all();
+  const scorer = db.prepare("SELECT * FROM players WHERE team_fifa_code=? LIMIT 1").get(team1.fifa_code);
+  const replacement = db.prepare("SELECT * FROM players WHERE team_fifa_code=? LIMIT 1").get(team2.fifa_code);
+  const outsider = db.prepare("SELECT * FROM players WHERE team_fifa_code=? LIMIT 1").get(outsiderTeam.fifa_code);
+
+  const created = await admin.post("/api/matches").send({
+    match_date: "2099-07-03", match_time: "20:00",
+    team1_id: team1.id, team2_id: team2.id, scorer_enabled: true, force_published: true
+  });
+  const invalidPrediction = await user.post("/api/predictions").send({
+    match_id: created.body.id, predicted_winner: "team1",
+    predicted_team1_goals: 2, predicted_team2_goals: 1, predicted_scorer_id: outsider.id
+  });
+  assert.equal(invalidPrediction.status, 400);
+  const prediction = await user.post("/api/predictions").send({
+    match_id: created.body.id, predicted_winner: "team1",
+    predicted_team1_goals: 2, predicted_team2_goals: 1, predicted_scorer_id: scorer.id
+  });
+  assert.equal((await admin.post(`/api/matches/${created.body.id}/finish`).send({
+    result_team1: 2, result_team2: 1, scorer_ids: [outsider.id]
+  })).status, 400);
+  await admin.post(`/api/matches/${created.body.id}/finish`).send({
+    result_team1: 2, result_team2: 1, scorer_ids: [scorer.id]
+  });
+  assert.equal(db.prepare("SELECT scorer_points FROM predictions WHERE id=?").get(prediction.body.id).scorer_points, 2);
+  const edited = await admin.put(`/api/matches/${created.body.id}/scorers`).send({ scorer_ids: [replacement.id] });
+  assert.equal(edited.status, 200);
+  assert.equal(db.prepare("SELECT scorer_points FROM predictions WHERE id=?").get(prediction.body.id).scorer_points, 0);
+
+  const disabled = await admin.post("/api/matches").send({
+    match_date: "2099-07-04", match_time: "20:00",
+    team1_id: team1.id, team2_id: team2.id, scorer_enabled: false, force_published: true
+  });
+  assert.equal((await user.post("/api/predictions").send({
+    match_id: disabled.body.id, predicted_winner: "draw",
+    predicted_team1_goals: 1, predicted_team2_goals: 1
+  })).status, 201);
+  assert.equal((await admin.post(`/api/matches/${disabled.body.id}/finish`).send({
+    result_team1: 1, result_team2: 1
+  })).status, 200);
+});
+
+test("rechaza entradas manipuladas sin provocar errores internos", async () => {
+  const admin = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  const [team1, team2] = db.prepare("SELECT * FROM teams ORDER BY id LIMIT 2").all();
+  const created = await admin.post("/api/matches").send({
+    match_date: "2099-07-05", match_time: "20:00",
+    team1_id: team1.id, team2_id: team2.id, scorer_enabled: true, force_published: true
+  });
+  assert.equal(created.status, 201);
+  assert.equal((await admin.post(`/api/matches/${created.body.id}/finish`).send({
+    result_team1: 1, result_team2: 0, scorer_ids: "no-es-un-array"
+  })).status, 400);
+  assert.equal((await admin.post("/api/matches").send({
+    match_date: "fecha-invalida", match_time: "99:99",
+    team1_id: team1.id, team2_id: team2.id
+  })).status, 400);
+  assert.equal((await admin.post("/api/matches").send({
+    match_date: "2099-07-05", match_time: "20:00",
+    team1_id: 999999, team2_id: team2.id
+  })).status, 400);
+});
+
+test("protege la coherencia al editar equipos y la regla de goleador", async () => {
+  const admin = request.agent(app);
+  const user = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  await user.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
+  const [team1, team2, team3] = db.prepare("SELECT * FROM teams ORDER BY id LIMIT 3").all();
+  const scorer = db.prepare("SELECT * FROM players WHERE team_fifa_code=? LIMIT 1").get(team1.fifa_code);
+  const created = await admin.post("/api/matches").send({
+    match_date: "2099-07-06", match_time: "20:00",
+    team1_id: team1.id, team2_id: team2.id, scorer_enabled: true, force_published: true
+  });
+  const prediction = await user.post("/api/predictions").send({
+    match_id: created.body.id, predicted_winner: "team1",
+    predicted_team1_goals: 1, predicted_team2_goals: 0, predicted_scorer_id: scorer.id
+  });
+  assert.equal(prediction.status, 201);
+  assert.equal((await admin.put(`/api/matches/${created.body.id}`).send({
+    team1_id: team3.id
+  })).status, 409);
+  assert.equal((await admin.put(`/api/matches/${created.body.id}`).send({
+    scorer_enabled: false
+  })).status, 200);
+  assert.equal(db.prepare("SELECT predicted_scorer_id FROM predictions WHERE id=?").get(prediction.body.id).predicted_scorer_id, null);
 });
 
 test("los partidos se publican 24 horas antes salvo publicación forzada", async () => {
@@ -420,17 +760,36 @@ test("la distribución de votos permanece oculta mientras se puede apostar", asy
   assert.equal(detail.status, 200);
   assert.equal(detail.body.revealed, false);
   assert.deepEqual(detail.body.distribution, []);
+  assert.deepEqual(detail.body.participants, []);
+  assert.equal(typeof detail.body.participant_count, "number");
+
+  const predictions = await agent.get(`/api/predictions/match/${open.id}`);
+  assert.equal(predictions.status, 200);
+  assert.equal(predictions.body.revealed, false);
+  assert.deepEqual(predictions.body.participants, []);
+  assert.equal(Array.isArray(predictions.body.predictions), false);
 });
 
-test("el detalle muestra también los usuarios que aún no participan", async () => {
+test("el detalle muestra los participantes solo cuando el partido está cerrado", async () => {
   const agent = request.agent(app);
+  const admin = request.agent(app);
   await agent.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
   const matches = await agent.get("/api/matches");
   const open = matches.body.find((match) => match.betting_open);
   assert.ok(open);
 
+  const hidden = await agent.get(`/api/matches/${open.id}/detail`);
+  assert.equal(hidden.status, 200);
+  assert.equal(hidden.body.revealed, false);
+  assert.deepEqual(hidden.body.participants, []);
+
+  const close = await admin.patch(`/api/matches/${open.id}/status`).send({ status: "closed" });
+  assert.equal(close.status, 200);
+
   const detail = await agent.get(`/api/matches/${open.id}/detail`);
   assert.equal(detail.status, 200);
+  assert.equal(detail.body.revealed, true);
   assert.ok(detail.body.participants.length > 0);
   assert.equal(detail.body.participants.every((participant) => participant.participating === 0 || participant.participating === 1), true);
   assert.equal(detail.body.participants.some((participant) => participant.username === "administrador"), false);

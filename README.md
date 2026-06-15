@@ -101,21 +101,36 @@ Tras entrar como administrador, abre **Gestión**:
 - **Usuarios**: crea participantes, cambia contraseñas y roles, activa o desactiva cuentas.
 - **Ajustes**: suma o resta puntos indicando siempre un motivo.
 - **Recálculo**: recalcula todos los resultados o un partido concreto.
-- **Configuración**: cambia el nombre, los puntos y el margen de cierre automático.
+- **Configuración**: cambia el nombre, los puntos de ganador, exacto y goleador, y el margen de cierre automático.
 - **Actividad**: consulta y filtra la auditoría administrativa.
 
 El administrador inicial no se puede desactivar ni eliminar accidentalmente.
 
 ## Pronósticos y puntuación
 
-Mientras un partido esté abierto, cada usuario puede elegir ganador o empate y escribir un marcador exacto. El ganador elegido debe coincidir con el marcador pronosticado.
+Mientras un partido esté abierto, cada usuario puede elegir ganador o empate, escribir un marcador exacto y, cuando esté habilitado, seleccionar un posible goleador entre las plantillas de ambos equipos. El ganador elegido debe coincidir con el marcador pronosticado.
 
 - Ganador o empate acertado: 3 puntos.
 - Marcador exacto: 5 puntos.
-- Ambos se acumulan: máximo automático de 8 puntos.
+- Goleador acertado: 2 puntos.
+- Las tres puntuaciones se acumulan: máximo automático predeterminado de 10 puntos.
+- En un pronóstico 0-0 se selecciona **Sin goleador**, automáticamente o de forma manual.
+- En partidos con goles y regla de goleador activa, elegir goleador es obligatorio.
+- Un **Partido Estrella** multiplica por dos todos los puntos automáticos, incluidos los de goleador.
 - Los ajustes manuales se suman aparte.
 
-Al finalizar un partido se calculan los puntos. Editar su resultado vuelve a calcularlos. Las reglas se pueden modificar desde Configuración; después conviene ejecutar un recálculo global.
+Al finalizar un partido se calculan los puntos. Editar su resultado o sus goleadores vuelve a calcularlos. Las tres reglas de puntuación se pueden modificar desde Configuración; después conviene ejecutar un recálculo global.
+
+## Catálogo del Mundial
+
+El backend importa los equipos, plantillas y estadios desde `backend/data/catalog`. Los partidos vinculados al catálogo permiten:
+
+- buscar equipos y estadios al crearlos;
+- limitar el goleador pronosticado a jugadores de los dos equipos;
+- consultar la ficha, estadísticas y plantilla de una selección;
+- registrar uno o varios goleadores reales, sin duplicados; en 0-0 el goleador real es **Sin goleador**.
+
+Los autogoles no se incluyen como goleadores puntuables.
 
 ## Bloqueo automático
 
@@ -157,6 +172,8 @@ Las notificaciones se pueden abrir individualmente o marcar todas como leídas.
 - `app_settings`: nombre, puntuación y reglas de cierre.
 - `sessions`: sesiones persistentes locales. Esta tabla adicional evita perder la sesión al reiniciar procesos breves.
 - `notifications`: avisos internos por usuario, tipo, entidad, enlace y estado de lectura.
+- `teams`, `players` y `stadiums`: catálogo del torneo.
+- `match_scorers`: goleadores puntuables registrados para cada partido.
 
 Las fechas se guardan en ISO. `match_date` usa `YYYY-MM-DD`, `match_time` usa `HH:mm` y `auto_close_at` representa un instante completo.
 
@@ -174,6 +191,7 @@ Las fechas se guardan en ISO. `match_date` usa `YYYY-MM-DD`, `match_time` usa `H
 - `PUT|DELETE /api/matches/:id`
 - `PATCH /api/matches/:id/status`
 - `POST /api/matches/:id/finish`
+- `GET|PUT /api/matches/:id/scorers`
 - `GET /api/predictions/me`
 - `GET /api/predictions/match/:matchId`
 - `POST /api/predictions`
@@ -181,6 +199,10 @@ Las fechas se guardan en ISO. `match_date` usa `YYYY-MM-DD`, `match_time` usa `H
 - `GET /api/notifications`
 - `PATCH /api/notifications/:id/read`
 - `POST /api/notifications/read-all`
+- `GET /api/teams`
+- `GET /api/teams/:id/detail`
+- `GET /api/players`
+- `GET /api/stadiums`
 
 ### Consultas
 

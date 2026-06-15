@@ -13,6 +13,44 @@ db.pragma("journal_mode = WAL");
 db.pragma("foreign_keys = ON");
 
 const now = () => new Date().toISOString();
+const catalogDir = path.resolve(here, "../../data/catalog");
+
+function importCatalogs() {
+  const read = (filename) => JSON.parse(fs.readFileSync(path.join(catalogDir, filename), "utf8"));
+  if (!fs.existsSync(catalogDir)) return;
+  const teams = read("worldcup.teams.es.json");
+  const squads = read("worldcup.squads.es.json");
+  const stadiums = read("worldcup.stadiums.json").stadiums;
+  const importAll = db.transaction(() => {
+    const upsertTeam = db.prepare(`
+      INSERT INTO teams(fifa_code,name,group_name,continent,confed,flag_icon)
+      VALUES(@fifa_code,@name,@group_name,@continent,@confed,@flag_icon)
+      ON CONFLICT(fifa_code) DO UPDATE SET name=excluded.name,group_name=excluded.group_name,
+        continent=excluded.continent,confed=excluded.confed,flag_icon=excluded.flag_icon
+    `);
+    teams.forEach((team) => upsertTeam.run({ ...team, group_name: team.group }));
+
+    const upsertPlayer = db.prepare(`
+      INSERT INTO players(team_fifa_code,name,number,position,date_of_birth)
+      VALUES(@team_fifa_code,@name,@number,@position,@date_of_birth)
+      ON CONFLICT(team_fifa_code,name,date_of_birth) DO UPDATE SET
+        number=excluded.number,position=excluded.position
+    `);
+    squads.forEach((team) => team.players.forEach((player) => upsertPlayer.run({
+      team_fifa_code: team.fifa_code, name: player.name, number: player.number,
+      position: player.pos, date_of_birth: player.date_of_birth
+    })));
+
+    const upsertStadium = db.prepare(`
+      INSERT INTO stadiums(name,city,country_code,timezone,capacity,coords)
+      VALUES(@name,@city,@country_code,@timezone,@capacity,@coords)
+      ON CONFLICT(name,city) DO UPDATE SET country_code=excluded.country_code,
+        timezone=excluded.timezone,capacity=excluded.capacity,coords=excluded.coords
+    `);
+    stadiums.forEach((stadium) => upsertStadium.run({ ...stadium, country_code: stadium.cc.toUpperCase() }));
+  });
+  importAll();
+}
 
 export function initDatabase() {
   db.exec(`
@@ -43,6 +81,34 @@ export function initDatabase() {
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS teams (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      fifa_code TEXT NOT NULL UNIQUE,
+      name TEXT NOT NULL,
+      group_name TEXT,
+      continent TEXT,
+      confed TEXT,
+      flag_icon TEXT
+    );
+    CREATE TABLE IF NOT EXISTS players (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      team_fifa_code TEXT NOT NULL REFERENCES teams(fifa_code) ON UPDATE CASCADE,
+      name TEXT NOT NULL,
+      number INTEGER,
+      position TEXT,
+      date_of_birth TEXT,
+      UNIQUE(team_fifa_code,name,date_of_birth)
+    );
+    CREATE TABLE IF NOT EXISTS stadiums (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      city TEXT NOT NULL,
+      country_code TEXT,
+      timezone TEXT,
+      capacity INTEGER,
+      coords TEXT,
+      UNIQUE(name,city)
+    );
     CREATE TABLE IF NOT EXISTS predictions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -58,6 +124,11 @@ export function initDatabase() {
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       UNIQUE(user_id, match_id)
+    );
+    CREATE TABLE IF NOT EXISTS match_scorers (
+      match_id INTEGER NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
+      player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE RESTRICT,
+      PRIMARY KEY(match_id,player_id)
     );
     CREATE TABLE IF NOT EXISTS points_adjustments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -156,6 +227,11 @@ export function initDatabase() {
     );
     CREATE INDEX IF NOT EXISTS idx_matches_date ON matches(match_date, match_time);
     CREATE INDEX IF NOT EXISTS idx_predictions_match ON predictions(match_id);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_teams_fifa_code ON teams(fifa_code);
+    CREATE INDEX IF NOT EXISTS idx_players_team_fifa_code ON players(team_fifa_code);
+    CREATE INDEX IF NOT EXISTS idx_players_name ON players(name COLLATE NOCASE);
+    CREATE INDEX IF NOT EXISTS idx_stadiums_name ON stadiums(name COLLATE NOCASE);
+    CREATE INDEX IF NOT EXISTS idx_match_scorers_player ON match_scorers(player_id);
     CREATE INDEX IF NOT EXISTS idx_log_created ON admin_actions_log(created_at);
     CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, read, created_at);
     CREATE INDEX IF NOT EXISTS idx_comments_match ON match_comments(match_id, created_at);
@@ -168,8 +244,34 @@ export function initDatabase() {
   const matchColumns = db.prepare("PRAGMA table_info(matches)").all().map((column) => column.name);
   if (!matchColumns.includes("force_published")) db.exec("ALTER TABLE matches ADD COLUMN force_published INTEGER NOT NULL DEFAULT 0 CHECK(force_published IN (0,1))");
   if (!matchColumns.includes("is_star")) db.exec("ALTER TABLE matches ADD COLUMN is_star INTEGER NOT NULL DEFAULT 0 CHECK(is_star IN (0,1))");
+  if (!matchColumns.includes("team1_id")) db.exec("ALTER TABLE matches ADD COLUMN team1_id INTEGER REFERENCES teams(id)");
+  if (!matchColumns.includes("team2_id")) db.exec("ALTER TABLE matches ADD COLUMN team2_id INTEGER REFERENCES teams(id)");
+  if (!matchColumns.includes("stadium_id")) db.exec("ALTER TABLE matches ADD COLUMN stadium_id INTEGER REFERENCES stadiums(id)");
+  if (!matchColumns.includes("scorer_enabled")) {
+    db.exec(`
+      ALTER TABLE matches ADD COLUMN scorer_enabled INTEGER NOT NULL DEFAULT 1 CHECK(scorer_enabled IN (0,1));
+      UPDATE matches SET scorer_enabled=0;
+    `);
+  }
   const predictionColumns = db.prepare("PRAGMA table_info(predictions)").all().map((column) => column.name);
   if (!predictionColumns.includes("scoring_multiplier")) db.exec("ALTER TABLE predictions ADD COLUMN scoring_multiplier INTEGER NOT NULL DEFAULT 1");
+  if (!predictionColumns.includes("predicted_scorer_id")) db.exec("ALTER TABLE predictions ADD COLUMN predicted_scorer_id INTEGER REFERENCES players(id)");
+  if (!predictionColumns.includes("scorer_points")) db.exec("ALTER TABLE predictions ADD COLUMN scorer_points INTEGER NOT NULL DEFAULT 0");
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_matches_team1_id ON matches(team1_id);
+    CREATE INDEX IF NOT EXISTS idx_matches_team2_id ON matches(team2_id);
+    CREATE INDEX IF NOT EXISTS idx_matches_stadium_id ON matches(stadium_id);
+    CREATE INDEX IF NOT EXISTS idx_predictions_scorer ON predictions(predicted_scorer_id);
+  `);
+  importCatalogs();
+  db.exec(`
+    UPDATE matches SET team1_id=(SELECT id FROM teams WHERE teams.name=matches.team1)
+      WHERE team1_id IS NULL AND (SELECT COUNT(*) FROM teams WHERE teams.name=matches.team1)=1;
+    UPDATE matches SET team2_id=(SELECT id FROM teams WHERE teams.name=matches.team2)
+      WHERE team2_id IS NULL AND (SELECT COUNT(*) FROM teams WHERE teams.name=matches.team2)=1;
+    UPDATE matches SET stadium_id=(SELECT id FROM stadiums WHERE stadiums.name=matches.stadium)
+      WHERE stadium_id IS NULL AND stadium!='' AND (SELECT COUNT(*) FROM stadiums WHERE stadiums.name=matches.stadium)=1;
+  `);
   const notificationsSql = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='notifications'").get()?.sql || "";
   if (!notificationsSql.includes("'match_comment'")) {
     db.exec(`
@@ -201,6 +303,7 @@ export function initDatabase() {
     ["pool_name", "La Porra Mundial"],
     ["winner_points", "3"],
     ["exact_result_points", "5"],
+    ["scorer_points", "2"],
     ["auto_close_enabled", "1"],
     ["auto_close_minutes_before", "0"]
   ].forEach(([key, value]) => addSetting.run(key, value, stamp));
