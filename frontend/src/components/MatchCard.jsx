@@ -29,11 +29,12 @@ export function MatchCard({ match, onSaved }) {
     if (!Number.isFinite(team1Goals) || !Number.isFinite(team2Goals) || team1Goals < 0 || team2Goals < 0) return;
     setWinner(team1Goals === team2Goals ? "draw" : team1Goals > team2Goals ? "team1" : "team2");
   }, [g1, g2]);
-  useEffect(()=>{const codes=[match.team1_team?.fifa_code,match.team2_team?.fifa_code].filter(Boolean);if(match.scorer_enabled&&codes.length===2)api(`/players?team_fifa_codes=${codes.join(",")}`).then(setPlayers)},[match.id,match.scorer_enabled,match.team1_team?.fifa_code,match.team2_team?.fifa_code]);
+  const scorerEnabled=Boolean(Number(match.scorer_enabled));
+  useEffect(()=>{const codes=[match.team1_team?.fifa_code,match.team2_team?.fifa_code].filter(Boolean);if(scorerEnabled&&codes.length===2)api(`/players?team_fifa_codes=${codes.join(",")}`).then(setPlayers)},[match.id,scorerEnabled,match.team1_team?.fifa_code,match.team2_team?.fifa_code]);
   const isNilNil=Number(g1)+Number(g2)===0;
   const scoringTeamCodes=[Number(g1)>0&&match.team1_team?.fifa_code,Number(g2)>0&&match.team2_team?.fifa_code].filter(Boolean);
   const availableScorers=isNilNil?[NO_SCORER]:players.filter(player=>scoringTeamCodes.includes(player.team_fifa_code));
-  useEffect(()=>{if(match.scorer_enabled&&g1!==""&&g2!==""&&isNilNil&&scorerId!==NO_SCORER_ID)setScorerId(NO_SCORER_ID)},[g1,g2,isNilNil,match.scorer_enabled,scorerId]);
+  useEffect(()=>{if(scorerEnabled&&g1!==""&&g2!==""&&isNilNil&&scorerId!==NO_SCORER_ID)setScorerId(NO_SCORER_ID)},[g1,g2,isNilNil,scorerEnabled,scorerId]);
   useEffect(()=>{if(players.length&&scorerId&&scorerId!==NO_SCORER_ID&&!availableScorers.some(player=>String(player.id)===String(scorerId)))setScorerId(null)},[g1,g2,players.length,scorerId]);
   const save = async () => {
     setSaving(true); setMessage("");
@@ -72,8 +73,8 @@ export function MatchCard({ match, onSaved }) {
       </div>
       <span className="section-label score-label">2. MARCADOR FINAL</span>
       <div className="score-picker"><div><small>{match.team1}</small><span><button onClick={()=>adjust(setG1,g1,-1)}><Minus/></button><input aria-label={`Goles de ${match.team1}`} inputMode="numeric" type="number" min="0" value={g1} onChange={e=>setG1(e.target.value)}/><button onClick={()=>adjust(setG1,g1,1)}><Plus/></button></span></div><b>:</b><div><small>{match.team2}</small><span><button onClick={()=>adjust(setG2,g2,-1)}><Minus/></button><input aria-label={`Goles de ${match.team2}`} inputMode="numeric" type="number" min="0" value={g2} onChange={e=>setG2(e.target.value)}/><button onClick={()=>adjust(setG2,g2,1)}><Plus/></button></span></div></div>
-      {match.scorer_enabled&&<div className="scorer-pick"><span className="section-label">3. GOLEADOR DEL PARTIDO</span><SearchSelect items={availableScorers} value={scorerId} onChange={player=>setScorerId(player?.id||null)} placeholder={isNilNil?"Sin goleador":"Buscar jugador..."} label="Goleador del partido" renderItem={player=><><strong>{player.name}</strong><small>{player.team_name} · {player.position}</small></>}/></div>}
-      <button className="primary save-prediction" onClick={save} disabled={saving || winner==="" || g1==="" || g2==="" || (match.scorer_enabled&&Number(g1)+Number(g2)>0&&!scorerId)}><Save size={17}/>{saving?"Guardando...":match.prediction_id?"Guardar cambios":"Guardar resultado"}</button>
+      {scorerEnabled&&<div className="scorer-pick"><span className="section-label">3. GOLEADOR DEL PARTIDO</span><SearchSelect items={availableScorers} value={scorerId} onChange={player=>setScorerId(player?.id||null)} placeholder={isNilNil?"Sin goleador":"Buscar jugador..."} label="Goleador del partido" renderItem={player=><><strong>{player.name}</strong><small>{player.team_name} · {player.position}</small></>}/></div>}
+      <button className="primary save-prediction" onClick={save} disabled={saving || winner==="" || g1==="" || g2==="" || (scorerEnabled&&Number(g1)+Number(g2)>0&&!scorerId)}><Save size={17}/>{saving?"Guardando...":match.prediction_id?"Guardar cambios":"Guardar resultado"}</button>
       {message && <small className={message.includes("guardada")?"success-text":"error-text"}>{message}</small>}
     </div> : <div className="locked-prediction"><span>Tu apuesta</span><strong>{match.predicted_winner ? `${match.team1} ${match.predicted_team1_goals} – ${match.predicted_team2_goals} ${match.team2}` : "Sin predicción"}</strong>{match.predicted_scorer&&<small>Goleador: {match.predicted_scorer.name}</small>}{match.status==="finished" && <b><StarPoints match={match} points={match.total_points}/></b>}</div>}
     <button className="reveal-toggle" onClick={toggleReveal}><span><Users size={16}/>{match.prediction_count} participantes</span><span>{match.betting_open ? "Apuestas ocultas hasta el cierre" : "Ver apuestas"}<ChevronDown className={expanded?"rotated":""} size={16}/></span></button>
