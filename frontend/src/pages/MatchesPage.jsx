@@ -99,7 +99,7 @@ export function MatchesPage() {
   </div>;
   const renderHistoryFilters=()=> {
     return <section className="history-match-filters" aria-label="Filtros del histórico de partidos">
-      <label><span>Fecha</span><input type="date" value={historyDate} onChange={event=>setHistoryDate(event.target.value)}/></label>
+      <label><span>Fecha</span><input type="date" value={historyDate} onChange={event=>{setHistoryDate(event.target.value);event.target.blur()}}/></label>
       <label><span>Selección</span><SearchSelect label="Buscar selección" items={historyTeams} value={historyTeamId} onChange={team=>setHistoryTeamId(team?.id||"")} placeholder="Buscar selección..." renderItem={team=><><strong>{team.flag_icon} {team.name}</strong><small>{team.fifa_code||"Selección"}</small></>}/></label>
       {historyFiltersActive&&<button type="button" className="history-clear-filters" onClick={()=>{setHistoryDate("");setHistoryTeamId("")}}><X size={16}/>Limpiar</button>}
       <small>{visibleHistorical.length} de {historical.length} partido{historical.length===1?"":"s"}</small>

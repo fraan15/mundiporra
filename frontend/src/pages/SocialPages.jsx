@@ -94,7 +94,7 @@ function ActivityFeedItem({item}){
  return <article className={open?"activity-open":""}>
   <span className={`feed-icon ${item.type}`}>{item.type==="points"?"+":"⚽"}</span>
   <div>
-   <strong>{item.text}</strong>
+   <span className="activity-summary"><strong>{item.text}</strong>{item.type==="points"&&<button className="activity-info-button" aria-label={`${open?"Ocultar":"Ver"} desglose de puntos`} aria-expanded={open} onClick={()=>setOpen(!open)}><Info size={16}/></button>}</span>
    <span className="activity-match"><Flag team={item.team1}/>{item.team1}<b>vs</b><Flag team={item.team2}/>{item.team2}</span>
    <small>{new Date(item.created_at).toLocaleString("es-ES")}</small>
    {open&&breakdown&&<div className="activity-breakdown">
@@ -103,7 +103,6 @@ function ActivityFeedItem({item}){
     <p>Suma final: {breakdown.rules.length>1?`${finalAddends} = `:""}{breakdown.total} puntos</p>
    </div>}
   </div>
-  {item.type==="points"&&<button className="activity-info-button" aria-label={`${open?"Ocultar":"Ver"} desglose de puntos`} aria-expanded={open} onClick={()=>setOpen(!open)}><Info size={16}/></button>}
   {item.type==="points"&&<span className={`points-award ${item.exact_result_points>0?"exact":""}`}>{item.is_star?<Star size={15} fill="currentColor"/>:item.exact_result_points>0&&<Star size={15} fill="currentColor"/>}+{item.total_points} puntos</span>}
  </article>
 }

@@ -40,6 +40,7 @@ export function SearchSelect({
     setQuery("");
     setOpen(false);
     setActiveIndex(0);
+    rootRef.current?.querySelector("input")?.blur();
   };
   const onKeyDown = (event) => {
     if (event.key === "Escape") {

@@ -318,7 +318,7 @@ app.get("/api/matches", requireAuth, (req, res) => {
   const matches = db.prepare(`
     SELECT m.*, COUNT(bettor.id) prediction_count,
       mine.id prediction_id, mine.predicted_winner, mine.predicted_team1_goals, mine.predicted_team2_goals,
-      mine.predicted_scorer_id,mine.winner_points, mine.exact_result_points,mine.scorer_points,mine.total_points
+      mine.predicted_scorer_id,mine.winner_points, mine.exact_result_points,mine.scorer_points,mine.total_points,mine.scoring_multiplier
     FROM matches m
     LEFT JOIN predictions p ON p.match_id=m.id
     LEFT JOIN users bettor ON bettor.id=p.user_id AND bettor.role='user'

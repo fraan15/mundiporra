@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, ChevronDown, ChevronRight, Clock3, Minus, Plus, Save, ShieldCheck, Users } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, Clock3, Info, Minus, Plus, Save, ShieldCheck, Users, X } from "lucide-react";
 import { api } from "../api/client";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../App";
@@ -9,6 +9,8 @@ import { SearchSelect } from "./SearchSelect";
 import { NO_SCORER, NO_SCORER_ID } from "../constants/scorers";
 
 const statusLabel = (match) => match.status === "finished" ? "Finalizado" : match.in_play ? "En juego" : match.status === "closed" ? (match.close_reason === "automatic" ? "Cierre automático" : "Cerrado") : "Abierto";
+const winnerText = (match, value) => value === "draw" ? "Empate" : value === "team1" ? match.team1 : value === "team2" ? match.team2 : "Sin ganador";
+const pointsText = (points) => `${points} ${points === 1 ? "punto" : "puntos"}`;
 
 function VerticalScoreControl({ team, value, onChange, onAdjust }) {
   const score=value===""?0:Number(value);
@@ -59,6 +61,7 @@ export function MatchCard({ match, onSaved, verticalScorePicker=false }) {
   const [message, setMessage] = useState("");
   const [reveal, setReveal] = useState(null);
   const [expanded, setExpanded] = useState(false);
+  const [pointsOpen, setPointsOpen] = useState(false);
   const [players,setPlayers]=useState([]),[scorerId,setScorerId]=useState(match.predicted_scorer_id||null);
   useEffect(() => {
     setWinner(match.predicted_winner || ""); setG1(match.predicted_team1_goals ?? ""); setG2(match.predicted_team2_goals ?? "");
@@ -119,7 +122,8 @@ export function MatchCard({ match, onSaved, verticalScorePicker=false }) {
       {scorerEnabled&&<div className="scorer-pick"><span className="section-label">3. GOLEADOR DEL PARTIDO</span><SearchSelect items={availableScorers} value={scorerId} onChange={player=>setScorerId(player?.id||null)} placeholder={isNilNil?"Sin goleador":"Buscar jugador..."} label="Goleador del partido" renderItem={player=><><strong>{player.name}</strong><small>{player.team_name} · {player.position}</small></>}/></div>}
       <button className="primary save-prediction" onClick={save} disabled={saving || winner==="" || g1==="" || g2==="" || (scorerEnabled&&Number(g1)+Number(g2)>0&&!scorerId)}><Save size={17}/>{saving?"Guardando...":match.prediction_id?"Guardar cambios":"Guardar resultado"}</button>
       {message && <small className={message.includes("guardada")?"success-text":"error-text"}>{message}</small>}
-    </div> : <div className="locked-prediction"><span>{user.is_read_only ? "Modo solo lectura" : "Tu apuesta"}</span><strong>{user.is_read_only ? "Sin participación" : match.predicted_winner ? `${match.team1} ${match.predicted_team1_goals} – ${match.predicted_team2_goals} ${match.team2}` : "Sin predicción"}</strong>{!user.is_read_only&&match.predicted_scorer&&<small>Goleador: {match.predicted_scorer.name}</small>}{!user.is_read_only&&match.status==="finished" && <b><StarPoints match={match} points={match.total_points}/></b>}</div>}
+    </div> : <div className="locked-prediction"><span>{user.is_read_only ? "Modo solo lectura" : "Tu apuesta"}</span><strong>{user.is_read_only ? "Sin participación" : match.predicted_winner ? `${match.team1} ${match.predicted_team1_goals} – ${match.predicted_team2_goals} ${match.team2}` : "Sin predicción"}</strong>{!user.is_read_only&&match.predicted_scorer&&<small>Goleador: {match.predicted_scorer.name}</small>}{!user.is_read_only&&match.status==="finished" && <b><StarPoints match={match} points={match.total_points}/></b>}{!user.is_read_only&&match.status==="finished"&&match.prediction_id&&<button type="button" className="points-info-button" aria-label="Ver detalle de puntos" title="Ver detalle de puntos" onClick={()=>setPointsOpen(true)}><Info size={17}/></button>}</div>}
+    {pointsOpen&&<PointsBreakdownModal match={match} onClose={()=>setPointsOpen(false)}/>}
     <button className="reveal-toggle" onClick={toggleReveal}><span><Users size={16}/>{match.prediction_count} participantes</span><span>{match.betting_open ? "Apuestas ocultas hasta el cierre" : "Ver apuestas"}<ChevronDown className={expanded?"rotated":""} size={16}/></span></button>
     {expanded && reveal && <div className="reveal-list">{!reveal.revealed ? <p>{reveal.count ? `${reveal.count} pronóstico${reveal.count===1?"":"s"} registrado${reveal.count===1?"":"s"}. Se revelarán al cierre.` : "Aún no hay participantes."}</p> : reveal.predictions.length ? reveal.predictions.map(p=><div key={p.id}><strong>{p.username}</strong><span>{match.team1} {p.predicted_team1_goals} – {p.predicted_team2_goals} {match.team2}</span>{match.status==="finished"&&<b>{p.total_points} pts</b>}</div>) : <p>Aún no hay apuestas.</p>}</div>}
     <button className="match-detail-link" onClick={()=>navigate(`/match/${match.id}`)}><span>Ver detalles del partido<small>Estadísticas, participantes y comentarios</small></span><ChevronRight size={20}/></button>
@@ -127,3 +131,61 @@ export function MatchCard({ match, onSaved, verticalScorePicker=false }) {
 }
 
 export function Countdown({date}){const [current,setCurrent]=useState(Date.now());useEffect(()=>{const timer=setInterval(()=>setCurrent(Date.now()),1000);return()=>clearInterval(timer)},[]);const ms=Math.max(0,new Date(date)-current),hours=Math.floor(ms/3600000),minutes=Math.floor(ms%3600000/60000);return <span>Cierra en {hours>=24?`${Math.floor(hours/24)} día ${hours%24} h`:`${hours} h ${minutes} min`}</span>}
+
+function PointsBreakdownModal({ match, onClose }) {
+  const multiplier=Number(match.scoring_multiplier || (match.is_star ? 2 : 1)) || 1;
+  const winnerPoints=Number(match.winner_points||0);
+  const exactPoints=Number(match.exact_result_points||0);
+  const scorerPoints=Number(match.scorer_points||0);
+  const total=Number(match.total_points||0);
+  const actualScore=`${match.team1} ${match.result_team1} - ${match.result_team2} ${match.team2}`;
+  const predictedScore=`${match.team1} ${match.predicted_team1_goals} - ${match.predicted_team2_goals} ${match.team2}`;
+  const actualScorers=(match.actual_scorers||[]).map(player=>player.name).join(", ") || (Number(match.result_team1)+Number(match.result_team2)===0 ? "Sin goleador" : "No registrado");
+  const predictedScorer=match.predicted_scorer?.name || "Sin goleador";
+  const rows=[
+    {
+      label:"Ganador",
+      points:winnerPoints,
+      base:winnerPoints/multiplier,
+      success:winnerPoints>0,
+      check:`Pronosticó: ${winnerText(match,match.predicted_winner)}. Real: ${winnerText(match,match.winner)}.`,
+      reason:winnerPoints>0 ? "Coincide el signo del partido." : "No coincide el ganador o empate."
+    },
+    {
+      label:"Marcador exacto",
+      points:exactPoints,
+      base:exactPoints/multiplier,
+      success:exactPoints>0,
+      check:`Pronosticó: ${predictedScore}. Real: ${actualScore}.`,
+      reason:exactPoints>0 ? "Coinciden los goles de los dos equipos." : "El marcador no es exactamente igual."
+    },
+    {
+      label:"Goleador",
+      points:scorerPoints,
+      base:scorerPoints/multiplier,
+      success:scorerPoints>0,
+      check:`Pronosticó: ${predictedScorer}. Goleadores puntuables: ${actualScorers}.`,
+      reason:!Number(match.scorer_enabled) ? "Este partido no tenía pronóstico de goleador." : scorerPoints>0 ? "El goleador pronosticado está entre los goleadores puntuables." : "El goleador pronosticado no aparece entre los goleadores puntuables."
+    }
+  ];
+  const baseTotal=rows.reduce((sum,row)=>sum+row.base,0);
+  return <div className="points-modal-backdrop" role="presentation" onClick={onClose}>
+    <section className="points-modal" role="dialog" aria-modal="true" aria-labelledby={`points-title-${match.id}`} onClick={event=>event.stopPropagation()}>
+      <header>
+        <div><span className="eyebrow">DESGLOSE DE PUNTOS</span><h2 id={`points-title-${match.id}`}>{pointsText(total)} en este partido</h2><p>{match.team1} - {match.team2}</p></div>
+        <button type="button" aria-label="Cerrar desglose" onClick={onClose}><X size={20}/></button>
+      </header>
+      <div className="points-modal-summary">
+        <span><b>Resultado real</b>{actualScore}</span>
+        <span><b>Tu pronóstico</b>{predictedScore}</span>
+        <span><b>Total</b>{multiplier>1?`${baseTotal} base x${multiplier} = ${total}`:pointsText(total)}</span>
+      </div>
+      <div className="points-breakdown-list">{rows.map(row=><article key={row.label} className={row.success?"earned":"missed"}>
+        <div><strong>{row.label}</strong><small>{row.reason}</small></div>
+        <p>{row.check}</p>
+        <em>{multiplier>1&&row.base>0?`${row.base} x${multiplier} = `:""}{pointsText(row.points)}</em>
+      </article>)}</div>
+      {multiplier>1&&<div className="points-star-note"><strong>Partido Estrella</strong><span>Todos los puntos automáticos conseguidos se multiplican por {multiplier}. Por eso {baseTotal} puntos base terminan siendo {total} puntos.</span></div>}
+    </section>
+  </div>;
+}
