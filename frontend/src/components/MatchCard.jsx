@@ -57,19 +57,19 @@ export function MatchCard({ match, onSaved }) {
     </div>
     <StarMatchTitle match={match} className="match-card-star-title"/>
     <div className="versus">
-      <div className="team"><span className="flag"><Flag team={match.team1}/></span><strong>{match.team1}</strong></div>
+      <div className="team"><span className="flag"><Flag team={match.team1} teamData={match.team1_team}/></span><strong>{match.team1}</strong></div>
       <div className="score">
         {match.status === "finished" ? <strong>{match.result_team1}<i>:</i>{match.result_team2}</strong> : <><span>GRUPO</span><b>VS</b></>}
       </div>
-      <div className="team right"><span className="flag"><Flag team={match.team2}/></span><strong>{match.team2}</strong></div>
+      <div className="team right"><span className="flag"><Flag team={match.team2} teamData={match.team2_team}/></span><strong>{match.team2}</strong></div>
     </div>
     <div className={`participation-state ${match.prediction_id?"joined":"pending"}`}>{match.prediction_id?<span><ShieldCheck size={15}/>Pronóstico registrado</span>:<span><Clock3 size={15}/>Pendiente de pronóstico</span>}{match.betting_open&&<Countdown date={match.effective_close_at}/>}</div>
     {match.betting_open ? <div className="prediction">
       <span className="section-label">1. ELIGE EL GANADOR</span>
       <div className="winner-cards">
-        <button className={winner==="team1"?"selected":""} onClick={()=>setWinner("team1")}><Flag team={match.team1}/><small>LOCAL</small><strong>{match.team1}</strong>{winner==="team1"&&<Check/>}</button>
+        <button className={winner==="team1"?"selected":""} onClick={()=>setWinner("team1")}><Flag team={match.team1} teamData={match.team1_team}/><small>LOCAL</small><strong>{match.team1}</strong>{winner==="team1"&&<Check/>}</button>
         <button className={winner==="draw"?"selected":""} onClick={()=>setWinner("draw")}><span className="draw-icon">X</span><small>RESULTADO</small><strong>Empate</strong>{winner==="draw"&&<Check/>}</button>
-        <button className={winner==="team2"?"selected":""} onClick={()=>setWinner("team2")}><Flag team={match.team2}/><small>VISITANTE</small><strong>{match.team2}</strong>{winner==="team2"&&<Check/>}</button>
+        <button className={winner==="team2"?"selected":""} onClick={()=>setWinner("team2")}><Flag team={match.team2} teamData={match.team2_team}/><small>VISITANTE</small><strong>{match.team2}</strong>{winner==="team2"&&<Check/>}</button>
       </div>
       <span className="section-label score-label">2. MARCADOR FINAL</span>
       <div className="score-picker"><div><small>{match.team1}</small><span><button onClick={()=>adjust(setG1,g1,-1)}><Minus/></button><input aria-label={`Goles de ${match.team1}`} inputMode="numeric" type="number" min="0" value={g1} onChange={e=>setG1(e.target.value)}/><button onClick={()=>adjust(setG1,g1,1)}><Plus/></button></span></div><b>:</b><div><small>{match.team2}</small><span><button onClick={()=>adjust(setG2,g2,-1)}><Minus/></button><input aria-label={`Goles de ${match.team2}`} inputMode="numeric" type="number" min="0" value={g2} onChange={e=>setG2(e.target.value)}/><button onClick={()=>adjust(setG2,g2,1)}><Plus/></button></span></div></div>

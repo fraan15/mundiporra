@@ -651,7 +651,15 @@ app.get("/api/matches/:id/detail", requireAuth, (req, res) => {
     JOIN users u ON u.id=p.user_id
     WHERE p.match_id=? AND u.role='user'
   `).get(match.id).count;
-  const participants = open ? [] : db.prepare(`
+  const participantStatusRows = () => db.prepare(`
+    SELECT u.id,u.username,
+      CASE WHEN p.id IS NULL THEN 0 ELSE 1 END participating
+    FROM users u
+    LEFT JOIN predictions p ON p.user_id=u.id AND p.match_id=?
+    WHERE u.active=1 AND u.role='user'
+    ORDER BY participating ASC,u.username
+  `).all(match.id);
+  const participants = open ? (req.user.role === "admin" ? participantStatusRows() : []) : db.prepare(`
     SELECT u.id,u.username,
       CASE WHEN p.id IS NULL THEN 0 ELSE 1 END participating,
       p.predicted_winner,p.predicted_team1_goals,p.predicted_team2_goals,p.predicted_scorer_id,

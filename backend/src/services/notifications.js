@@ -1,9 +1,17 @@
 import { db, now } from "../db/database.js";
 
 export const leaderboardRows = () => db.prepare(`
+  WITH latest_finished_match AS (
+    SELECT id
+    FROM matches
+    WHERE status='finished'
+    ORDER BY match_date DESC, match_time DESC, id DESC
+    LIMIT 1
+  )
   SELECT u.id,u.username,u.personal_phrase,u.avatar_filename,
     CASE WHEN u.avatar_filename IS NULL THEN NULL ELSE '/avatars/' || u.avatar_filename END avatar_url,
     COALESCE(SUM(p.total_points),0)+COALESCE(adj.adjustments,0) total_points,
+    COALESCE(last_match.total_points,0) last_match_points,
     COALESCE(SUM(p.winner_points),0) winner_points,
     COALESCE(SUM(p.exact_result_points),0) exact_result_points,
     COALESCE(SUM(p.scorer_points),0) scorer_points,
@@ -14,6 +22,11 @@ export const leaderboardRows = () => db.prepare(`
     ,COALESCE(SUM(CASE WHEN p.scorer_points>0 THEN 1 ELSE 0 END),0) scorer_hits
   FROM users u LEFT JOIN predictions p ON p.user_id=u.id
   LEFT JOIN (SELECT user_id,SUM(points) adjustments FROM points_adjustments GROUP BY user_id) adj ON adj.user_id=u.id
+  LEFT JOIN (
+    SELECT user_id,total_points
+    FROM predictions
+    WHERE match_id=(SELECT id FROM latest_finished_match)
+  ) last_match ON last_match.user_id=u.id
   WHERE u.active=1 AND u.role='user'
   GROUP BY u.id ORDER BY total_points DESC,exact_hits DESC,winner_hits DESC,u.username
 `).all();

@@ -67,8 +67,8 @@ export function MatchesPage() {
       {items.length>1&&<div className="match-carousel-controls"><button aria-label={`Partido anterior de ${sectionId}`} onClick={()=>moveCarousel(sectionId,items.length,-1)}><ArrowLeft size={17}/></button><div>{items.map((item,itemIndex)=><button aria-label={`Ver partido ${itemIndex+1}`} className={itemIndex===index?"active":""} key={item.id} onClick={()=>setCarouselIndex(sectionId,itemIndex)}/>)}</div><button aria-label={`Partido siguiente de ${sectionId}`} onClick={()=>moveCarousel(sectionId,items.length,1)}><ArrowRight size={17}/></button></div>}
     </div>;
   };
-  const renderGrid=(items,emptyText)=><div className="match-tab-content">{items.length
-    ? <div className="match-grid">{items.map(m=><MatchCard key={m.id} match={m} onSaved={load}/>)}</div>
+  const renderTabCarousel=(sectionId,items,emptyText)=><div className="match-tab-content">{items.length
+    ? renderCarousel(sectionId,items)
     : <p className="empty-state">{emptyText}</p>}
   </div>;
 
@@ -77,7 +77,7 @@ export function MatchesPage() {
     {loading?<div className="skeleton-grid"><i/><i/></div>:activeTab==="matches"
       ? sections.map(([id,title,text,Icon,items])=>items.length>0&&<section id={id} className={`match-section collapsible ${id}`} key={id}><button className="section-title" onClick={()=>setOpenSection(openSection===id?null:id)}><div><span className="section-icon"><Icon size={19}/></span><div><h2>{title}</h2><p>{text}</p></div></div><div className="section-progress"><strong className={items.some(m=>m.betting_open&&!m.prediction_id)?"pending":"complete"}>{items.filter(m=>m.prediction_id).length}/{items.length}</strong><span>{items.some(m=>m.betting_open&&!m.prediction_id)?"Te falta apostar":"Completado"}</span><ChevronDown className={openSection===id?"open":""}/></div></button>{openSection===id&&renderCarousel(id,items)}</section>)
       : activeTab==="pending"
-        ? renderGrid(pending,"No tienes partidos pendientes de participar.")
-        : renderGrid(historical,"Todavía no hay partidos en el histórico.")}
+        ? renderTabCarousel("pending-tab",pending,"No tienes partidos pendientes de participar.")
+        : renderTabCarousel("history-tab",historical,"Todavía no hay partidos en el histórico.")}
   </div>;
 }

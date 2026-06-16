@@ -770,6 +770,25 @@ test("la distribución de votos permanece oculta mientras se puede apostar", asy
   assert.equal(Array.isArray(predictions.body.predictions), false);
 });
 
+test("el administrador ve quien falta sin ver pronosticos en partidos abiertos", async () => {
+  const admin = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  const matches = await admin.get("/api/matches");
+  const open = matches.body.find((match) => match.betting_open);
+  assert.ok(open);
+
+  const detail = await admin.get(`/api/matches/${open.id}/detail`);
+  assert.equal(detail.status, 200);
+  assert.equal(detail.body.revealed, false);
+  assert.deepEqual(detail.body.distribution, []);
+  assert.ok(detail.body.participants.length > 0);
+  assert.equal(detail.body.participants.every((participant) => participant.participating === 0 || participant.participating === 1), true);
+  assert.equal(detail.body.participants.some((participant) => participant.username === "administrador"), false);
+  assert.equal(detail.body.participants.some((participant) => Object.hasOwn(participant, "predicted_winner")), false);
+  assert.equal(detail.body.participants.some((participant) => Object.hasOwn(participant, "predicted_team1_goals")), false);
+  assert.equal(detail.body.participants.some((participant) => Object.hasOwn(participant, "total_points")), false);
+});
+
 test("el detalle muestra los participantes solo cuando el partido está cerrado", async () => {
   const agent = request.agent(app);
   const admin = request.agent(app);

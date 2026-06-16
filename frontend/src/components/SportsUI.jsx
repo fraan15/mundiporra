@@ -1,21 +1,19 @@
 const flags = {
-  "Alemania":"🇩🇪","Arabia Saudí":"🇸🇦","Argelia":"🇩🇿","Argentina":"🇦🇷","Australia":"🇦🇺",
-  "Austria":"🇦🇹","Bélgica":"🇧🇪","Bolivia":"🇧🇴","Bosnia":"🇧🇦","Brasil":"🇧🇷",
-  "Cabo Verde":"🇨🇻","Camerún":"🇨🇲","Canadá":"🇨🇦","Canada":"🇨🇦","Catar":"🇶🇦",
-  "Chile":"🇨🇱","Colombia":"🇨🇴","Corea del Sur":"🇰🇷","Costa de Marfil":"🇨🇮","Costa Rica":"🇨🇷",
-  "Croacia":"🇭🇷","Curazao":"🇨🇼","Dinamarca":"🇩🇰","Ecuador":"🇪🇨","Egipto":"🇪🇬",
-  "Escocia":"🏴","Eslovaquia":"🇸🇰","Eslovenia":"🇸🇮","España":"🇪🇸","Estados Unidos":"🇺🇸",
-  "Francia":"🇫🇷","Gales":"🏴","Ghana":"🇬🇭","Grecia":"🇬🇷","Haití":"🇭🇹",
-  "Honduras":"🇭🇳","Hungría":"🇭🇺","Inglaterra":"🏴","Irak":"🇮🇶","Irán":"🇮🇷",
-  "Irlanda":"🇮🇪","Islandia":"🇮🇸","Italia":"🇮🇹","Jamaica":"🇯🇲","Japón":"🇯🇵",
-  "Jordania":"🇯🇴","Macedonia del Norte":"🇲🇰","Malí":"🇲🇱","Marruecos":"🇲🇦","México":"🇲🇽",
-  "Nigeria":"🇳🇬","Noruega":"🇳🇴","Nueva Caledonia":"🇳🇨","Nueva Zelanda":"🇳🇿","Países Bajos":"🇳🇱",
-  "Panamá":"🇵🇦","Paraguay":"🇵🇾","Perú":"🇵🇪","Polonia":"🇵🇱","Portugal":"🇵🇹",
-  "República Checa":"🇨🇿","República Democrática del Congo":"🇨🇩","Rumanía":"🇷🇴","Senegal":"🇸🇳","Serbia":"🇷🇸",
-  "Sudáfrica":"🇿🇦","Suecia":"🇸🇪","Suiza":"🇨🇭","Surinam":"🇸🇷","Túnez":"🇹🇳",
-  "Turquía":"🇹🇷","Ucrania":"🇺🇦","Uruguay":"🇺🇾","Uzbekistán":"🇺🇿","Venezuela":"🇻🇪"
+  "Alemania": "🇩🇪", "Arabia Saudí": "🇸🇦", "Argelia": "🇩🇿", "Argentina": "🇦🇷", "Australia": "🇦🇺",
+  "Austria": "🇦🇹", "Bélgica": "🇧🇪", "Bosnia y Herzegovina": "🇧🇦", "Brasil": "🇧🇷", "Cabo Verde": "🇨🇻",
+  "Canadá": "🇨🇦", "Catar": "🇶🇦", "Colombia": "🇨🇴", "Corea del Sur": "🇰🇷", "Costa de Marfil": "🇨🇮",
+  "Croacia": "🇭🇷", "Curazao": "🇨🇼", "Ecuador": "🇪🇨", "Egipto": "🇪🇬", "Escocia": "\u{1F3F4}\u{E0067}\u{E0062}\u{E0073}\u{E0063}\u{E0074}\u{E007F}",
+  "España": "🇪🇸", "Estados Unidos": "🇺🇸", "Francia": "🇫🇷", "Ghana": "🇬🇭", "Haití": "🇭🇹",
+  "Inglaterra": "\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}", "Irak": "🇮🇶", "Irán": "🇮🇷", "Japón": "🇯🇵", "Jordania": "🇯🇴",
+  "Marruecos": "🇲🇦", "México": "🇲🇽", "Noruega": "🇳🇴", "Nueva Zelanda": "🇳🇿", "Países Bajos": "🇳🇱",
+  "Panamá": "🇵🇦", "Paraguay": "🇵🇾", "Portugal": "🇵🇹", "RD del Congo": "🇨🇩", "República Checa": "🇨🇿",
+  "Senegal": "🇸🇳", "Sudáfrica": "🇿🇦", "Suecia": "🇸🇪", "Suiza": "🇨🇭", "Túnez": "🇹🇳",
+  "Turquía": "🇹🇷", "Uruguay": "🇺🇾", "Uzbekistán": "🇺🇿"
 };
-export const Flag = ({ team }) => <span className="real-flag" aria-label={team}>{flags[team] || "🏴"}</span>;
+
+export const Flag = ({ team, teamData }) => (
+  <span className="real-flag" aria-label={team}>{teamData?.flag_icon || flags[team] || "⚽"}</span>
+);
 
 export function MiniChart({ data = [], field = "points", inverse = false }) {
   const values = data.map((item) => Number(item[field]) || 0);
