@@ -63,7 +63,7 @@ export function LeaderboardPage() {
         </thead>
         <tbody>
           {rows.map((row, index) => <tr key={row.id}>
-            <td><b><Position index={index} total={rows.length} /></b></td>
+            <td><b><Position index={index} /></b></td>
             <td className="clickable-user" onClick={() => navigate(`/usuario/${row.id}`)}>
               <Avatar user={row} className="mini-avatar" />
               <strong>{row.username}</strong>
@@ -94,8 +94,8 @@ function LastMatchPoints({ points = 0 }) {
   return <small className="last-match-points">+{value}</small>;
 }
 
-function Position({ index, total }) {
-  return <>#{index + 1}{index === 0 ? <LeaderCup compact /> : index === total - 1 ? <span role="img" aria-label="Último clasificado"> !</span> : null}</>;
+function Position({ index }) {
+  return <>#{index + 1}</>;
 }
 
 function LeaderCup({ compact = false }) {

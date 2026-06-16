@@ -57,18 +57,18 @@ export function MatchesPage() {
     if(Math.abs(deltaX)<45||Math.abs(deltaX)<=Math.abs(deltaY))return;
     moveCarousel(sectionId,length,deltaX<0?1:-1);
   };
-  const renderCarousel=(sectionId,items)=>{
+  const renderCarousel=(sectionId,items,options={})=>{
     const index=Math.min(carouselIndexes[sectionId]||0,items.length-1);
     const match=items[index];
     return <div className="section-match-carousel">
       <div className="section-match-swipe" onPointerDown={event=>startSwipe(event,sectionId)} onPointerUp={event=>endSwipe(event,sectionId,items.length)} onPointerCancel={()=>{swipeStart.current=null}}>
-        <MatchCard key={match.id} match={match} onSaved={load}/>
+        <MatchCard key={match.id} match={match} onSaved={load} verticalScorePicker={options.verticalScorePicker}/>
       </div>
       {items.length>1&&<div className="match-carousel-controls"><button aria-label={`Partido anterior de ${sectionId}`} onClick={()=>moveCarousel(sectionId,items.length,-1)}><ArrowLeft size={17}/></button><div>{items.map((item,itemIndex)=><button aria-label={`Ver partido ${itemIndex+1}`} className={itemIndex===index?"active":""} key={item.id} onClick={()=>setCarouselIndex(sectionId,itemIndex)}/>)}</div><button aria-label={`Partido siguiente de ${sectionId}`} onClick={()=>moveCarousel(sectionId,items.length,1)}><ArrowRight size={17}/></button></div>}
     </div>;
   };
-  const renderTabCarousel=(sectionId,items,emptyText)=><div className="match-tab-content">{items.length
-    ? renderCarousel(sectionId,items)
+  const renderTabCarousel=(sectionId,items,emptyText,options={})=><div className="match-tab-content">{items.length
+    ? renderCarousel(sectionId,items,options)
     : <p className="empty-state">{emptyText}</p>}
   </div>;
 
@@ -77,7 +77,7 @@ export function MatchesPage() {
     {loading?<div className="skeleton-grid"><i/><i/></div>:activeTab==="matches"
       ? sections.map(([id,title,text,Icon,items])=>items.length>0&&<section id={id} className={`match-section collapsible ${id}`} key={id}><button className="section-title" onClick={()=>setOpenSection(openSection===id?null:id)}><div><span className="section-icon"><Icon size={19}/></span><div><h2>{title}</h2><p>{text}</p></div></div><div className="section-progress"><strong className={items.some(m=>m.betting_open&&!m.prediction_id)?"pending":"complete"}>{items.filter(m=>m.prediction_id).length}/{items.length}</strong><span>{items.some(m=>m.betting_open&&!m.prediction_id)?"Te falta apostar":"Completado"}</span><ChevronDown className={openSection===id?"open":""}/></div></button>{openSection===id&&renderCarousel(id,items)}</section>)
       : activeTab==="pending"
-        ? renderTabCarousel("pending-tab",pending,"No tienes partidos pendientes de participar.")
+        ? renderTabCarousel("pending-tab",pending,"No tienes partidos pendientes de participar.",{verticalScorePicker:true})
         : renderTabCarousel("history-tab",historical,"Todavía no hay partidos en el histórico.")}
   </div>;
 }

@@ -9,7 +9,45 @@ import { NO_SCORER, NO_SCORER_ID } from "../constants/scorers";
 
 const statusLabel = (match) => match.status === "finished" ? "Finalizado" : match.in_play ? "En juego" : match.status === "closed" ? (match.close_reason === "automatic" ? "Cierre automático" : "Cerrado") : "Abierto";
 
-export function MatchCard({ match, onSaved }) {
+function VerticalScoreControl({ team, value, onChange, onAdjust }) {
+  const score=value===""?0:Number(value);
+  const safeScore=Number.isFinite(score)?Math.max(0,score):0;
+  const maxScore=Math.max(10,safeScore);
+  const commitFromPointer=event=>{
+    const rect=event.currentTarget.getBoundingClientRect();
+    const ratio=Math.min(1,Math.max(0,(rect.bottom-event.clientY)/rect.height));
+    onChange(String(Math.round(ratio*maxScore)));
+  };
+  const startDrag=event=>{
+    event.preventDefault();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    commitFromPointer(event);
+  };
+  const moveDrag=event=>{
+    if(event.buttons!==1&&event.pointerType==="mouse")return;
+    event.preventDefault();
+    commitFromPointer(event);
+  };
+  const keyDrag=event=>{
+    if(event.key==="ArrowUp"||event.key==="ArrowRight"){event.preventDefault();onAdjust(1)}
+    if(event.key==="ArrowDown"||event.key==="ArrowLeft"){event.preventDefault();onAdjust(-1)}
+    if(event.key==="Home"){event.preventDefault();onChange("0")}
+    if(event.key==="End"){event.preventDefault();onChange(String(maxScore))}
+  };
+  return <div className="vertical-score-control">
+    <small>{team}</small>
+    <div className="vertical-score-rail">
+      <button type="button" aria-label={`Subir goles de ${team}`} onClick={()=>onAdjust(1)}><Plus/></button>
+      <div className="vertical-score-value" role="slider" tabIndex="0" aria-label={`Arrastrar goles pronosticados de ${team}`} aria-valuemin="0" aria-valuemax={maxScore} aria-valuenow={safeScore} onPointerDown={startDrag} onPointerMove={moveDrag} onKeyDown={keyDrag}>
+        <strong>{value===""?"0":value}</strong>
+        <span className="vertical-score-track" aria-hidden="true"><i style={{bottom:`${safeScore/maxScore*100}%`}}/></span>
+      </div>
+      <button type="button" aria-label={`Bajar goles de ${team}`} onClick={()=>onAdjust(-1)}><Minus/></button>
+    </div>
+  </div>;
+}
+
+export function MatchCard({ match, onSaved, verticalScorePicker=false }) {
   const navigate=useNavigate();
   const [winner, setWinner] = useState(match.predicted_winner || "");
   const [g1, setG1] = useState(match.predicted_team1_goals ?? "");
@@ -72,7 +110,9 @@ export function MatchCard({ match, onSaved }) {
         <button className={winner==="team2"?"selected":""} onClick={()=>setWinner("team2")}><Flag team={match.team2} teamData={match.team2_team}/><small>VISITANTE</small><strong>{match.team2}</strong>{winner==="team2"&&<Check/>}</button>
       </div>
       <span className="section-label score-label">2. MARCADOR FINAL</span>
-      <div className="score-picker"><div><small>{match.team1}</small><span><button onClick={()=>adjust(setG1,g1,-1)}><Minus/></button><input aria-label={`Goles de ${match.team1}`} inputMode="numeric" type="number" min="0" value={g1} onChange={e=>setG1(e.target.value)}/><button onClick={()=>adjust(setG1,g1,1)}><Plus/></button></span></div><b>:</b><div><small>{match.team2}</small><span><button onClick={()=>adjust(setG2,g2,-1)}><Minus/></button><input aria-label={`Goles de ${match.team2}`} inputMode="numeric" type="number" min="0" value={g2} onChange={e=>setG2(e.target.value)}/><button onClick={()=>adjust(setG2,g2,1)}><Plus/></button></span></div></div>
+      {verticalScorePicker
+        ? <div className="detail-score-picker vertical match-score-picker-vertical"><VerticalScoreControl team={match.team1} value={g1} onChange={setG1} onAdjust={delta=>adjust(setG1,g1,delta)}/><b>:</b><VerticalScoreControl team={match.team2} value={g2} onChange={setG2} onAdjust={delta=>adjust(setG2,g2,delta)}/></div>
+        : <div className="score-picker"><div><small>{match.team1}</small><span><button onClick={()=>adjust(setG1,g1,-1)}><Minus/></button><input aria-label={`Goles de ${match.team1}`} inputMode="numeric" type="number" min="0" value={g1} onChange={e=>setG1(e.target.value)}/><button onClick={()=>adjust(setG1,g1,1)}><Plus/></button></span></div><b>:</b><div><small>{match.team2}</small><span><button onClick={()=>adjust(setG2,g2,-1)}><Minus/></button><input aria-label={`Goles de ${match.team2}`} inputMode="numeric" type="number" min="0" value={g2} onChange={e=>setG2(e.target.value)}/><button onClick={()=>adjust(setG2,g2,1)}><Plus/></button></span></div></div>}
       {scorerEnabled&&<div className="scorer-pick"><span className="section-label">3. GOLEADOR DEL PARTIDO</span><SearchSelect items={availableScorers} value={scorerId} onChange={player=>setScorerId(player?.id||null)} placeholder={isNilNil?"Sin goleador":"Buscar jugador..."} label="Goleador del partido" renderItem={player=><><strong>{player.name}</strong><small>{player.team_name} · {player.position}</small></>}/></div>}
       <button className="primary save-prediction" onClick={save} disabled={saving || winner==="" || g1==="" || g2==="" || (scorerEnabled&&Number(g1)+Number(g2)>0&&!scorerId)}><Save size={17}/>{saving?"Guardando...":match.prediction_id?"Guardar cambios":"Guardar resultado"}</button>
       {message && <small className={message.includes("guardada")?"success-text":"error-text"}>{message}</small>}

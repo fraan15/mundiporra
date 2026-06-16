@@ -77,13 +77,35 @@ const winnerFromScore=(g1,g2)=>{
 function VerticalScoreControl({team,value,onChange,onAdjust}){
  const score=value===""?0:Number(value);
  const safeScore=Number.isFinite(score)?Math.max(0,score):0;
+ const maxScore=Math.max(10,safeScore);
+ const commitFromPointer=event=>{
+  const rect=event.currentTarget.getBoundingClientRect();
+  const ratio=Math.min(1,Math.max(0,(rect.bottom-event.clientY)/rect.height));
+  onChange(String(Math.round(ratio*maxScore)));
+ };
+ const startDrag=event=>{
+  event.preventDefault();
+  event.currentTarget.setPointerCapture?.(event.pointerId);
+  commitFromPointer(event);
+ };
+ const moveDrag=event=>{
+  if(event.buttons!==1&&event.pointerType==="mouse")return;
+  event.preventDefault();
+  commitFromPointer(event);
+ };
+ const keyDrag=event=>{
+  if(event.key==="ArrowUp"||event.key==="ArrowRight"){event.preventDefault();onAdjust(1)}
+  if(event.key==="ArrowDown"||event.key==="ArrowLeft"){event.preventDefault();onAdjust(-1)}
+  if(event.key==="Home"){event.preventDefault();onChange("0")}
+  if(event.key==="End"){event.preventDefault();onChange(String(maxScore))}
+ };
  return <div className="vertical-score-control">
   <small>{team}</small>
   <div className="vertical-score-rail">
    <button type="button" aria-label={`Subir goles de ${team}`} onClick={()=>onAdjust(1)}><Plus/></button>
-   <div className="vertical-score-value">
+   <div className="vertical-score-value" role="slider" tabIndex="0" aria-label={`Arrastrar goles pronosticados de ${team}`} aria-valuemin="0" aria-valuemax={maxScore} aria-valuenow={safeScore} onPointerDown={startDrag} onPointerMove={moveDrag} onKeyDown={keyDrag}>
     <strong>{value===""?"0":value}</strong>
-    <input aria-label={`Arrastrar goles pronosticados de ${team}`} type="range" min="0" max={Math.max(10,safeScore)} step="1" value={safeScore} onChange={event=>onChange(event.target.value)}/>
+    <span className="vertical-score-track" aria-hidden="true"><i style={{bottom:`${safeScore/maxScore*100}%`}}/></span>
    </div>
    <button type="button" aria-label={`Bajar goles de ${team}`} onClick={()=>onAdjust(-1)}><Minus/></button>
   </div>
