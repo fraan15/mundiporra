@@ -260,7 +260,7 @@ app.get("/api/teams/:id/detail", requireAuth, (req, res) => {
   manualStats.goal_difference = manualStats.goals_for - manualStats.goals_against;
   manualStats.points = manualStats.won * 3 + manualStats.drawn;
   manualStats.win_percentage = manualStats.played ? Math.round(manualStats.won / manualStats.played * 100) : 0;
-  const manualRecentMatches = storedMatches.slice(0, 5).map((match) => {
+  const manualRecentMatches = storedMatches.slice(0, 10).map((match) => {
     const home = match.team1_id === team.id;
     const goals_for = home ? match.result_team1 : match.result_team2;
     const goals_against = home ? match.result_team2 : match.result_team1;

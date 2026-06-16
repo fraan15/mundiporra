@@ -146,7 +146,7 @@ function referenceStatsForTeam(catalog, team) {
   stats.goal_difference = stats.goals_for - stats.goals_against;
   stats.points = stats.won * 3 + stats.drawn;
   stats.win_percentage = stats.played ? Math.round(stats.won / stats.played * 100) : 0;
-  const recent_matches = playedMatches.slice(0, 5).map((match) => {
+  const recent_matches = playedMatches.slice(0, 10).map((match) => {
     const home = match.team1.fifa_code === team.fifa_code;
     const goals_for = home ? match.score.ft[0] : match.score.ft[1];
     const goals_against = home ? match.score.ft[1] : match.score.ft[0];
