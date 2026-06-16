@@ -318,7 +318,7 @@ app.get("/api/matches", requireAuth, (req, res) => {
   const matches = db.prepare(`
     SELECT m.*, COUNT(bettor.id) prediction_count,
       mine.id prediction_id, mine.predicted_winner, mine.predicted_team1_goals, mine.predicted_team2_goals,
-      mine.predicted_scorer_id,mine.winner_points, mine.exact_result_points,mine.scorer_points,mine.total_points,mine.scoring_multiplier
+      mine.predicted_scorer_id,mine.winner_points, mine.exact_result_points,mine.scorer_points,mine.total_points
     FROM matches m
     LEFT JOIN predictions p ON p.match_id=m.id
     LEFT JOIN users bettor ON bettor.id=p.user_id AND bettor.role='user'
@@ -447,6 +447,100 @@ const userStats = (userId) => {
   };
 };
 
+const pointsDetail = (userId, stats) => {
+  const predictions = db.prepare(`
+    SELECT p.id,p.predicted_winner,p.predicted_team1_goals,p.predicted_team2_goals,
+      p.winner_points,p.exact_result_points,p.scorer_points,p.total_points,p.scoring_multiplier,
+      p.predicted_scorer_id,player.name predicted_scorer_name,
+      m.id match_id,m.team1,m.team2,m.match_date,m.match_time,m.status,m.winner,
+      m.result_team1,m.result_team2,m.is_star,m.scorer_enabled
+    FROM predictions p
+    JOIN matches m ON m.id=p.match_id
+    LEFT JOIN players player ON player.id=p.predicted_scorer_id
+    WHERE p.user_id=? AND m.status='finished'
+    ORDER BY m.match_date DESC,m.match_time DESC,m.id DESC
+  `).all(userId);
+  const adjustments = db.prepare(`
+    SELECT a.id,a.points,a.reason,a.created_at,u.username created_by_username
+    FROM points_adjustments a
+    LEFT JOIN users u ON u.id=a.created_by
+    WHERE a.user_id=?
+    ORDER BY a.created_at DESC,a.id DESC
+  `).all(userId);
+  const winnerLabel = (prediction, match) => {
+    if (prediction === "draw") return "Empate";
+    if (prediction === "team1") return match.team1;
+    if (prediction === "team2") return match.team2;
+    return "Sin ganador";
+  };
+  const rule = (label, points, explanation, matched) => ({
+    label,
+    points: Number(points || 0),
+    base_points: Number(points || 0) / Number(explanation.multiplier || 1),
+    matched,
+    text: explanation.text
+  });
+  const matchRows = predictions.map((match) => {
+    const multiplier = Number(match.scoring_multiplier || 1);
+    const rules = [
+      rule("Ganador", match.winner_points, {
+        multiplier,
+        text: match.winner_points > 0
+          ? `Acerto el signo: ${winnerLabel(match.predicted_winner, match)}.`
+          : `No acerto el signo. Pronostico ${winnerLabel(match.predicted_winner, match)} y salio ${winnerLabel(match.winner, match)}.`
+      }, Number(match.winner_points || 0) > 0),
+      rule("Resultado exacto", match.exact_result_points, {
+        multiplier,
+        text: match.exact_result_points > 0
+          ? `Acerto el marcador exacto ${match.result_team1}-${match.result_team2}.`
+          : `Pronostico ${match.predicted_team1_goals}-${match.predicted_team2_goals}; resultado real ${match.result_team1}-${match.result_team2}.`
+      }, Number(match.exact_result_points || 0) > 0),
+      rule("Goleador", match.scorer_points, {
+        multiplier,
+        text: !match.scorer_enabled
+          ? "Este partido no tenia puntuacion de goleador."
+          : match.scorer_points > 0
+            ? `Acerto el goleador elegido: ${match.predicted_scorer_name || "Sin goleador"}.`
+            : `No sumo por goleador${match.predicted_scorer_name ? ` con ${match.predicted_scorer_name}` : ""}.`
+      }, Number(match.scorer_points || 0) > 0)
+    ];
+    const baseTotal = rules.reduce((total, item) => total + item.base_points, 0);
+    return {
+      id: match.id,
+      match_id: match.match_id,
+      team1: match.team1,
+      team2: match.team2,
+      match_date: match.match_date,
+      match_time: match.match_time,
+      result: `${match.result_team1}-${match.result_team2}`,
+      prediction: `${match.predicted_team1_goals}-${match.predicted_team2_goals}`,
+      predicted_winner_label: winnerLabel(match.predicted_winner, match),
+      real_winner_label: winnerLabel(match.winner, match),
+      predicted_scorer_name: match.predicted_scorer_name,
+      is_star: Boolean(match.is_star),
+      multiplier,
+      base_total: baseTotal,
+      total_points: Number(match.total_points || 0),
+      rules,
+      formula: multiplier > 1 ? `${baseTotal} base x ${multiplier} = ${match.total_points}` : `${baseTotal} = ${match.total_points}`
+    };
+  });
+  const automaticTotal = matchRows.reduce((total, match) => total + match.total_points, 0);
+  const adjustmentTotal = adjustments.reduce((total, adjustment) => total + Number(adjustment.points || 0), 0);
+  return {
+    total_points: Number(stats?.total_points || 0),
+    automatic_points: automaticTotal,
+    adjustment_points: adjustmentTotal,
+    winner_points: Number(stats?.winner_points || 0),
+    exact_result_points: Number(stats?.exact_result_points || 0),
+    scorer_points: Number(stats?.scorer_points || 0),
+    matches_with_points: matchRows.filter((match) => match.total_points > 0).length,
+    finished_matches: matchRows.length,
+    matches: matchRows,
+    adjustments
+  };
+};
+
 app.get("/api/dashboard", requireAuth, (req, res) => {
   saveRankingSnapshot();
   const stats = userStats(req.user.id) || {
@@ -502,15 +596,19 @@ app.get("/api/dashboard/calendar", requireAuth, (req, res) => {
   res.json(serializeMatches(matches));
 });
 
-app.get("/api/profile/me", requireAuth, (req, res) => res.json({
-  user: req.user.is_read_only ? safeUser(req.user) : safeUser(db.prepare("SELECT * FROM users WHERE id=?").get(req.user.id)),
-  stats: userStats(req.user.id) || {
+app.get("/api/profile/me", requireAuth, (req, res) => {
+  const stats = userStats(req.user.id) || {
     position: "—", total_points: 0, predicted_matches: 0, winner_hits: 0, exact_hits: 0,
     average_points: 0, winner_percentage: 0, exact_percentage: 0, best_day: null,
     worst_day: null, most_picked_team: "—", best_team: "—", daily: [], badges: []
-  },
-  history: db.prepare("SELECT snapshot_date date,position,points FROM ranking_snapshots WHERE user_id=? ORDER BY snapshot_date").all(req.user.id)
-}));
+  };
+  res.json({
+    user: req.user.is_read_only ? safeUser(req.user) : safeUser(db.prepare("SELECT * FROM users WHERE id=?").get(req.user.id)),
+    stats,
+    points_detail: pointsDetail(req.user.id, stats),
+    history: db.prepare("SELECT snapshot_date date,position,points FROM ranking_snapshots WHERE user_id=? ORDER BY snapshot_date").all(req.user.id)
+  });
+});
 app.patch("/api/profile/me", requireAuth, requireWritableUser, (req, res) => {
   const phrase = String(req.body.personal_phrase || "").trim().slice(0, 120);
   db.prepare("UPDATE users SET personal_phrase=?,updated_at=? WHERE id=?").run(phrase, now(), req.user.id);
@@ -598,7 +696,8 @@ app.get("/api/users/:id/public", requireAuth, (req, res) => {
     FROM predictions p JOIN matches m ON m.id=p.match_id
     WHERE p.user_id=? AND (m.status!='open' OR m.auto_close_at<=?) ORDER BY m.match_date DESC,m.match_time DESC
   `).all(user.id, now());
-  res.json({ user: { ...user, avatar_url: avatarUrl(user) }, stats: userStats(user.id), predictions, history: db.prepare("SELECT snapshot_date date,position,points FROM ranking_snapshots WHERE user_id=? ORDER BY snapshot_date").all(user.id) });
+  const stats = userStats(user.id);
+  res.json({ user: { ...user, avatar_url: avatarUrl(user) }, stats, points_detail: pointsDetail(user.id, stats), predictions, history: db.prepare("SELECT snapshot_date date,position,points FROM ranking_snapshots WHERE user_id=? ORDER BY snapshot_date").all(user.id) });
 });
 
 app.get("/api/activity", requireAuth, (req, res) => {

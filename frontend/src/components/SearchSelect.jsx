@@ -40,7 +40,7 @@ export function SearchSelect({
     setQuery("");
     setOpen(false);
     setActiveIndex(0);
-    rootRef.current?.querySelector("input")?.blur();
+    setTimeout(() => rootRef.current?.querySelector("input")?.blur(), 0);
   };
   const onKeyDown = (event) => {
     if (event.key === "Escape") {
@@ -98,7 +98,7 @@ export function SearchSelect({
           className={index === activeIndex ? "active" : ""}
           key={item.id}
           onMouseEnter={() => setActiveIndex(index)}
-          onClick={() => select(item)}
+          onPointerDown={(event) => { event.preventDefault(); select(item); }}
         >
           {renderItem ? renderItem(item) : <><strong>{item.name}</strong><small>{item.city || item.position || ""}</small></>}
         </button>

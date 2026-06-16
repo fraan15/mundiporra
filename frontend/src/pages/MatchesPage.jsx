@@ -7,6 +7,9 @@ import { useAuth } from "../App";
 
 const dateKey = (date) => date.toLocaleDateString("sv-SE");
 const HISTORY_DEFAULT_LIMIT = 8;
+const monthLabel = (date) => date.toLocaleDateString("es-ES",{month:"long",year:"numeric"});
+const parseDate = (value) => value ? new Date(`${value}T12:00:00`) : new Date();
+const addMonths = (date, amount) => new Date(date.getFullYear(), date.getMonth() + amount, 1);
 
 export function MatchesPage() {
   const { user } = useAuth();
@@ -15,6 +18,8 @@ export function MatchesPage() {
   const [openSection,setOpenSection]=useState(null);
   const [carouselIndexes,setCarouselIndexes]=useState({});
   const [historyDate,setHistoryDate]=useState(""),[historyTeamId,setHistoryTeamId]=useState("");
+  const [historyCalendarOpen,setHistoryCalendarOpen]=useState(false),[historyCalendarMonth,setHistoryCalendarMonth]=useState(()=>new Date());
+  const historyCalendarRef=useRef(null);
   const swipeStart=useRef(null);
   const load=async()=>{setMatches(await api("/matches"));setLoading(false)};
   useEffect(()=>{load();const timer=setInterval(load,30000);return()=>clearInterval(timer)},[]);
@@ -61,6 +66,13 @@ export function MatchesPage() {
   ];
 
   useEffect(()=>{setCarouselIndex("history-tab",0)},[historyDate,historyTeamId]);
+  useEffect(()=>{
+    const closeCalendar=(event)=>{
+      if(!historyCalendarRef.current?.contains(event.target))setHistoryCalendarOpen(false);
+    };
+    document.addEventListener("pointerdown",closeCalendar);
+    return()=>document.removeEventListener("pointerdown",closeCalendar);
+  },[]);
 
   const selectTab=(id)=>{
     setActiveTab(id);
@@ -97,9 +109,23 @@ export function MatchesPage() {
     ? renderCarousel(sectionId,items,options)
     : <p className="empty-state">{emptyText}</p>}
   </div>;
+  const renderHistoryCalendar=()=> {
+    const monthStart=new Date(historyCalendarMonth.getFullYear(),historyCalendarMonth.getMonth(),1);
+    const monthEnd=new Date(historyCalendarMonth.getFullYear(),historyCalendarMonth.getMonth()+1,0);
+    const blankDays=(monthStart.getDay()+6)%7;
+    const days=Array.from({length:monthEnd.getDate()},(_,index)=>new Date(historyCalendarMonth.getFullYear(),historyCalendarMonth.getMonth(),index+1));
+    return <div className="history-date-picker" ref={historyCalendarRef}>
+      <button type="button" className="history-date-input" onClick={()=>{setHistoryCalendarMonth(parseDate(historyDate));setHistoryCalendarOpen(!historyCalendarOpen)}}>{historyDate?parseDate(historyDate).toLocaleDateString("es-ES"):"Seleccionar fecha"}</button>
+      {historyCalendarOpen&&<div className="history-calendar-popover">
+        <header><button type="button" aria-label="Mes anterior" onClick={()=>setHistoryCalendarMonth(addMonths(historyCalendarMonth,-1))}><ArrowLeft size={15}/></button><strong>{monthLabel(historyCalendarMonth)}</strong><button type="button" aria-label="Mes siguiente" onClick={()=>setHistoryCalendarMonth(addMonths(historyCalendarMonth,1))}><ArrowRight size={15}/></button></header>
+        <div className="history-calendar-weekdays">{["L","M","X","J","V","S","D"].map(day=><span key={day}>{day}</span>)}</div>
+        <div className="history-calendar-days">{Array.from({length:blankDays},(_,index)=><i key={`blank-${index}`}/>)}{days.map(day=>{const value=dateKey(day);return <button type="button" className={value===historyDate?"active":""} key={value} onClick={()=>{setHistoryDate(value);setHistoryCalendarOpen(false)}}>{day.getDate()}</button>})}</div>
+      </div>}
+    </div>;
+  };
   const renderHistoryFilters=()=> {
     return <section className="history-match-filters" aria-label="Filtros del histórico de partidos">
-      <label><span>Fecha</span><input type="date" value={historyDate} onChange={event=>{setHistoryDate(event.target.value);event.target.blur()}}/></label>
+      <label><span>Fecha</span>{renderHistoryCalendar()}</label>
       <label><span>Selección</span><SearchSelect label="Buscar selección" items={historyTeams} value={historyTeamId} onChange={team=>setHistoryTeamId(team?.id||"")} placeholder="Buscar selección..." renderItem={team=><><strong>{team.flag_icon} {team.name}</strong><small>{team.fifa_code||"Selección"}</small></>}/></label>
       {historyFiltersActive&&<button type="button" className="history-clear-filters" onClick={()=>{setHistoryDate("");setHistoryTeamId("")}}><X size={16}/>Limpiar</button>}
       <small>{visibleHistorical.length} de {historical.length} partido{historical.length===1?"":"s"}</small>
