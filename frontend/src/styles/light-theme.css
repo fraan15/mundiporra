@@ -534,7 +534,37 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
   background:rgba(255,246,224,.7);
   color:#815b20;
 }
-.next-match-prediction span{color:#80666b}
+.next-match-prediction>.prediction-label{color:#80666b}
+.dashboard-prediction-value{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  min-width:0;
+  max-width:58%;
+  color:inherit;
+  font-size:inherit;
+  font-weight:inherit;
+  letter-spacing:0;
+  text-align:right;
+  text-transform:none;
+}
+.live-match-info .dashboard-prediction-value{align-items:flex-start;max-width:145px;text-align:left}
+.dashboard-prediction-value strong{line-height:1.05}
+.prediction-scorer{
+  display:block;
+  width:100%;
+  min-height:13px;
+  margin-top:2px;
+  overflow:hidden;
+  color:var(--muted);
+  font-size:10px;
+  font-style:normal;
+  font-weight:800;
+  line-height:13px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.prediction-scorer.has-scorer{color:inherit;opacity:.78}
 .next-match-prediction.no-prediction strong{color:#815b20}
 .countdown{
   border:1px solid rgba(142,48,63,.12);
@@ -560,7 +590,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 [data-theme="dark"] .live-match-info>span:nth-child(2),[data-theme="dark"] .next-match-prediction{border-color:rgba(237,135,151,.12);background:rgba(255,255,255,.045);box-shadow:none}
 [data-theme="dark"] .live-match-info .has-prediction,[data-theme="dark"] .next-match-prediction.has-prediction{border-color:rgba(93,195,146,.18);background:rgba(48,126,89,.16);color:#8ed7b2}
 [data-theme="dark"] .live-match-info .no-prediction,[data-theme="dark"] .next-match-prediction.no-prediction{border-color:rgba(224,173,93,.18);background:rgba(154,104,31,.15);color:#e6bd7b}
-[data-theme="dark"] .next-match-prediction span{color:#b9c4d3}
+[data-theme="dark"] .next-match-prediction>.prediction-label{color:#b9c4d3}
 [data-theme="dark"] .next-match-prediction.no-prediction strong{color:#e6bd7b}
 [data-theme="dark"] .countdown{border-color:rgba(237,135,151,.14);background:rgba(170,45,68,.12);color:#c5cfdd}
 [data-theme="dark"] .countdown svg,[data-theme="dark"] .countdown strong{color:#f09aae}
