@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Activity, ArrowLeft, BarChart3, Check, ChevronDown, ChevronLeft, ChevronRight, Edit3, Goal, Info, MessageCircle, Minus, Plus, Save, Send, Shield, Star, Trash2, Trophy, Users, X } from "lucide-react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
@@ -51,9 +51,15 @@ export function ProfilePage(){
 }
 function StatsSections({stats:s,history=[]}){return <><div className="insight-grid">{[["Ganadores acertados",`${s.winner_percentage}%`],["Resultados exactos",`${s.exact_percentage}%`],["Mejor jornada",s.best_day?`${s.best_day.points} pts`:"—"],["Peor jornada",s.worst_day?`${s.worst_day.points} pts`:"—"],["Equipo más elegido",s.most_picked_team],["Equipo más rentable",s.best_team]].map(([k,v])=><article className="content-card" key={k}><span>{k}</span><strong>{v}</strong></article>)}</div><div className="chart-grid"><section className="content-card"><h2>Puntos por día</h2><MiniChart data={s.daily}/></section><section className="content-card"><h2>Evolución de posición</h2><MiniChart data={history} field="position" inverse/></section></div></>}
 export function PublicProfilePage(){
-  const {id}=useParams(),navigate=useNavigate(),[data,setData]=useState(null);useEffect(()=>{api(`/users/${id}/public`).then(setData)},[id]);
-  if(!data)return <div className="page-loader"><span/></div>;const s=data.stats;
-  return <div className="page"><button className="back-btn" onClick={()=>navigate(-1)}><ArrowLeft size={16}/>Volver</button><section className="profile-hero public"><Avatar user={data.user} className="profile-avatar"/><div><span className="eyebrow">FICHA DEPORTIVA</span><h1>{data.user.username}</h1><blockquote>“{data.user.personal_phrase||"Todavía sin frase personal."}”</blockquote></div><b>#{s.position}</b></section><StatCards s={s}/><StatsSections stats={s} history={data.history}/><section className="content-card"><h2>Medallas</h2><Badges badges={s.badges}/></section><section className="content-card"><h2>Historial visible</h2><div className="prediction-history">{data.predictions.map(p=><div key={p.id}><span>{p.match_date}</span><strong><Flag team={p.team1}/>{p.team1} {p.predicted_team1_goals}–{p.predicted_team2_goals} {p.team2}<Flag team={p.team2}/></strong><b>+{p.total_points}</b></div>)}</div></section></div>
+  const {id}=useParams(),navigate=useNavigate(),[data,setData]=useState(null),[historyPage,setHistoryPage]=useState(1);
+  const pageSize=5;
+  useEffect(()=>{setHistoryPage(1);api(`/users/${id}/public`).then(setData)},[id]);
+  const predictions=useMemo(()=>[...(data?.predictions||[])].sort((a,b)=>{
+    const dateCompare=new Date(`${b.match_date}T${b.match_time||"00:00:00"}`)-new Date(`${a.match_date}T${a.match_time||"00:00:00"}`);
+    return dateCompare||b.id-a.id;
+  }),[data?.predictions]);
+  if(!data)return <div className="page-loader"><span/></div>;const s=data.stats,totalHistoryPages=Math.max(1,Math.ceil(predictions.length/pageSize)),visiblePredictions=predictions.slice((historyPage-1)*pageSize,historyPage*pageSize);
+  return <div className="page"><button className="back-btn" onClick={()=>navigate(-1)}><ArrowLeft size={16}/>Volver</button><section className="profile-hero public"><Avatar user={data.user} className="profile-avatar"/><div><span className="eyebrow">FICHA DEPORTIVA</span><h1>{data.user.username}</h1><blockquote>“{data.user.personal_phrase||"Todavía sin frase personal."}”</blockquote></div><b>#{s.position}</b></section><StatCards s={s}/><StatsSections stats={s} history={data.history}/><section className="content-card"><h2>Medallas</h2><Badges badges={s.badges}/></section><section className="content-card"><h2>Historial visible</h2><div className="prediction-history">{visiblePredictions.map(p=><div key={p.id}><span>{p.match_date}</span><strong><Flag team={p.team1}/>{p.team1} {p.predicted_team1_goals}–{p.predicted_team2_goals} {p.team2}<Flag team={p.team2}/></strong><b>+{p.total_points}</b></div>)}</div>{totalHistoryPages>1&&<nav className="pagination" aria-label="Paginación del historial visible"><button disabled={historyPage===1} onClick={()=>setHistoryPage(historyPage-1)}><ChevronLeft/>Anterior</button><span>Página {historyPage} de {totalHistoryPages}</span><button disabled={historyPage===totalHistoryPages} onClick={()=>setHistoryPage(historyPage+1)}>Siguiente<ChevronRight/></button></nav>}</section></div>
 }
 export function ActivityPage(){
  const [data,setData]=useState({items:[],page:1,total_pages:1});const load=page=>api(`/activity?page=${page}&page_size=10`).then(response=>setData(Array.isArray(response)?{items:response,page:1,total_pages:1}:response));useEffect(()=>{load(1)},[]);

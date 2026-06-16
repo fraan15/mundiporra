@@ -473,6 +473,20 @@ app.get("/api/dashboard", requireAuth, (req, res) => {
   });
 });
 
+app.get("/api/dashboard/calendar", requireAuth, (req, res) => {
+  const matches = db.prepare(`
+    SELECT m.*, COUNT(bettor.id) prediction_count,
+      mine.id prediction_id, mine.predicted_winner, mine.predicted_team1_goals, mine.predicted_team2_goals,
+      mine.predicted_scorer_id,mine.winner_points, mine.exact_result_points,mine.scorer_points,mine.total_points
+    FROM matches m
+    LEFT JOIN predictions p ON p.match_id=m.id
+    LEFT JOIN users bettor ON bettor.id=p.user_id AND bettor.role='user'
+    LEFT JOIN predictions mine ON mine.match_id=m.id AND mine.user_id=?
+    GROUP BY m.id ORDER BY m.match_date,m.match_time
+  `).all(req.user.id);
+  res.json(serializeMatches(matches));
+});
+
 app.get("/api/profile/me", requireAuth, (req, res) => res.json({
   user: safeUser(db.prepare("SELECT * FROM users WHERE id=?").get(req.user.id)),
   stats: userStats(req.user.id) || {

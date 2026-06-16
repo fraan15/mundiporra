@@ -624,6 +624,8 @@ test("los partidos se publican 24 horas antes salvo publicación forzada", async
   assert.equal(created.status, 201);
   assert.equal(created.body.published, false);
   assert.equal((await user.get("/api/matches")).body.some((match) => match.id === created.body.id), false);
+  const calendar = await user.get("/api/dashboard/calendar");
+  assert.equal(calendar.body.some((match) => match.id === created.body.id && match.published === false), true);
   assert.equal((await user.get(`/api/matches/${created.body.id}/detail`)).status, 404);
   assert.equal((await user.post("/api/predictions").send({
     match_id: created.body.id,

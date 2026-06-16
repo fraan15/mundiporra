@@ -18,6 +18,7 @@ const dayTitle = (date, index) => {
   return date.toLocaleDateString("es-ES", { weekday: "long", day: "numeric" });
 };
 const hasResult = (match) => match.result_team1 !== null && match.result_team2 !== null;
+const COLLAPSED_CALENDAR_MATCH_LIMIT = 4;
 
 function DashboardCalendar({ matches, expanded, onExpand, onCollapse }) {
   const today = new Date();
@@ -30,7 +31,13 @@ function DashboardCalendar({ matches, expanded, onExpand, onCollapse }) {
     };
   });
   const total = days.reduce((sum, day) => sum + day.matches.length, 0);
-  const visibleDays = expanded ? days : days.filter(day => day.matches.length).slice(0, 2);
+  const visibleDays = expanded ? days : days.reduce((visible, day) => {
+    const shownCount = visible.reduce((sum, visibleDay) => sum + visibleDay.visibleMatches.length, 0);
+    const remaining = COLLAPSED_CALENDAR_MATCH_LIMIT - shownCount;
+    if (remaining <= 0) return visible;
+    const visibleMatches = day.matches.slice(0, remaining);
+    return visibleMatches.length ? [...visible, { ...day, visibleMatches }] : visible;
+  }, []);
   const handleKeyDown = (event) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
@@ -46,7 +53,7 @@ function DashboardCalendar({ matches, expanded, onExpand, onCollapse }) {
     <div className="calendar-days">
       {visibleDays.length ? visibleDays.map(day => <article className="calendar-day" key={day.key}>
         <h3>{day.title}</h3>
-        <div>{day.matches.length ? day.matches.slice(0, expanded ? undefined : 2).map(match => <div className="calendar-match" key={match.id}>
+        <div>{day.matches.length ? (expanded ? day.matches : day.visibleMatches).map(match => <div className="calendar-match" key={match.id}>
           <span className="calendar-team home"><strong>{match.team1}</strong><Flag team={match.team1} teamData={match.team1_team}/></span>
           <b>{hasResult(match) ? `${match.result_team1} - ${match.result_team2}` : match.match_time}</b>
           <span className="calendar-team away"><Flag team={match.team2} teamData={match.team2_team}/><strong>{match.team2}</strong></span>
@@ -61,7 +68,7 @@ export function DashboardPage() {
   const {user}=useAuth(),navigate=useNavigate(),[data,setData]=useState(null),[activity,setActivity]=useState([]),[calendarMatches,setCalendarMatches]=useState([]),[calendarExpanded,setCalendarExpanded]=useState(false),[tick,setTick]=useState(Date.now()),[matchIndex,setMatchIndex]=useState(0),[liveMatchIndex,setLiveMatchIndex]=useState(0);
   const swipeStart=useRef(null),liveSwipeStart=useRef(null);
   const loadDashboard=()=>api("/dashboard").then(setData);
-  useEffect(()=>{Promise.all([api("/dashboard"),api("/activity?page=1&page_size=5"),api("/matches")]).then(([d,a,matches])=>{setData(d);setActivity(Array.isArray(a)?a.slice(0,5):a.items);setCalendarMatches(matches)});const tickTimer=setInterval(()=>setTick(Date.now()),1000);const refreshTimer=setInterval(loadDashboard,15000);const matchesTimer=setInterval(()=>api("/matches").then(setCalendarMatches),30000);return()=>{clearInterval(tickTimer);clearInterval(refreshTimer);clearInterval(matchesTimer)}},[]);
+  useEffect(()=>{Promise.all([api("/dashboard"),api("/activity?page=1&page_size=5"),api("/dashboard/calendar")]).then(([d,a,matches])=>{setData(d);setActivity(Array.isArray(a)?a.slice(0,5):a.items);setCalendarMatches(matches)});const tickTimer=setInterval(()=>setTick(Date.now()),1000);const refreshTimer=setInterval(loadDashboard,15000);const matchesTimer=setInterval(()=>api("/dashboard/calendar").then(setCalendarMatches),30000);return()=>{clearInterval(tickTimer);clearInterval(refreshTimer);clearInterval(matchesTimer)}},[]);
   if(!data)return <div className="page-loader"><span/></div>;
   const s=data.summary,inPlayMatches=data.in_play_matches||[],nextMatches=data.next_matches||[],m=nextMatches[matchIndex]||data.next_match,remaining=m?Math.max(0,new Date(m.effective_close_at)-tick):0;
   const countdown=remaining?`${Math.floor(remaining/86400000)}d ${Math.floor(remaining%86400000/3600000)}h ${Math.floor(remaining%3600000/60000)}m`:"Cerrado";
