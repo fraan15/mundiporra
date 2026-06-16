@@ -6,7 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import { db, initDatabase, logAction, now, settings } from "./db/database.js";
-import { hydrateUser, requireAdmin, requireAuth } from "./middleware/auth.js";
+import { READ_ONLY_USER, hydrateUser, requireAdmin, requireAuth, requireWritableUser } from "./middleware/auth.js";
 import { autoCloseExpired, calculateWinner, effectiveCloseAt, isExpired, recalculateAll, recalculateMatch } from "./services/matches.js";
 import { createNotification, leaderboardRows, notifyAll, notifyAllExcept, notifyNewTopThree, saveRankingSnapshot } from "./services/notifications.js";
 import { NO_SCORER, NO_SCORER_ID, parseScorerList, parseScorerSelection, serializeActualScorers, serializePredictedScorer } from "./services/scorers.js";
@@ -84,7 +84,7 @@ app.use(hydrateUser);
 app.use("/api", (req, _res, next) => { if (!req.path.startsWith("/auth")) autoCloseExpired(); next(); });
 
 const avatarUrl = (user) => user?.avatar_filename ? `/avatars/${user.avatar_filename}` : null;
-const safeUser = (user) => user && ({ id: user.id, username: user.username, role: user.role, active: user.active, personal_phrase: user.personal_phrase || "", avatar_url: avatarUrl(user), created_at: user.created_at });
+const safeUser = (user) => user && ({ id: user.id, username: user.username, role: user.role, active: user.active, is_read_only: Boolean(user.is_read_only), personal_phrase: user.personal_phrase || "", avatar_url: avatarUrl(user), created_at: user.created_at });
 const parseIntField = (value) => Number.isInteger(Number(value)) && Number(value) >= 0 ? Number(value) : null;
 const MATCH_TIME_ZONE = "Europe/Madrid";
 const madridDateTimeToIso = (value) => {
@@ -153,7 +153,13 @@ const matchStartsAt = (match) => new Date(normalizeMatchInstant(`${match.match_d
 const matchPublishesAt = (match) => new Date(matchStartsAt(match).getTime() - 24 * 60 * 60 * 1000);
 const isMatchPublished = (match, current = new Date()) => Boolean(match.force_published) || current >= matchPublishesAt(match);
 const canAccessMatch = (req, match) => req.user.role === "admin" || isMatchPublished(match);
-const isMatchInPlay = (match, current = new Date()) => match.status !== "finished" && current >= matchStartsAt(match);
+const isMatchInPlay = (match, current = new Date()) => {
+  if (match.status === "finished") return false;
+  if (match.match_date !== dateInTimeZone(current)) return false;
+  const startedAt = matchStartsAt(match);
+  const elapsed = current - startedAt;
+  return elapsed >= 0 && elapsed < 24 * 60 * 60 * 1000;
+};
 const rowsById = (table, ids, columns = "*") => {
   const uniqueIds = [...new Set(ids.filter(Boolean).map(Number))];
   if (!uniqueIds.length) return new Map();
@@ -205,10 +211,18 @@ const selectedMatchEntities = (data) => {
 };
 
 app.post("/api/auth/login", (req, res) => {
-  const user = db.prepare("SELECT * FROM users WHERE username=? COLLATE NOCASE").get(String(req.body.username || "").trim());
-  if (!user || !user.active || user.password !== String(req.body.password || "")) {
+  const username = String(req.body.username || "").trim();
+  const password = String(req.body.password || "");
+  if (username.toLowerCase() === READ_ONLY_USER.username && password === (process.env.READ_ONLY_PASSWORD || "mundial2026")) {
+    req.session.userId = null;
+    req.session.readOnlyUser = true;
+    return res.json({ user: safeUser(READ_ONLY_USER) });
+  }
+  const user = db.prepare("SELECT * FROM users WHERE username=? COLLATE NOCASE").get(username);
+  if (!user || !user.active || user.password !== password) {
     return res.status(401).json({ error: "Usuario o contraseña incorrectos, o cuenta desactivada." });
   }
+  req.session.readOnlyUser = false;
   req.session.userId = user.id;
   res.json({ user: safeUser(user) });
 });
@@ -464,7 +478,8 @@ app.get("/api/dashboard", requireAuth, (req, res) => {
   ).length;
   const serializedUnfinished = serializeMatches(unfinishedMatches);
   const inPlayMatches = serializedUnfinished.filter((match) => match.in_play);
-  const nextMatches = serializedUnfinished.filter((match) => match.status === "open" && !match.in_play);
+  const current = new Date();
+  const nextMatches = serializedUnfinished.filter((match) => !match.in_play && matchStartsAt(match) > current);
   res.json({
     summary: { ...stats, today_points: todayPoints, pending },
     in_play_matches: inPlayMatches,
@@ -488,7 +503,7 @@ app.get("/api/dashboard/calendar", requireAuth, (req, res) => {
 });
 
 app.get("/api/profile/me", requireAuth, (req, res) => res.json({
-  user: safeUser(db.prepare("SELECT * FROM users WHERE id=?").get(req.user.id)),
+  user: req.user.is_read_only ? safeUser(req.user) : safeUser(db.prepare("SELECT * FROM users WHERE id=?").get(req.user.id)),
   stats: userStats(req.user.id) || {
     position: "—", total_points: 0, predicted_matches: 0, winner_hits: 0, exact_hits: 0,
     average_points: 0, winner_percentage: 0, exact_percentage: 0, best_day: null,
@@ -496,7 +511,7 @@ app.get("/api/profile/me", requireAuth, (req, res) => res.json({
   },
   history: db.prepare("SELECT snapshot_date date,position,points FROM ranking_snapshots WHERE user_id=? ORDER BY snapshot_date").all(req.user.id)
 }));
-app.patch("/api/profile/me", requireAuth, (req, res) => {
+app.patch("/api/profile/me", requireAuth, requireWritableUser, (req, res) => {
   const phrase = String(req.body.personal_phrase || "").trim().slice(0, 120);
   db.prepare("UPDATE users SET personal_phrase=?,updated_at=? WHERE id=?").run(phrase, now(), req.user.id);
   res.json(safeUser(db.prepare("SELECT * FROM users WHERE id=?").get(req.user.id)));
@@ -504,6 +519,7 @@ app.patch("/api/profile/me", requireAuth, (req, res) => {
 app.put(
   "/api/profile/avatar",
   requireAuth,
+  requireWritableUser,
   express.raw({ type: "*/*", limit: "5mb" }),
   async (req, res, next) => {
     try {
@@ -555,7 +571,7 @@ app.put(
     }
   }
 );
-app.delete("/api/profile/avatar", requireAuth, (req, res) => {
+app.delete("/api/profile/avatar", requireAuth, requireWritableUser, (req, res) => {
   const current = db.prepare("SELECT avatar_filename FROM users WHERE id=?").get(req.user.id);
   db.prepare("UPDATE users SET avatar_filename=NULL,updated_at=? WHERE id=?").run(now(), req.user.id);
   if (current?.avatar_filename) {
@@ -563,7 +579,7 @@ app.delete("/api/profile/avatar", requireAuth, (req, res) => {
   }
   res.json(safeUser(db.prepare("SELECT * FROM users WHERE id=?").get(req.user.id)));
 });
-app.patch("/api/profile/password", requireAuth, (req, res) => {
+app.patch("/api/profile/password", requireAuth, requireWritableUser, (req, res) => {
   const currentPassword = String(req.body.current_password || "");
   const newPassword = String(req.body.new_password || "");
   const user = db.prepare("SELECT * FROM users WHERE id=?").get(req.user.id);
@@ -588,16 +604,53 @@ app.get("/api/users/:id/public", requireAuth, (req, res) => {
 app.get("/api/activity", requireAuth, (req, res) => {
   const page = Math.max(Number(req.query.page) || 1, 1);
   const pageSize = Math.min(Math.max(Number(req.query.page_size) || 10, 1), 30);
+  const pointLabel = (points) => `${points} ${points === 1 ? "punto" : "puntos"}`;
+  const pointsBreakdown = (item) => {
+    if (item.type !== "points") return null;
+    const multiplier = Number(item.scoring_multiplier || 1);
+    const rules = [
+      ["Ganador", "acierto de ganador", Number(item.winner_points || 0)],
+      ["Resultado exacto", "acierto exacto", Number(item.exact_result_points || 0)],
+      ["Goleador", "goleador", Number(item.scorer_points || 0)]
+    ].filter(([, , points]) => points > 0);
+    const baseRules = rules.map(([label, description, points]) => ({
+      label,
+      description,
+      points,
+      base_points: points / multiplier,
+      earned_points: points
+    }));
+    const baseTotal = baseRules.reduce((total, rule) => total + rule.base_points, 0);
+    return {
+      is_star: Boolean(item.is_star),
+      multiplier,
+      base_total: baseTotal,
+      total: Number(item.total_points || 0),
+      rules: baseRules,
+      formula: multiplier > 1
+        ? `(${baseRules.map((rule) => rule.base_points).join(" + ")}) x ${multiplier} = ${item.total_points}`
+        : `${baseTotal} = ${item.total_points}`
+    };
+  };
+  const pointsText = (item) => {
+    const hits = [
+      Number(item.winner_points || 0) > 0 && "ganador",
+      Number(item.exact_result_points || 0) > 0 && "resultado exacto",
+      Number(item.scorer_points || 0) > 0 && "goleador"
+    ].filter(Boolean);
+    const hitText = hits.length ? ` por acertar ${hits.join(" + ")}` : "";
+    return `${item.username} ganó ${pointLabel(item.total_points)}${item.is_star ? " en Partido Estrella" : ""}${hitText}`;
+  };
   const items = db.prepare(`
     SELECT * FROM (
       SELECT 'prediction' type,u.username,m.team1,m.team2,NULL total_points,
-        p.created_at,NULL exact_result_points,NULL scorer_points,p.id event_id,m.is_star,1 scoring_multiplier
+        p.created_at,NULL winner_points,NULL exact_result_points,NULL scorer_points,p.id event_id,m.is_star,1 scoring_multiplier
       FROM predictions p
       JOIN users u ON u.id=p.user_id
       JOIN matches m ON m.id=p.match_id
       UNION ALL
       SELECT 'points' type,u.username,m.team1,m.team2,p.total_points,
-        p.updated_at created_at,p.exact_result_points,p.scorer_points,p.id event_id,m.is_star,p.scoring_multiplier
+        p.updated_at created_at,p.winner_points,p.exact_result_points,p.scorer_points,p.id event_id,m.is_star,p.scoring_multiplier
       FROM predictions p
       JOIN users u ON u.id=p.user_id
       JOIN matches m ON m.id=p.match_id
@@ -608,8 +661,9 @@ app.get("/api/activity", requireAuth, (req, res) => {
   `).all().map((item) => ({
     ...item,
     text: item.type === "points"
-      ? `${item.username} ${item.scorer_points > 0 ? `sumó ${item.scorer_points} puntos por adivinar el goleador` : item.exact_result_points > 0 ? "acertó un resultado exacto" : `consiguió ${item.total_points} puntos`}${item.is_star ? ` en un Partido Estrella x2 (${item.total_points / item.scoring_multiplier} ×${item.scoring_multiplier} = ${item.total_points})` : ""}`
-      : `${item.username} registró un pronóstico en ${item.team1} - ${item.team2}`
+      ? pointsText(item)
+      : `${item.username} registró un pronóstico en ${item.team1} - ${item.team2}`,
+    points_breakdown: pointsBreakdown(item)
   }));
   const start = (page - 1) * pageSize;
   res.json({ items: items.slice(start, start + pageSize), page, page_size: pageSize, total: items.length, total_pages: Math.max(1, Math.ceil(items.length / pageSize)) });
@@ -627,7 +681,7 @@ app.get("/api/chat", requireAuth, (_req, res) => {
   `).all();
   res.json(messages.reverse().map((message) => ({ ...message, avatar_url: avatarUrl(message) })));
 });
-app.post("/api/chat", requireAuth, (req, res) => {
+app.post("/api/chat", requireAuth, requireWritableUser, (req, res) => {
   const message = String(req.body.message || "").trim().slice(0, 500);
   const replyToId = req.body.reply_to_id ? Number(req.body.reply_to_id) : null;
   if (!message) return res.status(400).json({ error: "Escribe un mensaje." });
@@ -643,7 +697,7 @@ app.get("/api/chat/status", requireAuth, (req, res) => {
   const unread = db.prepare("SELECT COUNT(*) count FROM chat_messages WHERE id>? AND user_id!=?").get(lastRead, req.user.id).count;
   res.json({ unread, last_read_message_id: lastRead });
 });
-app.post("/api/chat/read", requireAuth, (req, res) => {
+app.post("/api/chat/read", requireAuth, requireWritableUser, (req, res) => {
   const lastMessageId = db.prepare("SELECT COALESCE(MAX(id),0) id FROM chat_messages").get().id;
   db.prepare(`
     INSERT INTO chat_reads(user_id,last_read_message_id,read_at) VALUES(?,?,?)
@@ -703,7 +757,7 @@ app.get("/api/matches/:id/comments", requireAuth, (req, res) => {
   `).all(req.params.id);
   res.json(comments.map((comment) => ({ ...comment, avatar_url: avatarUrl(comment) })));
 });
-app.post("/api/matches/:id/comments", requireAuth, (req, res) => {
+app.post("/api/matches/:id/comments", requireAuth, requireWritableUser, (req, res) => {
   const comment = String(req.body.comment || "").trim().slice(0, 500);
   if (!comment) return res.status(400).json({ error: "Escribe un comentario." });
   const match = db.prepare("SELECT * FROM matches WHERE id=?").get(req.params.id);
@@ -720,13 +774,13 @@ app.post("/api/matches/:id/comments", requireAuth, (req, res) => {
   });
   res.status(201).json({ id: result.lastInsertRowid });
 });
-app.put("/api/comments/:id", requireAuth, (req, res) => {
+app.put("/api/comments/:id", requireAuth, requireWritableUser, (req, res) => {
   const row = db.prepare("SELECT * FROM match_comments WHERE id=?").get(req.params.id);
   if (!row || (row.user_id !== req.user.id && req.user.role !== "admin")) return res.status(403).json({ error: "No puedes editar este comentario." });
   db.prepare("UPDATE match_comments SET comment=?,updated_at=? WHERE id=?").run(String(req.body.comment || "").trim().slice(0,500), now(), row.id);
   res.json({ ok: true });
 });
-app.delete("/api/comments/:id", requireAuth, (req, res) => {
+app.delete("/api/comments/:id", requireAuth, requireWritableUser, (req, res) => {
   const row = db.prepare("SELECT * FROM match_comments WHERE id=?").get(req.params.id);
   if (!row || (row.user_id !== req.user.id && req.user.role !== "admin")) return res.status(403).json({ error: "No puedes eliminar este comentario." });
   db.prepare("DELETE FROM match_comments WHERE id=?").run(row.id); res.json({ ok: true });
@@ -766,6 +820,11 @@ app.put("/api/matches/:id", requireAdmin, (req, res) => {
     Number(before.team2_id || 0) !== Number(entities.team2?.id || 0);
   if (teamsChanged && db.prepare("SELECT 1 FROM predictions WHERE match_id=? LIMIT 1").get(before.id)) {
     return res.status(409).json({ error: "No se pueden cambiar los equipos porque ya existen pronósticos para este partido." });
+  }
+  if (!Number(before.scorer_enabled) && data.scorer_enabled && before.status === "finished" &&
+      Number(before.result_team1 || 0) + Number(before.result_team2 || 0) > 0 &&
+      !db.prepare("SELECT 1 FROM match_scorers WHERE match_id=? LIMIT 1").get(before.id)) {
+    return res.status(409).json({ error: "Guarda primero los goleadores reales antes de activar la regla de goleador en un partido finalizado." });
   }
   db.transaction(() => {
     db.prepare(`UPDATE matches SET match_date=?,match_time=?,stadium=?,team1=?,team2=?,team1_id=?,team2_id=?,
@@ -1031,8 +1090,8 @@ function savePrediction(req, res, predictionId = null) {
   `).run(req.user.id, matchId, winner, g1, g2, predictedScorerId, stamp, stamp);
   res.status(201).json(db.prepare("SELECT * FROM predictions WHERE id=?").get(result.lastInsertRowid));
 }
-app.post("/api/predictions", requireAuth, (req, res) => savePrediction(req, res));
-app.put("/api/predictions/:id", requireAuth, (req, res) => savePrediction(req, res, req.params.id));
+app.post("/api/predictions", requireAuth, requireWritableUser, (req, res) => savePrediction(req, res));
+app.put("/api/predictions/:id", requireAuth, requireWritableUser, (req, res) => savePrediction(req, res, req.params.id));
 
 app.get("/api/notifications", requireAuth, (req, res) => {
   const notifications = db.prepare(`
@@ -1054,13 +1113,13 @@ app.get("/api/notifications", requireAuth, (req, res) => {
   const unread = db.prepare("SELECT COUNT(*) count FROM notifications WHERE user_id=? AND read=0").get(req.user.id).count;
   res.json({ notifications, unread });
 });
-app.patch("/api/notifications/:id/read", requireAuth, (req, res) => {
+app.patch("/api/notifications/:id/read", requireAuth, requireWritableUser, (req, res) => {
   const result = db.prepare("UPDATE notifications SET read=1,read_at=? WHERE id=? AND user_id=?")
     .run(now(), req.params.id, req.user.id);
   if (!result.changes) return res.status(404).json({ error: "Notificación no encontrada." });
   res.json({ ok: true });
 });
-app.post("/api/notifications/read-all", requireAuth, (req, res) => {
+app.post("/api/notifications/read-all", requireAuth, requireWritableUser, (req, res) => {
   db.prepare("UPDATE notifications SET read=1,read_at=? WHERE user_id=? AND read=0").run(now(), req.user.id);
   res.json({ ok: true });
 });
@@ -1166,11 +1225,13 @@ app.delete("/api/users/:id", requireAdmin, (req, res) => {
 
 app.post("/api/admin/recalculate", requireAdmin, (req, res) => {
   const count = recalculateAll();
+  saveRankingSnapshot();
   logAction(req.user.id, "recalculate_points", "prediction", null, `Recalculadas ${count} predicciones`);
   res.json({ ok: true, recalculated: count });
 });
 app.post("/api/admin/recalculate/:matchId", requireAdmin, (req, res) => {
   const count = recalculateMatch(req.params.matchId);
+  saveRankingSnapshot();
   logAction(req.user.id, "recalculate_points", "match", Number(req.params.matchId), `Recalculadas ${count} predicciones`);
   res.json({ ok: true, recalculated: count });
 });
@@ -1227,6 +1288,7 @@ const messageOptions = (messageId) => db.prepare(
 ).all(messageId);
 
 app.get("/api/admin-messages/pending", requireAuth, (req, res) => {
+  if (req.user.is_read_only) return res.json({ message: null, pending_count: 0 });
   if (req.user.role === "admin") return res.json({ message: null, pending_count: 0 });
   const pending = db.prepare(`
     SELECT m.* FROM admin_messages m
@@ -1247,7 +1309,7 @@ app.get("/api/admin-messages/pending", requireAuth, (req, res) => {
   });
 });
 
-app.post("/api/admin-messages/:id/respond", requireAuth, (req, res) => {
+app.post("/api/admin-messages/:id/respond", requireAuth, requireWritableUser, (req, res) => {
   if (req.user.role === "admin") return res.status(403).json({ error: "Los administradores no responden comunicados." });
   const message = db.prepare("SELECT * FROM admin_messages WHERE id=?").get(req.params.id);
   if (!message) return res.status(404).json({ error: "El comunicado ya no existe." });

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Check, ChevronDown, ChevronRight, Clock3, Minus, Plus, Save, ShieldCheck, Users } from "lucide-react";
 import { api } from "../api/client";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../App";
 import { Flag } from "./SportsUI";
 import { StarMatchTitle, StarPoints } from "./StarMatchTitle";
 import { SearchSelect } from "./SearchSelect";
@@ -50,6 +51,7 @@ function VerticalScoreControl({ team, value, onChange, onAdjust }) {
 
 export function MatchCard({ match, onSaved, verticalScorePicker=false }) {
   const navigate=useNavigate();
+  const { user } = useAuth();
   const [winner, setWinner] = useState(match.predicted_winner || "");
   const [g1, setG1] = useState(match.predicted_team1_goals ?? "");
   const [g2, setG2] = useState(match.predicted_team2_goals ?? "");
@@ -102,8 +104,8 @@ export function MatchCard({ match, onSaved, verticalScorePicker=false }) {
       </div>
       <div className="team right"><span className="flag"><Flag team={match.team2} teamData={match.team2_team}/></span><strong>{match.team2}</strong></div>
     </div>
-    <div className={`participation-state ${match.prediction_id?"joined":"pending"}`}>{match.prediction_id?<span><ShieldCheck size={15}/>Pronóstico registrado</span>:<span><Clock3 size={15}/>Pendiente de pronóstico</span>}{match.betting_open&&<Countdown date={match.effective_close_at}/>}</div>
-    {match.betting_open ? <div className="prediction">
+    <div className={`participation-state ${match.prediction_id?"joined":"pending"}`}>{user.is_read_only?<span><ShieldCheck size={15}/>Vista de espectador</span>:match.prediction_id?<span><ShieldCheck size={15}/>Pronóstico registrado</span>:<span><Clock3 size={15}/>Pendiente de pronóstico</span>}{match.betting_open&&<Countdown date={match.effective_close_at}/>}</div>
+    {match.betting_open && !user.is_read_only ? <div className="prediction">
       <span className="section-label">1. ELIGE EL GANADOR</span>
       <div className="winner-cards">
         <button className={winner==="team1"?"selected":""} onClick={()=>setWinner("team1")}><Flag team={match.team1} teamData={match.team1_team}/><small>LOCAL</small><strong>{match.team1}</strong>{winner==="team1"&&<Check/>}</button>
@@ -117,7 +119,7 @@ export function MatchCard({ match, onSaved, verticalScorePicker=false }) {
       {scorerEnabled&&<div className="scorer-pick"><span className="section-label">3. GOLEADOR DEL PARTIDO</span><SearchSelect items={availableScorers} value={scorerId} onChange={player=>setScorerId(player?.id||null)} placeholder={isNilNil?"Sin goleador":"Buscar jugador..."} label="Goleador del partido" renderItem={player=><><strong>{player.name}</strong><small>{player.team_name} · {player.position}</small></>}/></div>}
       <button className="primary save-prediction" onClick={save} disabled={saving || winner==="" || g1==="" || g2==="" || (scorerEnabled&&Number(g1)+Number(g2)>0&&!scorerId)}><Save size={17}/>{saving?"Guardando...":match.prediction_id?"Guardar cambios":"Guardar resultado"}</button>
       {message && <small className={message.includes("guardada")?"success-text":"error-text"}>{message}</small>}
-    </div> : <div className="locked-prediction"><span>Tu apuesta</span><strong>{match.predicted_winner ? `${match.team1} ${match.predicted_team1_goals} – ${match.predicted_team2_goals} ${match.team2}` : "Sin predicción"}</strong>{match.predicted_scorer&&<small>Goleador: {match.predicted_scorer.name}</small>}{match.status==="finished" && <b><StarPoints match={match} points={match.total_points}/></b>}</div>}
+    </div> : <div className="locked-prediction"><span>{user.is_read_only ? "Modo solo lectura" : "Tu apuesta"}</span><strong>{user.is_read_only ? "Sin participación" : match.predicted_winner ? `${match.team1} ${match.predicted_team1_goals} – ${match.predicted_team2_goals} ${match.team2}` : "Sin predicción"}</strong>{!user.is_read_only&&match.predicted_scorer&&<small>Goleador: {match.predicted_scorer.name}</small>}{!user.is_read_only&&match.status==="finished" && <b><StarPoints match={match} points={match.total_points}/></b>}</div>}
     <button className="reveal-toggle" onClick={toggleReveal}><span><Users size={16}/>{match.prediction_count} participantes</span><span>{match.betting_open ? "Apuestas ocultas hasta el cierre" : "Ver apuestas"}<ChevronDown className={expanded?"rotated":""} size={16}/></span></button>
     {expanded && reveal && <div className="reveal-list">{!reveal.revealed ? <p>{reveal.count ? `${reveal.count} pronóstico${reveal.count===1?"":"s"} registrado${reveal.count===1?"":"s"}. Se revelarán al cierre.` : "Aún no hay participantes."}</p> : reveal.predictions.length ? reveal.predictions.map(p=><div key={p.id}><strong>{p.username}</strong><span>{match.team1} {p.predicted_team1_goals} – {p.predicted_team2_goals} {match.team2}</span>{match.status==="finished"&&<b>{p.total_points} pts</b>}</div>) : <p>Aún no hay apuestas.</p>}</div>}
     <button className="match-detail-link" onClick={()=>navigate(`/match/${match.id}`)}><span>Ver detalles del partido<small>Estadísticas, participantes y comentarios</small></span><ChevronRight size={20}/></button>

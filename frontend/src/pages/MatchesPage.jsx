@@ -1,15 +1,20 @@
-import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, CalendarClock, CheckCircle2, ChevronDown, CircleDot, History } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, ArrowRight, CalendarClock, CheckCircle2, ChevronDown, CircleDot, History, X } from "lucide-react";
 import { api } from "../api/client";
 import { MatchCard } from "../components/MatchCard";
+import { SearchSelect } from "../components/SearchSelect";
+import { useAuth } from "../App";
 
 const dateKey = (date) => date.toLocaleDateString("sv-SE");
+const HISTORY_DEFAULT_LIMIT = 8;
 
 export function MatchesPage() {
+  const { user } = useAuth();
   const initialTab = window.location.hash === "#upcoming" ? "pending" : "matches";
   const [matches,setMatches]=useState([]),[loading,setLoading]=useState(true),[activeTab,setActiveTab]=useState(initialTab);
   const [openSection,setOpenSection]=useState(null);
   const [carouselIndexes,setCarouselIndexes]=useState({});
+  const [historyDate,setHistoryDate]=useState(""),[historyTeamId,setHistoryTeamId]=useState("");
   const swipeStart=useRef(null);
   const load=async()=>{setMatches(await api("/matches"));setLoading(false)};
   useEffect(()=>{load();const timer=setInterval(load,30000);return()=>clearInterval(timer)},[]);
@@ -22,19 +27,40 @@ export function MatchesPage() {
     const elapsed=now-startedAt;
     return elapsed>=0&&elapsed<24*60*60*1000;
   };
-  const pending=matches.filter(m=>m.betting_open&&!m.prediction_id);
+  const pending=user.is_read_only?[]:matches.filter(m=>m.betting_open&&!m.prediction_id);
   const finished=matches.filter(m=>hasResult(m)&&startedLessThan24HoursAgo(m)).reverse();
   const historical=matches.filter(m=>hasResult(m)&&!startedLessThan24HoursAgo(m)).reverse();
+  const pastWithoutResult=matches.filter(m=>!hasResult(m)&&m.match_date<today).reverse();
+  const pastMatches=[...pastWithoutResult,...historical].sort((a,b)=>{
+    const dateCompare=new Date(`${b.match_date}T${b.match_time||"00:00"}`)-new Date(`${a.match_date}T${a.match_time||"00:00"}`);
+    return dateCompare||b.id-a.id;
+  });
+  const historyTeams=useMemo(()=>{
+    const teams=new Map();
+    historical.forEach(match=>{
+      [match.team1_team&&{...match.team1_team,name:match.team1},match.team2_team&&{...match.team2_team,name:match.team2}].filter(Boolean).forEach(team=>teams.set(String(team.id),team));
+    });
+    return [...teams.values()].sort((a,b)=>a.name.localeCompare(b.name,"es"));
+  },[historical]);
+  const filteredHistorical=historical.filter(match=>
+    (!historyDate||match.match_date===historyDate)&&
+    (!historyTeamId||String(match.team1_id)===String(historyTeamId)||String(match.team2_id)===String(historyTeamId))
+  );
+  const historyFiltersActive=Boolean(historyDate||historyTeamId);
+  const visibleHistorical=historyFiltersActive?filteredHistorical:historical.slice(0,HISTORY_DEFAULT_LIMIT);
   const sections=[
     ["finished","Partidos terminados","Resultados de las últimas 24 horas",CheckCircle2,finished],
     ["today","Partidos pendientes hoy","La jornada en juego",CircleDot,matches.filter(m=>m.match_date===today&&!hasResult(m))],
-    ["upcoming","Próximos partidos","Prepara tus siguientes pronósticos",CalendarClock,matches.filter(m=>m.match_date>today&&!hasResult(m))]
+    ["upcoming","Próximos partidos","Prepara tus siguientes pronósticos",CalendarClock,matches.filter(m=>m.match_date>today&&!hasResult(m))],
+    ["past","Partidos anteriores","Encuentros ya jugados o pendientes de resultado",History,pastMatches]
   ];
   const tabs=[
     ["matches","Partidos",CircleDot,matches.length],
-    ["pending","Partidos pendientes de participar",CalendarClock,pending.length],
-    ["history","Histórico partidos",History,historical.length]
+    ["pending",user.is_read_only?"Solo lectura":"Partidos pendientes de participar",CalendarClock,pending.length],
+    ["history","Histórico partidos",History,activeTab==="history"?visibleHistorical.length:historical.length]
   ];
+
+  useEffect(()=>{setCarouselIndex("history-tab",0)},[historyDate,historyTeamId]);
 
   const selectTab=(id)=>{
     setActiveTab(id);
@@ -71,13 +97,21 @@ export function MatchesPage() {
     ? renderCarousel(sectionId,items,options)
     : <p className="empty-state">{emptyText}</p>}
   </div>;
+  const renderHistoryFilters=()=> {
+    return <section className="history-match-filters" aria-label="Filtros del histórico de partidos">
+      <label><span>Fecha</span><input type="date" value={historyDate} onChange={event=>setHistoryDate(event.target.value)}/></label>
+      <label><span>Selección</span><SearchSelect label="Buscar selección" items={historyTeams} value={historyTeamId} onChange={team=>setHistoryTeamId(team?.id||"")} placeholder="Buscar selección..." renderItem={team=><><strong>{team.flag_icon} {team.name}</strong><small>{team.fifa_code||"Selección"}</small></>}/></label>
+      {historyFiltersActive&&<button type="button" className="history-clear-filters" onClick={()=>{setHistoryDate("");setHistoryTeamId("")}}><X size={16}/>Limpiar</button>}
+      <small>{visibleHistorical.length} de {historical.length} partido{historical.length===1?"":"s"}</small>
+    </section>;
+  };
 
-  return <div className="page"><section className="page-heading"><span className="eyebrow">CALENDARIO MUNDIALISTA</span><h1>Todos los partidos</h1><p>Pronostica, consulta participantes y entra al análisis de cada encuentro.</p></section>
+  return <div className="page"><section className="page-heading"><span className="eyebrow">CALENDARIO MUNDIALISTA</span><h1>Todos los partidos</h1><p>{user.is_read_only?"Consulta partidos, participantes y análisis de cada encuentro.":"Pronostica, consulta participantes y entra al análisis de cada encuentro."}</p></section>
     <nav className="matches-tabs" aria-label="Filtros de partidos">{tabs.map(([id,label,Icon,count])=><button key={id} className={activeTab===id?"active":""} onClick={()=>selectTab(id)}><Icon size={17}/><span>{label}</span><b>{count}</b></button>)}</nav>
     {loading?<div className="skeleton-grid"><i/><i/></div>:activeTab==="matches"
-      ? sections.map(([id,title,text,Icon,items])=>items.length>0&&<section id={id} className={`match-section collapsible ${id}`} key={id}><button className="section-title" onClick={()=>setOpenSection(openSection===id?null:id)}><div><span className="section-icon"><Icon size={19}/></span><div><h2>{title}</h2><p>{text}</p></div></div><div className="section-progress"><strong className={items.some(m=>m.betting_open&&!m.prediction_id)?"pending":"complete"}>{items.filter(m=>m.prediction_id).length}/{items.length}</strong><span>{items.some(m=>m.betting_open&&!m.prediction_id)?"Te falta apostar":"Completado"}</span><ChevronDown className={openSection===id?"open":""}/></div></button>{openSection===id&&renderCarousel(id,items,{verticalScoreWhenOpen:id==="today"||id==="upcoming"})}</section>)
+      ? sections.map(([id,title,text,Icon,items])=>items.length>0&&<section id={id} className={`match-section collapsible ${id}`} key={id}><button className="section-title" onClick={()=>setOpenSection(openSection===id?null:id)}><div><span className="section-icon"><Icon size={19}/></span><div><h2>{title}</h2><p>{text}</p></div></div><div className="section-progress"><strong className={items.some(m=>m.betting_open&&!m.prediction_id&&!user.is_read_only)?"pending":"complete"}>{user.is_read_only?items.length:items.filter(m=>m.prediction_id).length}/{items.length}</strong><span>{user.is_read_only?"Visible":items.some(m=>m.betting_open&&!m.prediction_id)?"Te falta apostar":"Completado"}</span><ChevronDown className={openSection===id?"open":""}/></div></button>{openSection===id&&renderCarousel(id,items,{verticalScoreWhenOpen:id==="today"||id==="upcoming"})}</section>)
       : activeTab==="pending"
-        ? renderTabCarousel("pending-tab",pending,"No tienes partidos pendientes de participar.",{verticalScorePicker:true})
-        : renderTabCarousel("history-tab",historical,"Todavía no hay partidos en el histórico.")}
+        ? renderTabCarousel("pending-tab",pending,user.is_read_only?"El usuario de solo lectura no participa en apuestas.":"No tienes partidos pendientes de participar.",{verticalScorePicker:true})
+        : <>{renderHistoryFilters()}{renderTabCarousel("history-tab",visibleHistorical,historical.length?"No hay partidos con esos filtros.":"Todavía no hay partidos en el histórico.")}</>}
   </div>;
 }

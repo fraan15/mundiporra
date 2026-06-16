@@ -49,6 +49,44 @@ test("login inicial y sesión", async () => {
   assert.equal(me.body.user.username, "administrador");
 });
 
+test("el usuario hardcodeado de solo lectura puede leer pero no escribir", async () => {
+  const admin = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  const created = await admin.post("/api/matches").send({
+    match_date: "2099-06-18",
+    match_time: "18:00",
+    team1: "Lectura",
+    team2: "Visitante",
+    force_published: true
+  });
+  assert.equal(created.status, 201);
+
+  const agent = request.agent(app);
+  const login = await agent.post("/api/auth/login").send({ username: "espectador", password: "mundial2026" });
+  assert.equal(login.status, 200);
+  assert.equal(login.body.user.is_read_only, true);
+  assert.equal(db.prepare("SELECT COUNT(*) count FROM users WHERE username='espectador'").get().count, 0);
+
+  const matches = await agent.get("/api/matches");
+  assert.equal(matches.status, 200);
+  assert.ok(Array.isArray(matches.body));
+
+  const profile = await agent.get("/api/profile/me");
+  assert.equal(profile.status, 200);
+  assert.equal(profile.body.user.username, "espectador");
+
+  const match = matches.body.find((item) => item.id === created.body.id);
+  assert.ok(match);
+  assert.equal((await agent.post("/api/predictions").send({
+    match_id: match.id,
+    predicted_winner: "draw",
+    predicted_team1_goals: 0,
+    predicted_team2_goals: 0
+  })).status, 403);
+  assert.equal((await agent.post(`/api/matches/${match.id}/comments`).send({ comment: "Solo miro." })).status, 403);
+  assert.equal((await agent.post("/api/chat").send({ message: "Hola" })).status, 403);
+});
+
 test("interpreta las horas de los partidos en Europe/Madrid", async () => {
   const admin = request.agent(app);
   await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
@@ -310,8 +348,12 @@ test("un Partido Estrella duplica los puntos y deja trazabilidad x2", async () =
 
   const activity = await user.get("/api/activity?page_size=30");
   const event = activity.body.items.find((item) => item.event_id === scored.id && item.type === "points");
-  assert.match(event.text, /Partido Estrella x2/);
-  assert.match(event.text, /8 ×2 = 16/);
+  assert.match(event.text, /lucia ganó 16 puntos en Partido Estrella por acertar ganador \+ resultado exacto/);
+  assert.equal(event.points_breakdown.base_total, 8);
+  assert.equal(event.points_breakdown.multiplier, 2);
+  assert.equal(event.points_breakdown.total, 16);
+  assert.deepEqual(event.points_breakdown.rules.map((rule) => [rule.label, rule.base_points]), [["Ganador", 3], ["Resultado exacto", 5]]);
+  assert.deepEqual(event.points_breakdown.rules.map((rule) => [rule.description, rule.earned_points]), [["acierto de ganador", 6], ["acierto exacto", 10]]);
 
   const notifications = await user.get("/api/notifications");
   const notification = notifications.body.notifications.find((item) => item.type === "points_earned" && item.entity_id === created.body.id);
@@ -508,7 +550,8 @@ test("configura los puntos de goleador y los refleja en la clasificación", asyn
   const activity = await user.get("/api/activity?page_size=30");
   const event = activity.body.items.find((item) => item.event_id === scored.id && item.type === "points");
   assert.equal(event.scorer_points, 7);
-  assert.match(event.text, /sara sumó 7 puntos por adivinar el goleador/);
+  assert.match(event.text, /sara ganó 10 puntos por acertar ganador \+ goleador/);
+  assert.deepEqual(event.points_breakdown.rules.map((rule) => [rule.label, rule.base_points]), [["Ganador", 3], ["Goleador", 7]]);
 
   await admin.put("/api/admin/settings").send(originalSettings);
 });
@@ -607,6 +650,118 @@ test("protege la coherencia al editar equipos y la regla de goleador", async () 
   assert.equal(db.prepare("SELECT predicted_scorer_id FROM predictions WHERE id=?").get(prediction.body.id).predicted_scorer_id, null);
 });
 
+test("recalcula con fiabilidad al editar resultado, goleadores y Partido Estrella", async () => {
+  const admin = request.agent(app);
+  const user = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  await user.post("/api/auth/login").send({ username: "sara", password: "sara" });
+  const [team1, team2] = db.prepare("SELECT * FROM teams ORDER BY id LIMIT 2").all();
+  const scorer1 = db.prepare("SELECT * FROM players WHERE team_fifa_code=? LIMIT 1").get(team1.fifa_code);
+  const scorer2 = db.prepare("SELECT * FROM players WHERE team_fifa_code=? LIMIT 1").get(team2.fifa_code);
+  const created = await admin.post("/api/matches").send({
+    match_date: "2099-07-07",
+    match_time: "20:00",
+    team1_id: team1.id,
+    team2_id: team2.id,
+    scorer_enabled: true,
+    force_published: true
+  });
+  const prediction = await user.post("/api/predictions").send({
+    match_id: created.body.id,
+    predicted_winner: "team1",
+    predicted_team1_goals: 2,
+    predicted_team2_goals: 1,
+    predicted_scorer_id: scorer1.id
+  });
+  assert.equal(prediction.status, 201);
+
+  await admin.post(`/api/matches/${created.body.id}/finish`).send({
+    result_team1: 2,
+    result_team2: 1,
+    scorer_ids: [scorer1.id]
+  });
+  let scored = db.prepare("SELECT * FROM predictions WHERE id=?").get(prediction.body.id);
+  assert.deepEqual([scored.winner_points, scored.exact_result_points, scored.scorer_points, scored.total_points, scored.scoring_multiplier], [3, 5, 2, 10, 1]);
+
+  const starred = await admin.put(`/api/matches/${created.body.id}`).send({ is_star: true });
+  assert.equal(starred.status, 200);
+  scored = db.prepare("SELECT * FROM predictions WHERE id=?").get(prediction.body.id);
+  assert.deepEqual([scored.winner_points, scored.exact_result_points, scored.scorer_points, scored.total_points, scored.scoring_multiplier], [6, 10, 4, 20, 2]);
+
+  const editedResult = await admin.post(`/api/matches/${created.body.id}/finish`).send({
+    result_team1: 1,
+    result_team2: 2,
+    scorer_ids: [scorer2.id]
+  });
+  assert.equal(editedResult.status, 200);
+  scored = db.prepare("SELECT * FROM predictions WHERE id=?").get(prediction.body.id);
+  assert.deepEqual([scored.winner_points, scored.exact_result_points, scored.scorer_points, scored.total_points, scored.scoring_multiplier], [0, 0, 0, 0, 2]);
+
+  await admin.post(`/api/matches/${created.body.id}/finish`).send({
+    result_team1: 2,
+    result_team2: 1,
+    scorer_ids: [scorer2.id]
+  });
+  scored = db.prepare("SELECT * FROM predictions WHERE id=?").get(prediction.body.id);
+  assert.deepEqual([scored.winner_points, scored.exact_result_points, scored.scorer_points, scored.total_points], [6, 10, 0, 16]);
+
+  const recalculatedMatch = await admin.post(`/api/admin/recalculate/${created.body.id}`);
+  assert.equal(recalculatedMatch.status, 200);
+  assert.equal(recalculatedMatch.body.recalculated, 1);
+  scored = db.prepare("SELECT * FROM predictions WHERE id=?").get(prediction.body.id);
+  assert.deepEqual([scored.winner_points, scored.exact_result_points, scored.scorer_points, scored.total_points], [6, 10, 0, 16]);
+
+  const fixedScorers = await admin.put(`/api/matches/${created.body.id}/scorers`).send({ scorer_ids: [scorer1.id] });
+  assert.equal(fixedScorers.status, 200);
+  scored = db.prepare("SELECT * FROM predictions WHERE id=?").get(prediction.body.id);
+  assert.deepEqual([scored.winner_points, scored.exact_result_points, scored.scorer_points, scored.total_points], [6, 10, 4, 20]);
+
+  const normal = await admin.put(`/api/matches/${created.body.id}`).send({ is_star: false });
+  assert.equal(normal.status, 200);
+  scored = db.prepare("SELECT * FROM predictions WHERE id=?").get(prediction.body.id);
+  assert.deepEqual([scored.winner_points, scored.exact_result_points, scored.scorer_points, scored.total_points, scored.scoring_multiplier], [3, 5, 2, 10, 1]);
+});
+
+test("no permite activar goleador en un partido finalizado con goles sin goleadores reales", async () => {
+  const admin = request.agent(app);
+  const user = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  await user.post("/api/auth/login").send({ username: "marcos", password: "marcos" });
+  const [team1, team2] = db.prepare("SELECT * FROM teams ORDER BY id LIMIT 2").all();
+  const scorer = db.prepare("SELECT * FROM players WHERE team_fifa_code=? LIMIT 1").get(team1.fifa_code);
+  const created = await admin.post("/api/matches").send({
+    match_date: "2099-07-08",
+    match_time: "20:00",
+    team1_id: team1.id,
+    team2_id: team2.id,
+    scorer_enabled: false,
+    force_published: true
+  });
+  const prediction = await user.post("/api/predictions").send({
+    match_id: created.body.id,
+    predicted_winner: "team1",
+    predicted_team1_goals: 1,
+    predicted_team2_goals: 0
+  });
+  assert.equal(prediction.status, 201);
+  await admin.post(`/api/matches/${created.body.id}/finish`).send({
+    result_team1: 1,
+    result_team2: 0
+  });
+
+  const rejected = await admin.put(`/api/matches/${created.body.id}`).send({ scorer_enabled: true });
+  assert.equal(rejected.status, 409);
+  assert.match(rejected.body.error, /Guarda primero los goleadores reales/);
+
+  const savedScorers = await admin.put(`/api/matches/${created.body.id}/scorers`).send({ scorer_ids: [scorer.id] });
+  assert.equal(savedScorers.status, 200);
+  const enabled = await admin.put(`/api/matches/${created.body.id}`).send({ scorer_enabled: true });
+  assert.equal(enabled.status, 200);
+  const scored = db.prepare("SELECT * FROM predictions WHERE id=?").get(prediction.body.id);
+  assert.equal(scored.scorer_points, 0);
+  assert.equal(scored.total_points, 8);
+});
+
 test("los partidos se publican 24 horas antes salvo publicación forzada", async () => {
   const admin = request.agent(app);
   const user = request.agent(app);
@@ -637,6 +792,41 @@ test("los partidos se publican 24 horas antes salvo publicación forzada", async
   const published = await admin.put(`/api/matches/${created.body.id}`).send({ ...payload, force_published: true });
   assert.equal(published.body.published, true);
   assert.equal((await user.get("/api/matches")).body.some((match) => match.id === created.body.id), true);
+});
+
+test("la portada mantiene como próximo un partido cerrado antes de empezar", async () => {
+  const admin = request.agent(app);
+  const user = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  await user.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
+  const originalSettings = (await admin.get("/api/admin/settings")).body;
+  await admin.put("/api/admin/settings").send({ ...originalSettings, auto_close_enabled: "1", auto_close_minutes_before: "5" });
+
+  const startsAt = new Date(Date.now() + 3 * 60 * 1000);
+  const madridParts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Madrid",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(startsAt).map(({ type, value }) => [type, value]));
+  const created = await admin.post("/api/matches").send({
+    match_date: `${madridParts.year}-${madridParts.month}-${madridParts.day}`,
+    match_time: `${madridParts.hour}:${madridParts.minute}`,
+    team1: "Equipo cierre",
+    team2: "Equipo visible",
+    force_published: true
+  });
+  assert.equal(created.status, 201);
+
+  const dashboard = await user.get("/api/dashboard");
+  const upcoming = dashboard.body.next_matches.find((match) => match.id === created.body.id);
+  assert.ok(upcoming);
+  assert.equal(upcoming.status, "closed");
+  assert.equal(upcoming.betting_open, false);
+  assert.equal(upcoming.in_play, false);
+  assert.equal(dashboard.body.in_play_matches.some((match) => match.id === created.body.id), false);
+
+  await admin.put("/api/admin/settings").send(originalSettings);
 });
 
 test("el administrador puede eliminar un resultado y reabrir el partido", async () => {

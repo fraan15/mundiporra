@@ -18,7 +18,7 @@ export function ChatPage() {
     setMessages(data);
     if (initialLoad.current) {
       initialLoad.current = false;
-      await api("/chat/read", { method: "POST" });
+      if (!user.is_read_only) await api("/chat/read", { method: "POST" });
       requestAnimationFrame(() => {
         endRef.current?.scrollIntoView({ block: "end" });
         setTimeout(() => endRef.current?.scrollIntoView({ block: "end" }), 100);
@@ -60,17 +60,17 @@ export function ChatPage() {
             <header><strong>{message.username}</strong><time>{new Date(message.created_at).toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" })}</time></header>
             {message.reply_to_id && <blockquote><b>{message.reply_username}</b><span>{message.reply_message}</span></blockquote>}
             <p>{message.message}</p>
-            <button onClick={() => setReply(message)}><CornerUpLeft size={14}/> Responder</button>
+            {!user.is_read_only && <button onClick={() => setReply(message)}><CornerUpLeft size={14}/> Responder</button>}
           </div>
         </article>) : <div className="chat-empty"><MessageCircle/><strong>Abre la conversación</strong><span>Sé la primera persona en dejar un mensaje.</span></div>}
         <div ref={endRef}/>
       </div>
-      <form className="chat-composer" onSubmit={submit}>
+      {!user.is_read_only && <form className="chat-composer" onSubmit={submit}>
         {reply && <div className="chat-replying"><div><span>Respondiendo a <strong>{reply.username}</strong></span><small>{reply.message}</small></div><button type="button" onClick={() => setReply(null)}><X size={16}/></button></div>}
         <div><textarea maxLength={500} rows={2} value={text} onChange={event => setText(event.target.value)} placeholder="Escribe algo para toda la porra..." onKeyDown={event => {
           if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form.requestSubmit(); }
         }}/><button className="primary" disabled={!text.trim() || sending}><Send size={17}/><span>Enviar</span></button></div>
-      </form>
+      </form>}
     </section>
   </div>;
 }

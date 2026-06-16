@@ -25,15 +25,18 @@ function AdminRoute() {
   return user?.role === "admin" ? <Outlet /> : <Navigate to="/" replace />;
 }
 function NotificationsBell() {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [data, setData] = useState({ notifications: [], unread: 0 });
   const load = async () => setData(await api("/notifications"));
   useEffect(() => {
+    if (user.is_read_only) return;
     load();
     const timer = setInterval(load, 30000);
     return () => clearInterval(timer);
-  }, []);
+  }, [user.is_read_only]);
+  if (user.is_read_only) return null;
   const read = async (notification) => {
     if (!notification.read) await api(`/notifications/${notification.id}/read`, { method: "PATCH" });
     setOpen(false);
@@ -104,13 +107,13 @@ function ProfileMenu() {
   return <div className="profile-menu" ref={menuRef}>
     <button className="profile-shortcut" aria-expanded={open} aria-haspopup="menu" onClick={toggle}>
       <Avatar user={user}/>
-      <span><strong>{user.username}</strong><small>{user.role === "admin" ? "Administrador" : "Participante"}</small></span>
+      <span><strong>{user.username}</strong><small>{user.is_read_only ? "Solo lectura" : user.role === "admin" ? "Administrador" : "Participante"}</small></span>
       <ChevronDown className={open ? "open" : ""} size={15}/>
     </button>
     {open && <div className="profile-dropdown">
       {!changingPassword ? <>
         <button onClick={() => { setOpen(false); navigate("/perfil"); }}><User size={17}/><span><strong>Perfil</strong><small>Consulta tus estadísticas</small></span></button>
-        <button onClick={() => { setChangingPassword(true); setMessage({ type: "", text: "" }); }}><KeyRound size={17}/><span><strong>Cambiar contraseña</strong><small>Actualiza tu clave de acceso</small></span></button>
+        {!user.is_read_only && <button onClick={() => { setChangingPassword(true); setMessage({ type: "", text: "" }); }}><KeyRound size={17}/><span><strong>Cambiar contraseña</strong><small>Actualiza tu clave de acceso</small></span></button>}
         <button className="sign-out" onClick={signOut}><LogOut size={17}/><span><strong>Cerrar sesión</strong><small>Volver a la pantalla de acceso</small></span></button>
       </> : <form className="password-form" onSubmit={changePassword}>
         <div className="password-form-head"><div><strong>Cambiar contraseña</strong><small>Mínimo 4 caracteres</small></div><button type="button" onClick={() => setChangingPassword(false)}><X size={17}/></button></div>
@@ -165,7 +168,7 @@ function MainLayout() {
   useEffect(()=>{
     if(sessionStorage.getItem("showPendingLoginAlert")!=="1")return;
     sessionStorage.removeItem("showPendingLoginAlert");
-    if(user.role==="admin")return;
+    if(user.role==="admin"||user.is_read_only)return;
     let timer;
     api("/dashboard").then(data=>{
       if(data.summary.pending>0){
@@ -174,7 +177,7 @@ function MainLayout() {
       }
     });
     return()=>clearTimeout(timer);
-  },[user.role]);
+  },[user.role,user.is_read_only]);
   useEffect(()=>{
     const loadChatStatus=()=>api("/chat/status").then(data=>setUnreadChat(data.unread)).catch(()=>{});
     loadChatStatus();
@@ -183,11 +186,11 @@ function MainLayout() {
   },[location.pathname]);
   const loadAdminMessage=()=>api("/admin-messages/pending").then(data=>setAdminMessage(data.message)).catch(()=>{});
   useEffect(()=>{
-    if(user.role==="admin")return;
+    if(user.role==="admin"||user.is_read_only)return;
     loadAdminMessage();
     const timer=setInterval(loadAdminMessage,15000);
     return()=>clearInterval(timer);
-  },[user.role]);
+  },[user.role,user.is_read_only]);
   const answerAdminMessage=async optionId=>{
     setAnswering(true);setMessageError("");
     try{
