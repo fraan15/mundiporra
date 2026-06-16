@@ -658,20 +658,10 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 }
 .ranking-block::after{
   content:"";
-  position:absolute;
-  left:7%;
-  right:7%;
-  bottom:0;
-  height:104px;
-  z-index:-1;
-  background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(169,31,50,.10));
-  border:1px solid rgba(169,31,50,.10);
-  border-bottom:0;
-  border-radius:34px 34px 0 0;
-  box-shadow:inset 0 20px 38px rgba(255,255,255,.36);
+  display:none;
 }
 .ranking-heading{width:min(800px,100%);margin-bottom:4px}
-.ranking-heading .eyebrow{color:rgba(169,31,50,.78)!important}
+.ranking-heading .eyebrow{color:#24191a!important}
 .ranking-heading h2{color:var(--accent)!important}
 .ranking-block .podium{width:min(820px,100%);min-height:342px;gap:20px;padding-top:18px}
 .podium-card{
@@ -699,12 +689,29 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
   box-shadow:0 0 42px color-mix(in srgb,var(--podium-color) 30%,transparent),inset 0 0 28px rgba(255,255,255,.46);
 }
 .podium-card.place-1 .podium-orbit{width:158px;height:158px}
-.podium-initials,.place-1 .podium-initials{
+.podium-initials,.place-1 .podium-initials,.podium-avatar{
   color:var(--accent)!important;
   font-size:43px;
   text-shadow:0 1px 0 rgba(255,255,255,.6);
 }
 .place-1 .podium-initials{font-size:53px}
+.podium-avatar{
+  width:100%;
+  height:100%;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+  background:rgba(255,255,255,.36);
+  font:800 43px Manrope;
+}
+.podium-card.place-1 .podium-avatar{font-size:53px}
+.podium-avatar img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
 .podium-rank{
   width:46px;
   height:46px;
@@ -733,44 +740,90 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 }
 .podium-card>small{color:rgba(52,19,26,.46)!important;font-weight:900;letter-spacing:.18em}
 .podium-step{
-  height:92px;
+  bottom:-28px;
+  height:84px;
   border-radius:26px 26px 0 0;
   background:
-    linear-gradient(90deg,rgba(255,255,255,.44),var(--podium-fill),rgba(255,255,255,.24)),
-    linear-gradient(180deg,color-mix(in srgb,var(--podium-color) 46%,#fff),rgba(255,255,255,.45));
+    linear-gradient(90deg,color-mix(in srgb,var(--podium-color) 18%,#fff),var(--podium-fill),color-mix(in srgb,var(--podium-color) 14%,#fff)),
+    linear-gradient(180deg,color-mix(in srgb,var(--podium-color) 62%,#fff),color-mix(in srgb,var(--podium-color) 26%,#fff));
   border:1px solid color-mix(in srgb,var(--podium-color) 54%,transparent);
   border-bottom:0;
-  color:rgba(52,19,26,.16)!important;
+  color:color-mix(in srgb,var(--podium-color) 44%,rgba(52,19,26,.28))!important;
   font-size:62px;
   text-shadow:0 1px 0 rgba(255,255,255,.38);
-  box-shadow:inset 0 18px 34px rgba(255,255,255,.22),0 -13px 30px color-mix(in srgb,var(--podium-color) 15%,transparent);
+  box-shadow:inset 0 14px 24px rgba(255,255,255,.18),0 -8px 22px color-mix(in srgb,var(--podium-color) 12%,transparent);
 }
-.place-1 .podium-step{height:118px;font-size:82px}
-.place-3 .podium-step{height:80px;font-size:56px}
+.place-1 .podium-step{height:108px;font-size:82px}
+.place-3 .podium-step{height:72px;font-size:56px}
 [data-theme="dark"] .ranking-block{
   background:
-    radial-gradient(circle at 50% 14%,rgba(255,255,255,.18) 0 10%,transparent 36%),
-    radial-gradient(circle at 18% 38%,rgba(255,95,115,.18),transparent 34%),
-    linear-gradient(145deg,rgba(69,25,34,.92),rgba(22,24,24,.92));
-  border-color:rgba(255,128,145,.15);
+    radial-gradient(circle at 50% 12%,rgba(184,243,74,.12) 0 10%,transparent 36%),
+    radial-gradient(circle at 18% 38%,rgba(25,198,122,.16),transparent 34%),
+    radial-gradient(circle at 82% 42%,rgba(82,126,255,.10),transparent 32%),
+    linear-gradient(145deg,rgba(15,42,34,.96),rgba(8,17,26,.94));
+  border-color:rgba(184,243,74,.16);
 }
-[data-theme="dark"] .podium-card>strong,[data-theme="dark"] .podium-card .leaderboard-total em,[data-theme="dark"] .podium-initials,[data-theme="dark"] .place-1 .podium-initials{color:#fff5f6!important}
+[data-theme="dark"] .ranking-block::before{
+  background-image:linear-gradient(rgba(184,243,74,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(25,198,122,.04) 1px,transparent 1px);
+}
+[data-theme="dark"] .podium-card>strong,[data-theme="dark"] .podium-card .leaderboard-total em,[data-theme="dark"] .podium-initials,[data-theme="dark"] .place-1 .podium-initials,[data-theme="dark"] .podium-avatar{color:#fff5f6!important}
 [data-theme="dark"] .podium-card>small{color:rgba(255,245,246,.58)!important}
+[data-theme="dark"] .podium-orbit{
+  background:
+    radial-gradient(circle at 50% 43%,rgba(255,255,255,.18),rgba(19,44,37,.52) 56%,rgba(4,13,18,.86)),
+    linear-gradient(145deg,rgba(17,43,35,.86),rgba(7,18,15,.92));
+  box-shadow:0 0 42px color-mix(in srgb,var(--podium-color) 24%,transparent),inset 0 0 28px rgba(255,255,255,.08);
+}
+[data-theme="dark"] .podium-rank{
+  border-color:rgba(9,17,28,.94);
+  color:#09111c;
+}
+[data-theme="dark"] .podium-step{
+  color:rgba(4,13,18,.54)!important;
+  text-shadow:0 1px 0 rgba(255,255,255,.18);
+  box-shadow:inset 0 16px 30px rgba(255,255,255,.10),0 -10px 28px color-mix(in srgb,var(--podium-color) 16%,transparent);
+}
 @media(max-width:800px){
   .ranking-block{padding:20px 8px 0;border-radius:20px}
-  .ranking-block::after{left:3%;right:3%;height:76px;border-radius:22px 22px 0 0}
+  .ranking-block::after{display:none}
   .ranking-block .podium{min-height:266px;gap:4px;padding-top:8px}
   .podium-card{width:32%;min-height:246px;padding:0 3px 68px}
   .podium-card.place-1{width:36%;min-height:270px;transform:translateY(-12px)}
   .podium-crown{height:24px}.leader-cup{width:24px!important;height:24px!important}
   .podium-orbit{width:78px;height:78px;border-width:5px}
   .podium-card.place-1 .podium-orbit{width:94px;height:94px}
-  .podium-initials{font-size:26px}.place-1 .podium-initials{font-size:32px}
+  .podium-initials,.podium-avatar{font-size:26px}.place-1 .podium-initials,.podium-card.place-1 .podium-avatar{font-size:32px}
   .podium-rank{width:34px;height:34px;bottom:-16px;border-width:5px;font-size:14px}
   .podium-card>strong{margin-top:25px;font-size:12px}
   .podium-card .leaderboard-total em{font-size:30px}
   .podium-card>small{font-size:9px}
-  .podium-step{height:60px;border-radius:18px 18px 0 0;font-size:39px}
-  .place-1 .podium-step{height:74px;font-size:52px}
-  .place-3 .podium-step{height:54px;font-size:36px}
+  .podium-step{bottom:-18px;height:54px;border-radius:18px 18px 0 0;font-size:39px}
+  .place-1 .podium-step{height:66px;font-size:52px}
+  .place-3 .podium-step{height:48px;font-size:36px}
+}
+
+/* Keep the oversized podium numerals comfortably inside their blocks. */
+.ranking-block .podium{padding-bottom:24px}
+.podium-card{padding-bottom:112px}
+.podium-card.place-1{padding-bottom:132px}
+.podium-step{
+  bottom:0;
+  height:104px;
+  font-size:58px;
+  line-height:1;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+}
+.podium-card.place-1 .podium-step{height:128px;font-size:74px}
+.podium-card.place-2 .podium-step{height:104px;font-size:58px}
+.podium-card.place-3 .podium-step{height:92px;font-size:52px}
+@media(max-width:800px){
+  .ranking-block .podium{padding-bottom:12px}
+  .podium-card{padding-bottom:82px}
+  .podium-card.place-1{padding-bottom:98px}
+  .podium-step{bottom:0;height:68px;font-size:34px;border-radius:18px 18px 0 0}
+  .podium-card.place-1 .podium-step{height:82px;font-size:44px}
+  .podium-card.place-2 .podium-step{height:68px;font-size:34px}
+  .podium-card.place-3 .podium-step{height:60px;font-size:31px}
 }

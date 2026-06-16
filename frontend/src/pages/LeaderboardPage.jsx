@@ -12,7 +12,7 @@ export function LeaderboardPage() {
     api("/leaderboard").then(setRows);
   }, []);
 
-  return <div className="page">
+  return <div className="page leaderboard-page">
     <section className="page-heading">
       <span className="eyebrow"><Trophy size={14} /> CLASIFICACION GENERAL</span>
       <h1>La carrera por la copa</h1>
@@ -32,7 +32,7 @@ export function LeaderboardPage() {
         >
           <span className="podium-crown">{index === 0 && <LeaderCup />}</span>
           <span className="podium-orbit">
-            <span className="podium-initials">{initials(row.username)}</span>
+            <Avatar user={row} className="podium-avatar" />
             <b className="podium-rank">{index + 1}</b>
           </span>
           <strong>{row.username}</strong>
@@ -96,9 +96,4 @@ function Position({ index }) {
 
 function LeaderCup() {
   return <img className="leader-cup" src="/images/iconomundial.png" alt="Lider" />;
-}
-
-function initials(name = "") {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  return (parts.length > 1 ? `${parts[0][0]}${parts[1][0]}` : name.slice(0, 2)).toUpperCase();
 }
