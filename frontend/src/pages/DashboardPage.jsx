@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertCircle, ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, Clock3, Minimize2, Radio, Sparkles, Star } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, Clock3, Maximize2, Minimize2, Radio, Sparkles, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../App";
@@ -41,7 +41,7 @@ function DashboardCalendar({ matches, expanded, onExpand, onCollapse }) {
   return <section className={`dashboard-calendar ${expanded ? "expanded" : ""}`} onClick={!expanded ? onExpand : undefined} onKeyDown={!expanded ? handleKeyDown : undefined} role={!expanded ? "button" : undefined} tabIndex={!expanded ? 0 : undefined} aria-label="Ampliar calendario de partidos">
     <header>
       <div><span className="eyebrow"><CalendarDays size={14}/> CALENDARIO</span><h2>Agenda cercana</h2></div>
-      {expanded ? <button className="calendar-collapse" onClick={onCollapse}><Minimize2 size={16}/> Reducir</button> : <small>{total} partidos</small>}
+      {expanded ? <button className="calendar-toggle" onClick={onCollapse} aria-label="Reducir calendario" title="Reducir calendario"><Minimize2 size={15}/></button> : <span className="calendar-summary"><small>{total} partidos</small><Maximize2 size={15}/></span>}
     </header>
     <div className="calendar-days">
       {visibleDays.length ? visibleDays.map(day => <article className="calendar-day" key={day.key}>

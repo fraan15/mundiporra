@@ -77,7 +77,8 @@ const winnerFromScore=(g1,g2)=>{
 function VerticalScoreControl({team,value,onChange,onAdjust}){
  const score=value===""?0:Number(value);
  const safeScore=Number.isFinite(score)?Math.max(0,score):0;
- const maxScore=Math.max(10,safeScore);
+ const maxScore=10;
+ const trackScore=Math.min(safeScore,maxScore);
  const commitFromPointer=event=>{
   const rect=event.currentTarget.getBoundingClientRect();
   const ratio=Math.min(1,Math.max(0,(rect.bottom-event.clientY)/rect.height));
@@ -105,7 +106,7 @@ function VerticalScoreControl({team,value,onChange,onAdjust}){
    <button type="button" aria-label={`Subir goles de ${team}`} onClick={()=>onAdjust(1)}><Plus/></button>
    <div className="vertical-score-value" role="slider" tabIndex="0" aria-label={`Arrastrar goles pronosticados de ${team}`} aria-valuemin="0" aria-valuemax={maxScore} aria-valuenow={safeScore} onPointerDown={startDrag} onPointerMove={moveDrag} onKeyDown={keyDrag}>
     <strong>{value===""?"0":value}</strong>
-    <span className="vertical-score-track" aria-hidden="true"><i style={{bottom:`${safeScore/maxScore*100}%`}}/></span>
+    <span className="vertical-score-track" aria-hidden="true"><i style={{bottom:`${trackScore/maxScore*100}%`}}/></span>
    </div>
    <button type="button" aria-label={`Bajar goles de ${team}`} onClick={()=>onAdjust(-1)}><Minus/></button>
   </div>

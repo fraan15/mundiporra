@@ -12,7 +12,8 @@ const statusLabel = (match) => match.status === "finished" ? "Finalizado" : matc
 function VerticalScoreControl({ team, value, onChange, onAdjust }) {
   const score=value===""?0:Number(value);
   const safeScore=Number.isFinite(score)?Math.max(0,score):0;
-  const maxScore=20;
+  const maxScore=10;
+  const trackScore=Math.min(safeScore,maxScore);
   const commitFromPointer=event=>{
     const rect=event.currentTarget.getBoundingClientRect();
     const ratio=Math.min(1,Math.max(0,(rect.bottom-event.clientY)/rect.height));
@@ -40,7 +41,7 @@ function VerticalScoreControl({ team, value, onChange, onAdjust }) {
       <button type="button" aria-label={`Subir goles de ${team}`} onClick={()=>onAdjust(1)}><Plus/></button>
       <div className="vertical-score-value" role="slider" tabIndex="0" aria-label={`Arrastrar goles pronosticados de ${team}`} aria-valuemin="0" aria-valuemax={maxScore} aria-valuenow={safeScore} onPointerDown={startDrag} onPointerMove={moveDrag} onKeyDown={keyDrag}>
         <strong>{value===""?"0":value}</strong>
-        <span className="vertical-score-track" aria-hidden="true"><i style={{bottom:`${safeScore/maxScore*100}%`}}/></span>
+        <span className="vertical-score-track" aria-hidden="true"><i style={{bottom:`${trackScore/maxScore*100}%`}}/></span>
       </div>
       <button type="button" aria-label={`Bajar goles de ${team}`} onClick={()=>onAdjust(-1)}><Minus/></button>
     </div>
@@ -87,7 +88,7 @@ export function MatchCard({ match, onSaved, verticalScorePicker=false }) {
     setExpanded(!expanded);
   };
   const date = new Date(`${match.match_date}T${match.match_time}:00`);
-  const adjust = (setter, value, delta) => setter(String(Math.min(20,Math.max(0, Number(value || 0) + delta))));
+  const adjust = (setter, value, delta) => setter(String(Math.max(0, Number(value || 0) + delta)));
   return <article className={`match-card ${match.status} ${match.in_play?"in-play":""} ${match.is_star?"star-match-card":""}`}>
     <div className="match-head">
       <div><span className={`status ${match.in_play?"in-play":match.status}`}>{statusLabel(match)}</span><strong>{date.toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"})}</strong><span><Clock3 size={14}/>{match.match_time}</span></div>
