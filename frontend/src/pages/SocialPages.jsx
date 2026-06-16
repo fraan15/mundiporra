@@ -89,6 +89,7 @@ export function PublicProfilePage(){
   return <div className="page">{pointsOpen&&<PointsDetailOverlay detail={data.points_detail} username={data.user.username} onClose={()=>setPointsOpen(false)}/>}<button className="back-btn" onClick={()=>navigate(-1)}><ArrowLeft size={16}/>Volver</button><section className="profile-hero public"><Avatar user={data.user} className="profile-avatar"/><div><span className="eyebrow">FICHA DEPORTIVA</span><h1>{data.user.username}</h1><blockquote>“{data.user.personal_phrase||"Todavía sin frase personal."}”</blockquote></div><b>#{s.position}</b></section><StatCards s={s} onPointsInfo={()=>setPointsOpen(true)}/><StatsSections stats={s} history={data.history}/><section className="content-card"><h2>Medallas</h2><Badges badges={s.badges}/></section><section className="content-card"><h2>Historial visible</h2><div className="prediction-history">{visiblePredictions.map(p=><div key={p.id}><span>{p.match_date}</span><strong><Flag team={p.team1}/>{p.team1} {p.predicted_team1_goals}–{p.predicted_team2_goals} {p.team2}<Flag team={p.team2}/></strong><b>+{p.total_points}</b></div>)}</div>{totalHistoryPages>1&&<nav className="pagination" aria-label="Paginación del historial visible"><button disabled={historyPage===1} onClick={()=>setHistoryPage(historyPage-1)}><ChevronLeft/>Anterior</button><span>Página {historyPage} de {totalHistoryPages}</span><button disabled={historyPage===totalHistoryPages} onClick={()=>setHistoryPage(historyPage+1)}>Siguiente<ChevronRight/></button></nav>}</section></div>
 }
 function PointsDetailOverlay({detail,username,onClose}){
+ const [matchesOpen,setMatchesOpen]=useState(true),[openMatchId,setOpenMatchId]=useState(null);
  useEffect(()=>{const close=event=>{if(event.key==="Escape")onClose()};document.addEventListener("keydown",close);return()=>document.removeEventListener("keydown",close)},[onClose]);
  const matches=detail?.matches||[],scoredMatches=matches.filter(match=>match.total_points>0),zeroMatches=matches.filter(match=>match.total_points===0);
  const signed=value=>`${Number(value)>0?"+":""}${Number(value)||0}`;
@@ -102,20 +103,22 @@ function PointsDetailOverlay({detail,username,onClose}){
     <article><span>Ajustes</span><strong>{signed(detail?.adjustment_points)}</strong></article>
     <article><span>Con puntos</span><strong>{detail?.matches_with_points||0}/{detail?.finished_matches||0}</strong></article>
    </div>
-   <section className="points-detail-section"><h2>Partidos que han sumado</h2>{scoredMatches.length?scoredMatches.map(match=><PointsMatchRow key={match.id} match={match}/>):<p className="empty-state">Todavía no hay partidos con puntos.</p>}</section>
+   <section className="points-detail-section points-collapsible-section"><button type="button" className="points-section-toggle" aria-expanded={matchesOpen} onClick={()=>setMatchesOpen(!matchesOpen)}><span><h2>Partidos que han sumado</h2><small>{scoredMatches.length} partido{scoredMatches.length===1?"":"s"} con puntos</small></span><ChevronDown className={matchesOpen?"open":""}/></button>{matchesOpen&&(scoredMatches.length?<div className="points-match-list">{scoredMatches.map(match=><PointsMatchRow key={match.id} match={match} open={openMatchId===match.id} onToggle={()=>setOpenMatchId(openMatchId===match.id?null:match.id)}/>)}</div>:<p className="empty-state">Todavía no hay partidos con puntos.</p>)}</section>
    {detail?.adjustments?.length>0&&<section className="points-detail-section"><h2>Ajustes manuales</h2><div className="points-adjustments">{detail.adjustments.map(adjustment=><article key={adjustment.id}><strong>{signed(adjustment.points)} pts</strong><span>{adjustment.reason}</span><small>{new Date(adjustment.created_at).toLocaleString("es-ES")}{adjustment.created_by_username?` · ${adjustment.created_by_username}`:""}</small></article>)}</div></section>}
    {zeroMatches.length>0&&<section className="points-detail-section"><h2>Partidos revisados sin puntos</h2><div className="zero-points-list">{zeroMatches.map(match=><span key={match.id}>{match.match_date} · {match.team1} {match.result} {match.team2} · pronóstico {match.prediction}</span>)}</div></section>}
   </section>
  </div>
 }
-function PointsMatchRow({match}){
+function PointsMatchRow({match,open,onToggle}){
  const earnedRules=match.rules.filter(rule=>rule.points>0),missedRules=match.rules.filter(rule=>rule.points===0);
  return <article className="points-match-row">
-  <header><div><strong><Flag team={match.team1}/>{match.team1} {match.result} {match.team2}<Flag team={match.team2}/></strong><span>{new Date(`${match.match_date}T12:00:00`).toLocaleDateString("es-ES",{day:"2-digit",month:"short"})} · Pronóstico {match.prediction} · {match.predicted_winner_label}</span></div><b>+{match.total_points}</b></header>
-  <div className="points-rule-grid">{earnedRules.map(rule=><div key={rule.label} className="earned"><Check size={15}/><strong>{rule.label}</strong><span>{match.multiplier>1?`${rule.base_points} base x ${match.multiplier} = ${rule.points}`:`${rule.points} pts`}</span><small>{rule.text}</small></div>)}</div>
-  {match.is_star&&<p className="star-explanation"><Star size={15} fill="currentColor"/> Partido Estrella: todos los aciertos de este partido se multiplican x{match.multiplier}.</p>}
-  <p className="points-formula">Suma del partido: {match.formula} puntos.</p>
-  {missedRules.length>0&&<details className="missed-rules"><summary>Aciertos no conseguidos</summary>{missedRules.map(rule=><span key={rule.label}><b>{rule.label}</b>{rule.text}</span>)}</details>}
+  <button type="button" className="points-match-toggle" aria-expanded={open} onClick={onToggle}><div><strong><Flag team={match.team1}/>{match.team1} {match.result} {match.team2}<Flag team={match.team2}/></strong><span>{new Date(`${match.match_date}T12:00:00`).toLocaleDateString("es-ES",{day:"2-digit",month:"short"})} · Pronóstico {match.prediction} · {match.predicted_winner_label}</span></div><b>+{match.total_points}</b><ChevronDown className={open?"open":""}/></button>
+  {open&&<div className="points-match-body">
+   <div className="points-rule-grid">{earnedRules.map(rule=><div key={rule.label} className="earned"><Check size={15}/><strong>{rule.label}</strong><span>{match.multiplier>1?`${rule.base_points} base x ${match.multiplier} = ${rule.points}`:`${rule.points} pts`}</span><small>{rule.text}</small></div>)}</div>
+   {match.is_star&&<p className="star-explanation"><Star size={15} fill="currentColor"/> Partido Estrella: todos los aciertos de este partido se multiplican x{match.multiplier}.</p>}
+   <p className="points-formula">Suma del partido: {match.formula} puntos.</p>
+   {missedRules.length>0&&<details className="missed-rules"><summary>Aciertos no conseguidos</summary>{missedRules.map(rule=><span key={rule.label}><b>{rule.label}</b>{rule.text}</span>)}</details>}
+  </div>}
  </article>
 }
 function ActivityFeedItem({item}){
@@ -124,8 +127,8 @@ function ActivityFeedItem({item}){
  return <article className={open?"activity-open":""}>
   <span className={`feed-icon ${item.type}`}>{item.type==="points"?"+":"⚽"}</span>
   <div>
-   <span className="activity-summary"><strong>{item.text}</strong>{item.type==="points"&&<span className="activity-summary-actions"><button className="activity-info-button" aria-label={`${open?"Ocultar":"Ver"} desglose de puntos`} aria-expanded={open} onClick={()=>setOpen(!open)}><Info size={16}/></button><span className={`points-award ${item.exact_result_points>0?"exact":""}`}>{item.is_star?<Star size={15} fill="currentColor"/>:item.exact_result_points>0&&<Star size={15} fill="currentColor"/>}+{item.total_points}</span></span>}</span>
-   <span className="activity-match"><Flag team={item.team1}/>{item.team1}<b>vs</b><Flag team={item.team2}/>{item.team2}</span>
+   <span className="activity-summary"><strong>{item.text}</strong></span>
+   <span className="activity-match-row"><span className="activity-match"><Flag team={item.team1}/>{item.team1}<b>vs</b><Flag team={item.team2}/>{item.team2}</span>{item.type==="points"&&<span className="activity-summary-actions"><button className="activity-info-button" aria-label={`${open?"Ocultar":"Ver"} desglose de puntos`} aria-expanded={open} onClick={()=>setOpen(!open)}><Info size={16}/></button><span className={`points-award ${item.exact_result_points>0?"exact":""}`}>{item.is_star?<Star size={15} fill="currentColor"/>:item.exact_result_points>0&&<Star size={15} fill="currentColor"/>}+{item.total_points} puntos</span></span>}</span>
    <small>{new Date(item.created_at).toLocaleString("es-ES")}</small>
    {open&&breakdown&&<div className="activity-breakdown">
     <strong>Desglose de puntos</strong>
