@@ -12,7 +12,7 @@ const statusLabel = (match) => match.status === "finished" ? "Finalizado" : matc
 function VerticalScoreControl({ team, value, onChange, onAdjust }) {
   const score=value===""?0:Number(value);
   const safeScore=Number.isFinite(score)?Math.max(0,score):0;
-  const maxScore=Math.max(10,safeScore);
+  const maxScore=20;
   const commitFromPointer=event=>{
     const rect=event.currentTarget.getBoundingClientRect();
     const ratio=Math.min(1,Math.max(0,(rect.bottom-event.clientY)/rect.height));
@@ -87,7 +87,7 @@ export function MatchCard({ match, onSaved, verticalScorePicker=false }) {
     setExpanded(!expanded);
   };
   const date = new Date(`${match.match_date}T${match.match_time}:00`);
-  const adjust = (setter, value, delta) => setter(String(Math.max(0, Number(value || 0) + delta)));
+  const adjust = (setter, value, delta) => setter(String(Math.min(20,Math.max(0, Number(value || 0) + delta))));
   return <article className={`match-card ${match.status} ${match.in_play?"in-play":""} ${match.is_star?"star-match-card":""}`}>
     <div className="match-head">
       <div><span className={`status ${match.in_play?"in-play":match.status}`}>{statusLabel(match)}</span><strong>{date.toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"})}</strong><span><Clock3 size={14}/>{match.match_time}</span></div>

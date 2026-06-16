@@ -14,13 +14,13 @@ export function LeaderboardPage() {
 
   return <div className="page">
     <section className="page-heading">
-      <span className="eyebrow"><Trophy size={14} /> CLASIFICACIÓN GENERAL</span>
+      <span className="eyebrow"><Trophy size={14} /> CLASIFICACION GENERAL</span>
       <h1>La carrera por la copa</h1>
       <p>Ranking global y perfiles de cada participante.</p>
     </section>
     <section className="ranking-block">
       <div className="ranking-heading">
-        <div><span className="eyebrow">CLASIFICACIÓN GENERAL</span><h2>Podio del Mundial</h2></div>
+        <div><span className="eyebrow">CLASIFICACION GENERAL</span><h2>Podio del Mundial</h2></div>
         <span>Acumulado total</span>
       </div>
       <div className="podium">
@@ -42,10 +42,6 @@ export function LeaderboardPage() {
         </button>)}
       </div>
     </section>
-    <div className="export-actions">
-      <button onClick={() => exportRows(rows, "csv")}>Exportar CSV</button>
-      <button onClick={() => exportRows(rows, "excel")}>Exportar Excel</button>
-    </div>
     <div className="table-card">
       <table>
         <thead>
@@ -57,8 +53,8 @@ export function LeaderboardPage() {
             <th>Exacto</th>
             <th>Goleador</th>
             <th>Ajustes</th>
-            <th>Pronósticos</th>
-            <th>Aciertos G/E/GL</th>
+            <th>Pronosticos</th>
+            <th className="leaderboard-hits-column">Aciertos G/E/GL</th>
           </tr>
         </thead>
         <tbody>
@@ -80,7 +76,7 @@ export function LeaderboardPage() {
             <td>{row.scorer_points}</td>
             <td className={row.adjustments < 0 ? "negative" : ""}>{row.adjustments > 0 ? "+" : ""}{row.adjustments}</td>
             <td>{row.predicted_matches}</td>
-            <td><span className="hit"><Target size={14} />{row.winner_hits} / {row.exact_hits} / {row.scorer_hits}</span></td>
+            <td className="leaderboard-hits-column"><span className="hit"><Target size={14} />{row.winner_hits} / {row.exact_hits} / {row.scorer_hits}</span></td>
           </tr>)}
         </tbody>
       </table>
@@ -98,25 +94,11 @@ function Position({ index }) {
   return <>#{index + 1}</>;
 }
 
-function LeaderCup({ compact = false }) {
-  return <img className={`leader-cup${compact ? " compact" : ""}`} src="/images/iconomundial.png" alt="Líder" />;
+function LeaderCup() {
+  return <img className="leader-cup" src="/images/iconomundial.png" alt="Lider" />;
 }
 
 function initials(name = "") {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   return (parts.length > 1 ? `${parts[0][0]}${parts[1][0]}` : name.slice(0, 2)).toUpperCase();
-}
-
-function exportRows(rows, type) {
-  const separator = type === "csv" ? ";" : "\t";
-  const text = [
-    ["Posición", "Usuario", "Puntos", "Aciertos ganador", "Exactos", "Goleadores"],
-    ...rows.map((row, index) => [index + 1, row.username, row.total_points, row.winner_hits, row.exact_hits, row.scorer_hits])
-  ].map((row) => row.join(separator)).join("\n");
-  const blob = new Blob([`\uFEFF${text}`], { type: type === "csv" ? "text/csv" : "application/vnd.ms-excel" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = `clasificacion.${type === "csv" ? "csv" : "xls"}`;
-  link.click();
-  URL.revokeObjectURL(link.href);
 }
