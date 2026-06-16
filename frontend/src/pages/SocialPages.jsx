@@ -50,7 +50,8 @@ export function ProfilePage(){
   </div>
 }
 function formatStatDate(date){return new Date(`${date}T12:00:00`).toLocaleDateString("es-ES",{day:"2-digit",month:"short"})}
-function lastFiveDays(data=[]){return data.slice(-5)}
+function byDateAsc(a,b){return new Date(`${a.date}T12:00:00`)-new Date(`${b.date}T12:00:00`)}
+function lastFiveDays(data=[]){return [...data].sort(byDateAsc).slice(-5)}
 function PointsByDay({data=[]}){
   const visibleDays=lastFiveDays(data);
   if(!visibleDays.length)return <p className="stat-change-empty">Todavía no hay puntos diarios.</p>;
@@ -64,7 +65,8 @@ function PointsByDay({data=[]}){
   })}</div>
 }
 function PositionEvolution({data=[]}){
-  const changes=data.map((day,index)=>({day,index,previous:Number(data[index-1]?.position)}));
+  const sortedData=[...data].sort(byDateAsc);
+  const changes=sortedData.map((day,index)=>({day,index,previous:Number(sortedData[index-1]?.position)}));
   const visibleDays=lastFiveDays(changes);
   if(!visibleDays.length)return <p className="stat-change-empty">Todavía no hay histórico de posición.</p>;
   return <div className="stat-change-list">{visibleDays.map(({day,index,previous})=>{
@@ -95,8 +97,7 @@ function PointsDetailOverlay({detail,username,onClose}){
  const signed=value=>`${Number(value)>0?"+":""}${Number(value)||0}`;
  return <div className="team-detail-overlay points-detail-overlay" role="dialog" aria-modal="true" aria-label="Detalle de puntos" onMouseDown={event=>{if(event.target===event.currentTarget)onClose()}}>
   <section className="team-detail-panel points-detail-panel">
-   <button className="team-detail-close" aria-label="Cerrar detalle de puntos" onClick={onClose}><X/></button>
-   <header className="points-detail-header"><span className="eyebrow">DETALLE DE PUNTOS</span><h1>{username}</h1><p>Así se construye el total: puntos automáticos por partidos finalizados más ajustes manuales.</p></header>
+   <header className="points-detail-header"><div><span className="eyebrow">DETALLE DE PUNTOS</span><h1>{username}</h1><p>Así se construye el total: puntos automáticos por partidos finalizados más ajustes manuales.</p></div><button className="team-detail-close points-detail-close" aria-label="Cerrar detalle de puntos" onClick={onClose}><X/></button></header>
    <div className="points-ledger-summary">
     <article><span>Total actual</span><strong>{detail?.total_points||0}</strong></article>
     <article><span>Partidos</span><strong>{detail?.automatic_points||0}</strong><small>Ganador {detail?.winner_points||0} · Exacto {detail?.exact_result_points||0} · Goleador {detail?.scorer_points||0}</small></article>
