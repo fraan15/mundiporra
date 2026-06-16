@@ -227,7 +227,7 @@ function MainLayout() {
     </div>}
     <header className="topbar">
       <button className="brand" onClick={() => navigate("/")}>
-        <span className="brand-mark"><img src="/images/iconomundial.png" alt="" /></span>
+        <span className="brand-mark"><img src="/images/mundial_2026.png" alt="" /></span>
         <span className="brand-copy"><strong>MundiPorra</strong><TodayMatchesTicker fallback={settings.pool_name || "MUNDIPORRA"}/></span>
       </button>
       <div className="user-area"><button className="icon-btn" title="Cambiar tema" onClick={()=>setTheme(theme==="dark"?"light":"dark")}>{theme==="dark"?<Sun size={18}/>:<Moon size={18}/>}</button><NotificationsBell/><ProfileMenu/></div>
