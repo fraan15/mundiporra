@@ -31,7 +31,8 @@ function DashboardCalendar({ matches, expanded, onExpand, onCollapse }) {
     };
   });
   const total = days.reduce((sum, day) => sum + day.matches.length, 0);
-  const visibleDays = expanded ? days : days.reduce((visible, day) => {
+  const daysWithMatches = days.filter(day => day.matches.length);
+  const visibleDays = expanded ? daysWithMatches : daysWithMatches.reduce((visible, day) => {
     const shownCount = visible.reduce((sum, visibleDay) => sum + visibleDay.visibleMatches.length, 0);
     const remaining = COLLAPSED_CALENDAR_MATCH_LIMIT - shownCount;
     if (remaining <= 0) return visible;
@@ -57,7 +58,6 @@ function DashboardCalendar({ matches, expanded, onExpand, onCollapse }) {
           <span className="calendar-team home"><strong>{match.team1}</strong><Flag team={match.team1} teamData={match.team1_team}/></span>
           <b>{hasResult(match) ? `${match.result_team1} - ${match.result_team2}` : match.match_time}</b>
           <span className="calendar-team away"><Flag team={match.team2} teamData={match.team2_team}/><strong>{match.team2}</strong></span>
-          {!match.published && <em>Oculto</em>}
         </div>) : <p>No hay partidos cargados.</p>}</div>
       </article>) : <p className="empty-state">No hay partidos cargados para los próximos días.</p>}
     </div>
