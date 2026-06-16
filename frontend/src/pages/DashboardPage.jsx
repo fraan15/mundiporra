@@ -26,7 +26,7 @@ function DashboardPredictionValue({ match, user, emptyText }) {
   const scorer = predictionScorerText(match, user);
   return <span className="dashboard-prediction-value">
     <strong>{user.is_read_only ? "Solo lectura" : predictionScoreText(match, emptyText)}</strong>
-    {!user.is_read_only && <em className={scorer ? "prediction-scorer has-scorer" : "prediction-scorer"} title={scorer || undefined}>{scorer}</em>}
+    {scorer && <em className="prediction-scorer" title={scorer}>{scorer}</em>}
   </span>;
 }
 
