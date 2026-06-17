@@ -102,6 +102,10 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(18
 .input-shell input{width:100%;border:0;background:transparent;box-shadow:none!important;min-height:50px}
 .hint{color:#817476}
 
+/* Prediction reveal rows */
+.reveal-list>div{grid-template-columns:minmax(100px,.7fr) minmax(0,1.8fr) auto}.reveal-list>div span{justify-self:stretch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.day-reveals span{display:inline-flex;align-items:center;gap:4px;max-width:100%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.day-reveals span b{flex:0 0 auto}
+@media(max-width:800px){.reveal-list>div{grid-template-columns:minmax(80px,.8fr) minmax(0,1.2fr) auto}.day-reveals span{width:100%}}
+
 @media(max-width:800px){
   body{background:#faf7f7}.topbar{height:64px;padding:0 14px}.brand small{display:none}.brand strong{font-size:14px}
   .user-area{gap:4px}.avatar{display:none}.icon-btn,.bell-btn{min-width:42px;width:42px;height:42px}
@@ -881,3 +885,9 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
   .podium-card.place-2 .podium-step{height:68px;font-size:34px}
   .podium-card.place-3 .podium-step{height:60px;font-size:31px}
 }
+
+/* Keep prediction reveals compact after mobile theme overrides. */
+.reveal-list>div{grid-template-columns:minmax(100px,.7fr) minmax(0,1.8fr) auto}
+.reveal-list>div span{justify-self:stretch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.day-reveals span{display:inline-flex;align-items:center;gap:4px;max-width:100%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:800px){.reveal-list>div{grid-template-columns:minmax(80px,.8fr) minmax(0,1.2fr) auto}.day-reveals span{width:100%}}

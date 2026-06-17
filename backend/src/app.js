@@ -1297,10 +1297,14 @@ app.get("/api/history/day/:date", requireAuth, (req, res) => {
   const details = Object.fromEntries(visibleMatches.map((match) => {
     if (match.status === "open" && !isExpired(match)) return [match.id, null];
     return [match.id, db.prepare(`
-      SELECT u.username,p.predicted_winner,p.predicted_team1_goals,p.predicted_team2_goals,p.total_points
+      SELECT u.username,p.predicted_winner,p.predicted_team1_goals,p.predicted_team2_goals,p.total_points,
+        p.predicted_scorer_id,player.name predicted_scorer_name
       FROM predictions p JOIN users u ON u.id=p.user_id
+      LEFT JOIN players player ON player.id=p.predicted_scorer_id
       WHERE p.match_id=? AND u.role='user' ORDER BY u.username
-    `).all(match.id)];
+    `).all(match.id).map((prediction) => prediction.predicted_team1_goals === 0 && prediction.predicted_team2_goals === 0
+      ? { ...prediction, predicted_scorer_id: NO_SCORER_ID, predicted_scorer_name: NO_SCORER.name }
+      : prediction)];
   }));
   res.json({ matches: visibleMatches, predictions: details });
 });
