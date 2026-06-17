@@ -839,7 +839,7 @@ app.post("/api/chat/read", requireAuth, requireWritableUser, (req, res) => {
 app.get("/api/matches/:id/detail", requireAuth, (req, res) => {
   const match = db.prepare(`
     SELECT m.*,p.id prediction_id,p.predicted_winner,p.predicted_team1_goals,p.predicted_team2_goals,
-      p.predicted_scorer_id,p.scorer_points,p.total_points
+      p.predicted_scorer_id,p.winner_points,p.exact_result_points,p.scorer_points,p.total_points,p.scoring_multiplier
     FROM matches m LEFT JOIN predictions p ON p.match_id=m.id AND p.user_id=? WHERE m.id=?
   `).get(req.user.id, req.params.id);
   if (!match || !canAccessMatch(req, match)) return res.status(404).json({ error: "Partido no encontrado." });
