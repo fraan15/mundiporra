@@ -173,6 +173,7 @@ function HorizontalScoreControl({team,value,onChange,onAdjust}){
   onChange(String(nextScore));
  };
  const startDrag=event=>{
+  event.stopPropagation();
   event.preventDefault();
   event.currentTarget.setPointerCapture?.(event.pointerId);
   dragRef.current={
@@ -182,12 +183,14 @@ function HorizontalScoreControl({team,value,onChange,onAdjust}){
  };
  const moveDrag=event=>{
   if(!dragRef.current)return;
+  event.stopPropagation();
   if(event.buttons!==1&&event.pointerType==="mouse")return;
   event.preventDefault();
   commitFromPointer(event);
  };
  const endDrag=event=>{
   if(!dragRef.current)return;
+  event.stopPropagation();
   commitFromPointer(event);
   dragRef.current=null;
   event.currentTarget.releasePointerCapture?.(event.pointerId);
@@ -202,7 +205,7 @@ function HorizontalScoreControl({team,value,onChange,onAdjust}){
   <small>{team}</small>
   <div className="horizontal-score-rail">
    <button type="button" aria-label={`Bajar goles de ${team}`} onClick={()=>onAdjust(-1)}><Minus/></button>
-   <div className="horizontal-score-value" role="slider" tabIndex="0" aria-label={`Arrastrar goles pronosticados de ${team}`} aria-valuemin="0" aria-valuemax={maxScore} aria-valuenow={safeScore} onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={()=>{dragRef.current=null}} onKeyDown={keyDrag}>
+   <div className="horizontal-score-value" role="slider" tabIndex="0" aria-label={`Arrastrar goles pronosticados de ${team}`} aria-valuemin="0" aria-valuemax={maxScore} aria-valuenow={safeScore} onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={event=>{event.stopPropagation();dragRef.current=null}} onKeyDown={keyDrag}>
     <strong>{value===""?"0":value}</strong>
    </div>
    <button type="button" aria-label={`Subir goles de ${team}`} onClick={()=>onAdjust(1)}><Plus/></button>
