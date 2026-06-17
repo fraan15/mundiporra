@@ -3,6 +3,7 @@ import { Activity, Calculator, CalendarSearch, Check, MessageSquareText, Plus, S
 import { api } from "../api/client";
 import { SearchSelect } from "../components/SearchSelect";
 import { ScorerPicker } from "../components/ScorerPicker";
+import { HorizontalScoreControl } from "../components/MatchCard";
 import { NO_SCORER, NO_SCORER_ID } from "../constants/scorers";
 
 export function AdminPage() {
@@ -105,11 +106,10 @@ function MatchReferencePanel({data,onSelect}){
 
 function AdminResultEditor({match,onCancel,onSaved}){
   const editorRef=useRef(null);
-  const firstScoreRef=useRef(null);
   const [score,setScore]=useState({g1:match.result_team1??"",g2:match.result_team2??""}),[players,setPlayers]=useState([]),[scorerIds,setScorerIds]=useState((match.actual_scorers||[]).map(player=>player.id)),[error,setError]=useState("");
   useEffect(()=>{
     editorRef.current?.scrollIntoView({behavior:"smooth",block:"start"});
-    firstScoreRef.current?.focus({preventScroll:true});
+    editorRef.current?.focus({preventScroll:true});
   },[match.id]);
   useEffect(()=>{const codes=[match.team1_team?.fifa_code,match.team2_team?.fifa_code].filter(Boolean);if(codes.length===2)api(`/players?team_fifa_codes=${codes.join(",")}`).then(setPlayers)},[match.id]);
   const scorerEnabled=Boolean(Number(match.scorer_enabled));
@@ -119,8 +119,9 @@ function AdminResultEditor({match,onCancel,onSaved}){
   useEffect(()=>{if(scorerEnabled&&score.g1!==""&&score.g2!==""&&isNilNil)setScorerIds([NO_SCORER_ID])},[score.g1,score.g2,isNilNil,scorerEnabled]);
   useEffect(()=>{if(players.length&&!isNilNil)setScorerIds(ids=>ids.filter(id=>validScorerIds.has(id)))},[score.g1,score.g2,players.length,isNilNil]);
   const available=players.filter(player=>scoringTeamCodes.includes(player.team_fifa_code)&&!scorerIds.includes(player.id));
+  const adjustScore=(field,delta)=>setScore(current=>({...current,[field]:String(Math.max(0,Number(current[field]||0)+delta))}));
   const save=async()=>{setError("");try{await api(`/matches/${match.id}/finish`,{method:"POST",body:{result_team1:Number(score.g1),result_team2:Number(score.g2),scorer_ids:scorerIds}});onSaved()}catch(err){setError(err.message)}};
-  return <section className="admin-form result-admin-editor" ref={editorRef} tabIndex="-1"><h3>Resultado: {match.team1} - {match.team2}</h3><div className="result-admin-score"><input ref={firstScoreRef} type="number" min="0" inputMode="numeric" autoComplete="off" name={`result-team1-${match.id}`} aria-label={`Goles de ${match.team1}`} value={score.g1} onChange={e=>setScore({...score,g1:e.target.value})}/><b>:</b><input type="number" min="0" inputMode="numeric" autoComplete="off" name={`result-team2-${match.id}`} aria-label={`Goles de ${match.team2}`} value={score.g2} onChange={e=>setScore({...score,g2:e.target.value})}/></div>{scorerEnabled&&isNilNil&&<div><label>Goleadores puntuables<SearchSelect items={[NO_SCORER]} value={NO_SCORER_ID} onChange={()=>setScorerIds([NO_SCORER_ID])} placeholder="Sin goleador" renderItem={player=><><strong>{player.name}</strong><small>{player.team_name} · {player.position}</small></>}/></label></div>}{scorerEnabled&&!isNilNil&&<div className="result-scorers-editor"><strong>Goleadores puntuables</strong><ScorerPicker players={available} value={null} onChange={playerId=>playerId&&setScorerIds([...scorerIds,playerId])} buttonLabel="Añadir goleador" matchLabel={`${match.team1} - ${match.team2}`}/><div className="selected-scorers">{scorerIds.map(id=>{const player=players.find(row=>row.id===id)||match.actual_scorers?.find(row=>row.id===id);return player&&<button type="button" key={id} onClick={()=>setScorerIds(scorerIds.filter(value=>value!==id))}>{player.name} ×</button>})}</div><small>Selecciona cada jugador una sola vez. Los autogoles no se añaden.</small></div>}{error&&<div className="alert error">{error}</div>}<button className="primary" type="button" onClick={save}>Guardar resultado</button><button className="secondary" type="button" onClick={onCancel}>Cancelar</button></section>;
+  return <section className="admin-form result-admin-editor" ref={editorRef} tabIndex="-1"><h3>Resultado: {match.team1} - {match.team2}</h3><div className="detail-score-picker horizontal result-admin-score"><HorizontalScoreControl team={match.team1} value={score.g1} onChange={value=>setScore(current=>({...current,g1:value}))} onAdjust={delta=>adjustScore("g1",delta)}/><b>:</b><HorizontalScoreControl team={match.team2} value={score.g2} onChange={value=>setScore(current=>({...current,g2:value}))} onAdjust={delta=>adjustScore("g2",delta)}/></div>{scorerEnabled&&isNilNil&&<div><label>Goleadores puntuables<SearchSelect items={[NO_SCORER]} value={NO_SCORER_ID} onChange={()=>setScorerIds([NO_SCORER_ID])} placeholder="Sin goleador" renderItem={player=><><strong>{player.name}</strong><small>{player.team_name} · {player.position}</small></>}/></label></div>}{scorerEnabled&&!isNilNil&&<div className="result-scorers-editor"><strong>Goleadores puntuables</strong><ScorerPicker players={available} value={null} onChange={playerId=>playerId&&setScorerIds([...scorerIds,playerId])} buttonLabel="Añadir goleador" matchLabel={`${match.team1} - ${match.team2}`}/><div className="selected-scorers">{scorerIds.map(id=>{const player=players.find(row=>row.id===id)||match.actual_scorers?.find(row=>row.id===id);return player&&<button type="button" key={id} onClick={()=>setScorerIds(scorerIds.filter(value=>value!==id))}>{player.name} ×</button>})}</div><small>Selecciona cada jugador una sola vez. Los autogoles no se añaden.</small></div>}{error&&<div className="alert error">{error}</div>}<button className="primary" type="button" onClick={save}>Guardar resultado</button><button className="secondary" type="button" onClick={onCancel}>Cancelar</button></section>;
 }
 function AdminUsers(){
   const [users,setUsers]=useState([]),[form,setForm]=useState({username:"",password:"",role:"user"}),[notice,setNotice]=useState("");

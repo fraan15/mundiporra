@@ -732,12 +732,13 @@ app.get("/api/activity", requireAuth, (req, res) => {
     if (item.type !== "points") return null;
     const multiplier = Number(item.scoring_multiplier || 1);
     const rules = [
-      ["Ganador", "acierto de ganador", Number(item.winner_points || 0)],
-      ["Resultado exacto", "acierto exacto", Number(item.exact_result_points || 0)],
-      ["Goleador", "goleador", Number(item.scorer_points || 0)]
+      ["Ganador", "acierto de ganador", Number(item.winner_points || 0), null],
+      ["Resultado exacto", "acierto exacto", Number(item.exact_result_points || 0), null],
+      ["Goleador", "goleador", Number(item.scorer_points || 0), item.predicted_scorer_name]
     ].filter(([, , points]) => points > 0);
-    const baseRules = rules.map(([label, description, points]) => ({
+    const baseRules = rules.map(([label, description, points, detail]) => ({
       label,
+      detail,
       description,
       points,
       base_points: points / multiplier,
@@ -767,16 +768,22 @@ app.get("/api/activity", requireAuth, (req, res) => {
   const items = db.prepare(`
     SELECT * FROM (
       SELECT 'prediction' type,u.username,m.team1,m.team2,NULL total_points,
-        p.created_at,NULL winner_points,NULL exact_result_points,NULL scorer_points,p.id event_id,m.is_star,1 scoring_multiplier
+        p.created_at,NULL winner_points,NULL exact_result_points,NULL scorer_points,p.id event_id,m.is_star,1 scoring_multiplier,
+        NULL predicted_scorer_name
       FROM predictions p
       JOIN users u ON u.id=p.user_id
       JOIN matches m ON m.id=p.match_id
       UNION ALL
       SELECT 'points' type,u.username,m.team1,m.team2,p.total_points,
-        p.updated_at created_at,p.winner_points,p.exact_result_points,p.scorer_points,p.id event_id,m.is_star,p.scoring_multiplier
+        p.updated_at created_at,p.winner_points,p.exact_result_points,p.scorer_points,p.id event_id,m.is_star,p.scoring_multiplier,
+        CASE
+          WHEN p.predicted_team1_goals=0 AND p.predicted_team2_goals=0 THEN 'Sin goleador'
+          ELSE player.name
+        END predicted_scorer_name
       FROM predictions p
       JOIN users u ON u.id=p.user_id
       JOIN matches m ON m.id=p.match_id
+      LEFT JOIN players player ON player.id=p.predicted_scorer_id
       WHERE p.total_points>0
     )
     ORDER BY created_at DESC,event_id DESC

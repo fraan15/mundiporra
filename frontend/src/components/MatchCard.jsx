@@ -9,12 +9,10 @@ import { ScorerPicker } from "./ScorerPicker";
 import { NO_SCORER, NO_SCORER_ID } from "../constants/scorers";
 
 const statusLabel = (match) => match.status === "finished" ? "Finalizado" : match.in_play ? "En juego" : match.status === "closed" ? (match.close_reason === "automatic" ? "Cierre automático" : "Cerrado") : "Abierto";
-const predictionRevealText = (match, prediction) => {
-  const score = `${match.team1} ${prediction.predicted_team1_goals} – ${prediction.predicted_team2_goals} ${match.team2}`;
-  return prediction.predicted_scorer_name ? `${score} · Goleador: ${prediction.predicted_scorer_name}` : score;
-};
+const predictionScoreText = (match, prediction) => `${match.team1} ${prediction.predicted_team1_goals} – ${prediction.predicted_team2_goals} ${match.team2}`;
+const predictionScorerText = (prediction) => prediction.predicted_scorer_name ? `Goleador: ${prediction.predicted_scorer_name}` : "Sin goleador";
 
-function HorizontalScoreControl({ team, value, onChange, onAdjust }) {
+export function HorizontalScoreControl({ team, value, onChange, onAdjust }) {
   const dragRef=useRef(null);
   const score=value===""?0:Number(value);
   const safeScore=Number.isFinite(score)?Math.max(0,score):0;
@@ -147,7 +145,7 @@ export function MatchCard({ match, onSaved, verticalScorePicker=false }) {
       {message && <small className={message.includes("guardada")?"success-text":"error-text"}>{message}</small>}
     </div> : <div className="locked-prediction"><span>{user.is_read_only ? "Modo solo lectura" : "Tu apuesta"}</span><strong>{user.is_read_only ? "Sin participación" : match.predicted_winner ? `${match.team1} ${match.predicted_team1_goals} – ${match.predicted_team2_goals} ${match.team2}` : "Sin predicción"}</strong>{!user.is_read_only&&match.predicted_scorer&&<small>Goleador: {match.predicted_scorer.name}</small>}{!user.is_read_only&&match.status==="finished" && <b><StarPoints match={match} points={match.total_points}/></b>}</div>}
     <button className="reveal-toggle" onClick={toggleReveal}><span><Users size={16}/>{match.prediction_count} participantes</span><span>{match.betting_open ? "Apuestas ocultas hasta el cierre" : "Ver apuestas"}<ChevronDown className={expanded?"rotated":""} size={16}/></span></button>
-    {expanded && reveal && <div className="reveal-list">{!reveal.revealed ? <p>{reveal.count ? `${reveal.count} pronóstico${reveal.count===1?"":"s"} registrado${reveal.count===1?"":"s"}. Se revelarán al cierre.` : "Aún no hay participantes."}</p> : reveal.predictions.length ? reveal.predictions.map(p=><div key={p.id}><strong>{p.username}</strong><span>{predictionRevealText(match,p)}</span>{match.status==="finished"&&<b>{p.total_points} pts</b>}</div>) : <p>Aún no hay apuestas.</p>}</div>}
+    {expanded && reveal && <div className="reveal-list">{!reveal.revealed ? <p>{reveal.count ? `${reveal.count} pronóstico${reveal.count===1?"":"s"} registrado${reveal.count===1?"":"s"}. Se revelarán al cierre.` : "Aún no hay participantes."}</p> : reveal.predictions.length ? reveal.predictions.map(p=><div className="revealed-prediction-row" key={p.id}><div className="revealed-prediction-main"><strong>{p.username}</strong><span>{predictionScoreText(match,p)}</span></div><small>{predictionScorerText(p)}{match.status==="finished"&&<> · <b>{p.total_points} pts</b></>}</small></div>) : <p>Aún no hay apuestas.</p>}</div>}
     <button className="match-detail-link" onClick={()=>navigate(`/match/${match.id}`)}><span>Ver detalles del partido<small>Estadísticas, participantes y comentarios</small></span><ChevronRight size={20}/></button>
   </article>;
 }

@@ -569,6 +569,7 @@ test("configura los puntos de goleador y los refleja en la clasificación", asyn
   assert.equal(event.scorer_points, 7);
   assert.match(event.text, /sara ganó 10 puntos por acertar ganador \+ goleador/);
   assert.deepEqual(event.points_breakdown.rules.map((rule) => [rule.label, rule.base_points]), [["Ganador", 3], ["Goleador", 7]]);
+  assert.equal(event.points_breakdown.rules.find((rule) => rule.label === "Goleador").detail, scorer.name);
 
   await admin.put("/api/admin/settings").send(originalSettings);
 });
