@@ -1062,9 +1062,12 @@ app.post("/api/matches/:id/finish", requireAdmin, (req, res) => {
   saveRankingSnapshot();
   const after = db.prepare("SELECT * FROM matches WHERE id=?").get(before.id);
   logAction(req.user.id, before.status === "finished" ? "edit_result" : "finish_match", "match", before.id, "Resultado guardado y puntos recalculados", before, after);
+  const resultNotificationTitle = before.status === "finished"
+    ? `Resultado publicado - modificacion - (${req.user.username})`
+    : `Resultado publicado (${req.user.username})`;
   notifyAll({
     type: "result_published",
-    title: `Resultado publicado (${req.user.username})`,
+    title: resultNotificationTitle,
     message: `${before.team1} ${g1} - ${g2} ${before.team2}.${before.is_star ? " Partido Estrella x2." : ""}`,
     entityType: "match",
     entityId: before.id,

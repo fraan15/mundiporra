@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Search, Trash2, X } from "lucide-react";
 
-const positionOrder = ["GK", "DF", "MF", "FW"];
+const positionOrder = ["FW", "MF", "DF", "GK"];
 const positionLabels = {
   GK: "Porteros",
   DF: "Defensas",

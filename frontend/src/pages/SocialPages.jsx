@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Activity, ArrowLeft, BarChart3, Check, ChevronDown, ChevronLeft, ChevronRight, Edit3, Goal, Info, MessageCircle, Minus, Plus, Save, Send, Shield, Star, Trash2, Trophy, Users, X } from "lucide-react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
@@ -160,24 +160,39 @@ const winnerFromScore=(g1,g2)=>{
  return team1Goals===team2Goals?"draw":team1Goals>team2Goals?"team1":"team2";
 };
 function VerticalScoreControl({team,value,onChange,onAdjust}){
+ const dragRef=useRef(null);
  const score=value===""?0:Number(value);
  const safeScore=Number.isFinite(score)?Math.max(0,score):0;
  const maxScore=10;
  const trackScore=Math.min(safeScore,maxScore);
+ const dragSensitivity=1.18;
  const commitFromPointer=event=>{
-  const rect=event.currentTarget.getBoundingClientRect();
-  const ratio=Math.min(1,Math.max(0,(rect.bottom-event.clientY)/rect.height));
-  onChange(String(Math.round(ratio*maxScore)));
+  if(!dragRef.current)return;
+  const { startY, startScore, stepHeight }=dragRef.current;
+  const delta=(startY-event.clientY)/(stepHeight*dragSensitivity);
+  const nextScore=Math.min(maxScore,Math.max(0,Math.round(startScore+delta)));
+  onChange(String(nextScore));
  };
  const startDrag=event=>{
   event.preventDefault();
   event.currentTarget.setPointerCapture?.(event.pointerId);
-  commitFromPointer(event);
+  dragRef.current={
+   startY:event.clientY,
+   startScore:safeScore,
+   stepHeight:event.currentTarget.getBoundingClientRect().height/maxScore
+  };
  };
  const moveDrag=event=>{
+  if(!dragRef.current)return;
   if(event.buttons!==1&&event.pointerType==="mouse")return;
   event.preventDefault();
   commitFromPointer(event);
+ };
+ const endDrag=event=>{
+  if(!dragRef.current)return;
+  commitFromPointer(event);
+  dragRef.current=null;
+  event.currentTarget.releasePointerCapture?.(event.pointerId);
  };
  const keyDrag=event=>{
   if(event.key==="ArrowUp"||event.key==="ArrowRight"){event.preventDefault();onAdjust(1)}
@@ -189,7 +204,7 @@ function VerticalScoreControl({team,value,onChange,onAdjust}){
   <small>{team}</small>
   <div className="vertical-score-rail">
    <button type="button" aria-label={`Subir goles de ${team}`} onClick={()=>onAdjust(1)}><Plus/></button>
-   <div className="vertical-score-value" role="slider" tabIndex="0" aria-label={`Arrastrar goles pronosticados de ${team}`} aria-valuemin="0" aria-valuemax={maxScore} aria-valuenow={safeScore} onPointerDown={startDrag} onPointerMove={moveDrag} onKeyDown={keyDrag}>
+   <div className="vertical-score-value" role="slider" tabIndex="0" aria-label={`Arrastrar goles pronosticados de ${team}`} aria-valuemin="0" aria-valuemax={maxScore} aria-valuenow={safeScore} onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={()=>{dragRef.current=null}} onKeyDown={keyDrag}>
     <strong>{value===""?"0":value}</strong>
     <span className="vertical-score-track" aria-hidden="true"><i style={{bottom:`${trackScore/maxScore*100}%`}}/></span>
    </div>
@@ -244,12 +259,12 @@ function TeamComparisonOverlay({team1Id,team2Id,onClose}){
  </div>
 }
 export function MatchDetailPage(){
- const {id}=useParams(),navigate=useNavigate(),location=useLocation(),{user}=useAuth(),[data,setData]=useState(null),[comments,setComments]=useState([]),[text,setText]=useState(""),[error,setError]=useState(""),[participantsOpen,setParticipantsOpen]=useState(false),[selectedTeam,setSelectedTeam]=useState(null),[comparing,setComparing]=useState(false),[result,setResult]=useState({g1:"",g2:""}),[resultScorerIds,setResultScorerIds]=useState([]),[savingResult,setSavingResult]=useState(false),[resultMessage,setResultMessage]=useState(""),[pick,setPick]=useState({winner:"",g1:"",g2:"",scorerId:null}),[players,setPlayers]=useState([]),[savingPick,setSavingPick]=useState(false),[pickMessage,setPickMessage]=useState("");
+ const {id}=useParams(),navigate=useNavigate(),location=useLocation(),{user}=useAuth(),[data,setData]=useState(null),[comments,setComments]=useState([]),[text,setText]=useState(""),[error,setError]=useState(""),[participantsOpen,setParticipantsOpen]=useState(false),[selectedTeam,setSelectedTeam]=useState(null),[comparing,setComparing]=useState(false),[result,setResult]=useState({g1:"",g2:""}),[resultScorerIds,setResultScorerIds]=useState([]),[savingResult,setSavingResult]=useState(false),[resultMessage,setResultMessage]=useState(""),[pick,setPick]=useState({winner:"draw",g1:"0",g2:"0",scorerId:null}),[players,setPlayers]=useState([]),[savingPick,setSavingPick]=useState(false),[pickMessage,setPickMessage]=useState("");
  const load=()=>{setError("");return Promise.all([api(`/matches/${id}/detail`),api(`/matches/${id}/comments`)]).then(([d,c])=>{setData(d);setComments(c)}).catch(err=>setError(err.message))};
  useEffect(()=>{load()},[id]);
 	 useEffect(()=>{if(data)setResult({g1:data.match.result_team1??"",g2:data.match.result_team2??""})},[data?.match.result_team1,data?.match.result_team2]);
 	 useEffect(()=>{if(data)setResultScorerIds((data.match.actual_scorers||[]).map(player=>player.id))},[data?.match.id,data?.match.actual_scorers]);
-	 useEffect(()=>{if(data)setPick({winner:data.match.predicted_winner||"",g1:data.match.predicted_team1_goals??"",g2:data.match.predicted_team2_goals??"",scorerId:data.match.predicted_scorer_id||null})},[data?.match.prediction_id,data?.match.predicted_winner,data?.match.predicted_team1_goals,data?.match.predicted_team2_goals,data?.match.predicted_scorer_id]);
+	 useEffect(()=>{if(data){const g1=data.match.predicted_team1_goals??"0",g2=data.match.predicted_team2_goals??"0";setPick({winner:data.match.predicted_winner||winnerFromScore(g1,g2),g1,g2,scorerId:data.match.predicted_scorer_id||null})}},[data?.match.prediction_id,data?.match.predicted_winner,data?.match.predicted_team1_goals,data?.match.predicted_team2_goals,data?.match.predicted_scorer_id]);
 	 const scorerEnabled=Boolean(Number(data?.match?.scorer_enabled));
 	 useEffect(()=>{const m=data?.match,codes=[m?.team1_team?.fifa_code,m?.team2_team?.fifa_code].filter(Boolean);if(scorerEnabled&&codes.length===2)api(`/players?team_fifa_codes=${codes.join(",")}`).then(setPlayers)},[data?.match.id,scorerEnabled]);
  const resultScoringTeamCodes=[Number(result.g1)>0&&data?.match.team1_team?.fifa_code,Number(result.g2)>0&&data?.match.team2_team?.fifa_code].filter(Boolean);

@@ -67,16 +67,19 @@ function VerticalScoreControl({ team, value, onChange, onAdjust }) {
 export function MatchCard({ match, onSaved, verticalScorePicker=false }) {
   const navigate=useNavigate();
   const { user } = useAuth();
-  const [winner, setWinner] = useState(match.predicted_winner || "");
-  const [g1, setG1] = useState(match.predicted_team1_goals ?? "");
-  const [g2, setG2] = useState(match.predicted_team2_goals ?? "");
+  const initialG1=match.predicted_team1_goals??"0";
+  const initialG2=match.predicted_team2_goals??"0";
+  const [winner, setWinner] = useState(match.predicted_winner || "draw");
+  const [g1, setG1] = useState(initialG1);
+  const [g2, setG2] = useState(initialG2);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [reveal, setReveal] = useState(null);
   const [expanded, setExpanded] = useState(false);
   const [players,setPlayers]=useState([]),[scorerId,setScorerId]=useState(match.predicted_scorer_id||null);
   useEffect(() => {
-    setWinner(match.predicted_winner || ""); setG1(match.predicted_team1_goals ?? ""); setG2(match.predicted_team2_goals ?? "");
+    const nextG1=match.predicted_team1_goals??"0",nextG2=match.predicted_team2_goals??"0";
+    setWinner(match.predicted_winner || "draw"); setG1(nextG1); setG2(nextG2);
     setScorerId(match.predicted_scorer_id||null);
   }, [match]);
   useEffect(() => {

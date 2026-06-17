@@ -698,6 +698,11 @@ test("recalcula con fiabilidad al editar resultado, goleadores y Partido Estrell
   assert.equal(editedResult.status, 200);
   scored = db.prepare("SELECT * FROM predictions WHERE id=?").get(prediction.body.id);
   assert.deepEqual([scored.winner_points, scored.exact_result_points, scored.scorer_points, scored.total_points, scored.scoring_multiplier], [0, 0, 0, 0, 2]);
+  const editNotification = (await user.get("/api/notifications")).body.notifications.find((item) =>
+    item.type === "result_published" && item.entity_id === created.body.id && item.event_key === `result:${created.body.id}:1-2`
+  );
+  assert.equal(editNotification.title, "Resultado publicado - modificacion - (administrador)");
+  assert.match(editNotification.message, new RegExp(`${team1.name} 1 - 2 ${team2.name}`));
 
   await admin.post(`/api/matches/${created.body.id}/finish`).send({
     result_team1: 2,
