@@ -715,14 +715,25 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 }
 .scorer-picker-sheet .scorer-search>input{
   flex:1 1 auto!important;
+  min-width:0!important;
+  width:100%!important;
   height:44px!important;
   min-height:0!important;
   padding:0!important;
-  line-height:normal!important;
+  line-height:44px!important;
   display:block!important;
   appearance:none!important;
   -webkit-appearance:none!important;
+  color:#24191a!important;
+  caret-color:var(--accent)!important;
+  font-size:15px!important;
+  font-weight:500!important;
+  opacity:1!important;
+  background:transparent!important;
 }
+.scorer-picker-sheet .scorer-search>input::placeholder{color:#7d7072!important;opacity:1!important}
+[data-theme="dark"] .scorer-picker-sheet .scorer-search>input{color:#f2f7ff!important}
+[data-theme="dark"] .scorer-picker-sheet .scorer-search>input::placeholder{color:#aab8c8!important}
 [data-theme="dark"] .star-match-card .reveal-toggle{background:#30251d;border-color:#65491f;color:#f1ca79}
 [data-theme="dark"] .star-dashboard-card{background:linear-gradient(135deg,#352717,#211823 55%,#3a1821 100%)!important}
 @media(max-width:900px){
