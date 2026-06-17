@@ -1,0 +1,32 @@
+name: Deploy Test
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /var/www/mundiporra-test
+
+            git pull
+
+            cd frontend
+            npm install
+            npm run build
+
+            cd ../backend
+            npm install
+
+            pm2 restart mundiporra-test
+            pm2 save --force
