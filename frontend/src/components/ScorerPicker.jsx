@@ -1,13 +1,27 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Search, Trash2, X } from "lucide-react";
 
-const positionOrder = ["FW", "MF", "DF", "GK"];
+const positionOrder = ["DEL", "MED", "DEF", "POR"];
 const positionLabels = {
+  POR: "Porteros",
   GK: "Porteros",
   DF: "Defensas",
+  DEF: "Defensas",
   MF: "Centrocampistas",
-  FW: "Delanteros"
+  MED: "Centrocampistas",
+  FW: "Delanteros",
+  DEL: "Delanteros"
 };
+const positionAliases = { FW: "DEL", DEL: "DEL", MF: "MED", MED: "MED", DF: "DEF", DEF: "DEF", GK: "POR", POR: "POR" };
+
+const positionKey = (position) => positionAliases[String(position || "").toUpperCase()] || "OT";
+const positionRank = (position) => {
+  const index = positionOrder.indexOf(positionKey(position));
+  return index === -1 ? positionOrder.length : index;
+};
+const playerSort = (a, b) => positionRank(a.position) - positionRank(b.position) ||
+  (Number(a.number) || 999) - (Number(b.number) || 999) ||
+  String(a.name || "").localeCompare(String(b.name || ""), "es");
 
 function PlayerRow({ player, selected, onSelect }) {
   return <button type="button" className={selected ? "scorer-player selected" : "scorer-player"} onClick={() => onSelect(player)}>
@@ -19,16 +33,27 @@ function PlayerRow({ player, selected, onSelect }) {
 
 function ScorerPickerSheet({ players, value, matchLabel, onSelect, onClose }) {
   const [query, setQuery] = useState("");
+  useEffect(() => {
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, []);
   const filteredPlayers = useMemo(() => {
     const text = query.trim().toLocaleLowerCase("es");
-    return text
+    const matches = text
       ? players.filter((player) => `${player.name} ${player.team_name} ${player.position}`.toLocaleLowerCase("es").includes(text))
       : players;
+    return [...matches].sort(playerSort);
   }, [players, query]);
   const grouped = useMemo(() => {
     const groups = new Map();
     filteredPlayers.forEach((player) => {
-      const key = positionOrder.includes(player.position) ? player.position : "OT";
+      const key = positionKey(player.position);
       groups.set(key, [...(groups.get(key) || []), player]);
     });
     return [...positionOrder, "OT"].filter((key) => groups.has(key)).map((key) => [key, groups.get(key)]);

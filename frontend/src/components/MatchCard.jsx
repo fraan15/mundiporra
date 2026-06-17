@@ -77,11 +77,15 @@ export function MatchCard({ match, onSaved, verticalScorePicker=false }) {
   const [reveal, setReveal] = useState(null);
   const [expanded, setExpanded] = useState(false);
   const [players,setPlayers]=useState([]),[scorerId,setScorerId]=useState(match.predicted_scorer_id||null);
+  const hydratedMatchId = useRef(match.id);
   useEffect(() => {
+    if (hydratedMatchId.current === match.id) return;
+    hydratedMatchId.current = match.id;
     const nextG1=match.predicted_team1_goals??"0",nextG2=match.predicted_team2_goals??"0";
     setWinner(match.predicted_winner || "draw"); setG1(nextG1); setG2(nextG2);
     setScorerId(match.predicted_scorer_id||null);
-  }, [match]);
+    setMessage("");
+  }, [match.id, match.predicted_winner, match.predicted_team1_goals, match.predicted_team2_goals, match.predicted_scorer_id]);
   useEffect(() => {
     if (g1 === "" || g2 === "") return;
     const team1Goals = Number(g1), team2Goals = Number(g2);

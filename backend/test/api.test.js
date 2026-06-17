@@ -405,6 +405,21 @@ test("importa catálogos sin duplicados y puntúa cualquier goleador válido", a
   });
   assert.equal(prediction.status, 201);
 
+  const openDetailForAdmin = await admin.get(`/api/matches/${created.body.id}/detail`);
+  assert.equal(openDetailForAdmin.status, 200);
+  assert.equal(openDetailForAdmin.body.revealed, false);
+  const openParticipant = openDetailForAdmin.body.participants.find((item) => item.username === "lucia");
+  assert.equal(openParticipant.participating, 1);
+  assert.equal(openParticipant.result_valid, true);
+  assert.equal(openParticipant.scorer_required, true);
+  assert.equal(openParticipant.scorer_valid, true);
+  assert.equal(openParticipant.predicted_team1_goals, undefined);
+  assert.equal(openParticipant.predicted_scorer_id, undefined);
+
+  const openDetailForUser = await user.get(`/api/matches/${created.body.id}/detail`);
+  assert.equal(openDetailForUser.body.revealed, false);
+  assert.deepEqual(openDetailForUser.body.participants, []);
+
   const finished = await admin.post(`/api/matches/${created.body.id}/finish`).send({
     result_team1: 2,
     result_team2: 1,
@@ -699,7 +714,7 @@ test("recalcula con fiabilidad al editar resultado, goleadores y Partido Estrell
   scored = db.prepare("SELECT * FROM predictions WHERE id=?").get(prediction.body.id);
   assert.deepEqual([scored.winner_points, scored.exact_result_points, scored.scorer_points, scored.total_points, scored.scoring_multiplier], [0, 0, 0, 0, 2]);
   const editNotification = (await user.get("/api/notifications")).body.notifications.find((item) =>
-    item.type === "result_published" && item.entity_id === created.body.id && item.event_key === `result:${created.body.id}:1-2`
+    item.type === "result_published" && item.entity_id === created.body.id && item.event_key?.startsWith(`result-edit:${created.body.id}:`) && item.message.includes(`${team1.name} 1 - 2 ${team2.name}`)
   );
   assert.equal(editNotification.title, "Resultado publicado - modificacion - (administrador)");
   assert.match(editNotification.message, new RegExp(`${team1.name} 1 - 2 ${team2.name}`));
@@ -711,6 +726,17 @@ test("recalcula con fiabilidad al editar resultado, goleadores y Partido Estrell
   });
   scored = db.prepare("SELECT * FROM predictions WHERE id=?").get(prediction.body.id);
   assert.deepEqual([scored.winner_points, scored.exact_result_points, scored.scorer_points, scored.total_points], [6, 10, 0, 16]);
+  const sameScoreEdit = await admin.post(`/api/matches/${created.body.id}/finish`).send({
+    result_team1: 2,
+    result_team2: 1,
+    scorer_ids: [scorer2.id]
+  });
+  assert.equal(sameScoreEdit.status, 200);
+  const sameScoreNotification = (await user.get("/api/notifications")).body.notifications.find((item) =>
+    item.type === "result_published" && item.entity_id === created.body.id && item.event_key?.startsWith(`result-edit:${created.body.id}:`) && item.message.includes(`${team1.name} 2 - 1 ${team2.name}`)
+  );
+  assert.equal(sameScoreNotification.title, "Resultado publicado - modificacion - (administrador)");
+  assert.match(sameScoreNotification.message, new RegExp(`${team1.name} 2 - 1 ${team2.name}`));
 
   const recalculatedMatch = await admin.post(`/api/admin/recalculate/${created.body.id}`);
   assert.equal(recalculatedMatch.status, 200);

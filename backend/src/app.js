@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import session from "express-session";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -149,6 +150,29 @@ const matchPayload = (body, existing = {}) => {
   };
 };
 const predictionWinner = (g1, g2) => g1 === g2 ? "draw" : g1 > g2 ? "team1" : "team2";
+const predictionValidation = (match, prediction) => {
+  if (!prediction?.id) return { result_valid: false, scorer_required: false, scorer_valid: false };
+  const g1 = Number(prediction.predicted_team1_goals);
+  const g2 = Number(prediction.predicted_team2_goals);
+  const resultValid = Number.isInteger(g1) && g1 >= 0 &&
+    Number.isInteger(g2) && g2 >= 0 &&
+    ["team1", "team2", "draw"].includes(prediction.predicted_winner) &&
+    predictionWinner(g1, g2) === prediction.predicted_winner;
+  const scorerRequired = Boolean(Number(match.scorer_enabled));
+  let scorerValid = !scorerRequired;
+  if (scorerRequired && resultValid) {
+    if (g1 + g2 === 0) {
+      scorerValid = !prediction.predicted_scorer_id;
+    } else if (prediction.predicted_scorer_id) {
+      const allowedTeamIds = scoringTeamIds(match, g1, g2);
+      scorerValid = Boolean(db.prepare(`
+        SELECT p.id FROM players p JOIN teams t ON t.fifa_code=p.team_fifa_code
+        WHERE p.id=? AND t.id IN (${allowedTeamIds.map(() => "?").join(",")})
+      `).get(prediction.predicted_scorer_id, ...allowedTeamIds));
+    }
+  }
+  return { result_valid: resultValid, scorer_required: scorerRequired, scorer_valid: scorerValid };
+};
 const matchStartsAt = (match) => new Date(normalizeMatchInstant(`${match.match_date}T${match.match_time}:00`));
 const matchPublishesAt = (match) => new Date(matchStartsAt(match).getTime() - 24 * 60 * 60 * 1000);
 const isMatchPublished = (match, current = new Date()) => Boolean(match.force_published) || current >= matchPublishesAt(match);
@@ -820,12 +844,20 @@ app.get("/api/matches/:id/detail", requireAuth, (req, res) => {
   `).get(match.id).count;
   const participantStatusRows = () => db.prepare(`
     SELECT u.id,u.username,
-      CASE WHEN p.id IS NULL THEN 0 ELSE 1 END participating
+      CASE WHEN p.id IS NULL THEN 0 ELSE 1 END participating,
+      p.id prediction_id,p.predicted_winner,p.predicted_team1_goals,p.predicted_team2_goals,p.predicted_scorer_id
     FROM users u
     LEFT JOIN predictions p ON p.user_id=u.id AND p.match_id=?
     WHERE u.active=1 AND u.role='user'
     ORDER BY participating ASC,u.username
-  `).all(match.id);
+  `).all(match.id).map((participant) => participant.participating
+    ? {
+      id: participant.id,
+      username: participant.username,
+      participating: participant.participating,
+      ...predictionValidation(match, participant)
+    }
+    : { id: participant.id, username: participant.username, participating: participant.participating });
   const participants = open ? (req.user.role === "admin" ? participantStatusRows() : []) : db.prepare(`
     SELECT u.id,u.username,
       CASE WHEN p.id IS NULL THEN 0 ELSE 1 END participating,
@@ -1065,6 +1097,9 @@ app.post("/api/matches/:id/finish", requireAdmin, (req, res) => {
   const resultNotificationTitle = before.status === "finished"
     ? `Resultado publicado - modificacion - (${req.user.username})`
     : `Resultado publicado (${req.user.username})`;
+  const resultNotificationEventKey = before.status === "finished"
+    ? `result-edit:${before.id}:${crypto.randomUUID()}`
+    : `result:${before.id}:${g1}-${g2}`;
   notifyAll({
     type: "result_published",
     title: resultNotificationTitle,
@@ -1072,7 +1107,7 @@ app.post("/api/matches/:id/finish", requireAdmin, (req, res) => {
     entityType: "match",
     entityId: before.id,
     link: "/",
-    eventKey: `result:${before.id}:${g1}-${g2}`
+    eventKey: resultNotificationEventKey
   });
   db.prepare("SELECT user_id,total_points,scoring_multiplier FROM predictions WHERE match_id=? AND total_points>0").all(before.id)
     .forEach((prediction) => createNotification({
