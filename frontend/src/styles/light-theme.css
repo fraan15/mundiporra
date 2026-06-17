@@ -734,6 +734,40 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 .scorer-picker-sheet .scorer-search>input::placeholder{color:#7d7072!important;opacity:1!important}
 [data-theme="dark"] .scorer-picker-sheet .scorer-search>input{color:#f2f7ff!important}
 [data-theme="dark"] .scorer-picker-sheet .scorer-search>input::placeholder{color:#aab8c8!important}
+.scorer-picker-sheet .scorer-search .scorer-search-input{
+  flex:1 1 0!important;
+  display:block!important;
+  min-width:0!important;
+  width:auto!important;
+  height:44px!important;
+  min-height:44px!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  outline:0!important;
+  color:#24191a!important;
+  -webkit-text-fill-color:#24191a!important;
+  caret-color:var(--accent)!important;
+  font:500 15px/44px Roboto,Inter,sans-serif!important;
+  text-align:left!important;
+  opacity:1!important;
+}
+.scorer-picker-sheet .scorer-search .scorer-search-input::placeholder{
+  color:#7d7072!important;
+  -webkit-text-fill-color:#7d7072!important;
+  opacity:1!important;
+}
+[data-theme="dark"] .scorer-picker-sheet .scorer-search .scorer-search-input{
+  color:#f2f7ff!important;
+  -webkit-text-fill-color:#f2f7ff!important;
+}
+[data-theme="dark"] .scorer-picker-sheet .scorer-search .scorer-search-input::placeholder{
+  color:#aab8c8!important;
+  -webkit-text-fill-color:#aab8c8!important;
+}
 [data-theme="dark"] .star-match-card .reveal-toggle{background:#30251d;border-color:#65491f;color:#f1ca79}
 [data-theme="dark"] .star-dashboard-card{background:linear-gradient(135deg,#352717,#211823 55%,#3a1821 100%)!important}
 @media(max-width:900px){
