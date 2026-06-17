@@ -69,7 +69,7 @@ function ScorerPickerSheet({ players, value, matchLabel, onSelect, onClose }) {
         <button type="button" aria-label="Cerrar buscador" onClick={onClose}><X size={18}/></button>
       </header>
       <label className="scorer-search">
-        <Search size={17}/>
+        <span className="scorer-search-icon"><Search size={17}/></span>
         <input autoFocus value={query} placeholder="Buscar por nombre o selección" onChange={(event) => setQuery(event.target.value)}/>
       </label>
       <div className="scorer-position-list">
