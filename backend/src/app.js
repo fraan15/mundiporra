@@ -1064,7 +1064,7 @@ app.post("/api/matches/:id/finish", requireAdmin, (req, res) => {
   logAction(req.user.id, before.status === "finished" ? "edit_result" : "finish_match", "match", before.id, "Resultado guardado y puntos recalculados", before, after);
   notifyAll({
     type: "result_published",
-    title: "Resultado publicado",
+    title: `Resultado publicado (${req.user.username})`,
     message: `${before.team1} ${g1} - ${g2} ${before.team2}.${before.is_star ? " Partido Estrella x2." : ""}`,
     entityType: "match",
     entityId: before.id,

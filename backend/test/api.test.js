@@ -358,6 +358,8 @@ test("un Partido Estrella duplica los puntos y deja trazabilidad x2", async () =
   const notifications = await user.get("/api/notifications");
   const notification = notifications.body.notifications.find((item) => item.type === "points_earned" && item.entity_id === created.body.id);
   assert.match(notification.message, /8 puntos base ×2/);
+  const resultNotification = notifications.body.notifications.find((item) => item.type === "result_published" && item.entity_id === created.body.id);
+  assert.equal(resultNotification.title, "Resultado publicado (administrador)");
 });
 
 test("importa catálogos sin duplicados y puntúa cualquier goleador válido", async () => {

@@ -1,34 +1,49 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, ChevronRight, Clock3, Minus, Plus, Save, ShieldCheck, Users } from "lucide-react";
 import { api } from "../api/client";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../App";
 import { Flag } from "./SportsUI";
 import { StarMatchTitle, StarPoints } from "./StarMatchTitle";
-import { SearchSelect } from "./SearchSelect";
+import { ScorerPicker } from "./ScorerPicker";
 import { NO_SCORER, NO_SCORER_ID } from "../constants/scorers";
 
 const statusLabel = (match) => match.status === "finished" ? "Finalizado" : match.in_play ? "En juego" : match.status === "closed" ? (match.close_reason === "automatic" ? "Cierre automático" : "Cerrado") : "Abierto";
 
 function VerticalScoreControl({ team, value, onChange, onAdjust }) {
+  const dragRef=useRef(null);
   const score=value===""?0:Number(value);
   const safeScore=Number.isFinite(score)?Math.max(0,score):0;
   const maxScore=10;
   const trackScore=Math.min(safeScore,maxScore);
+  const dragSensitivity=1.18;
   const commitFromPointer=event=>{
-    const rect=event.currentTarget.getBoundingClientRect();
-    const ratio=Math.min(1,Math.max(0,(rect.bottom-event.clientY)/rect.height));
-    onChange(String(Math.round(ratio*maxScore)));
+    if(!dragRef.current)return;
+    const { startY, startScore, stepHeight }=dragRef.current;
+    const delta=(startY-event.clientY)/(stepHeight*dragSensitivity);
+    const nextScore=Math.min(maxScore,Math.max(0,Math.round(startScore+delta)));
+    onChange(String(nextScore));
   };
   const startDrag=event=>{
     event.preventDefault();
     event.currentTarget.setPointerCapture?.(event.pointerId);
-    commitFromPointer(event);
+    dragRef.current={
+      startY:event.clientY,
+      startScore:safeScore,
+      stepHeight:event.currentTarget.getBoundingClientRect().height/maxScore
+    };
   };
   const moveDrag=event=>{
+    if(!dragRef.current)return;
     if(event.buttons!==1&&event.pointerType==="mouse")return;
     event.preventDefault();
     commitFromPointer(event);
+  };
+  const endDrag=event=>{
+    if(!dragRef.current)return;
+    commitFromPointer(event);
+    dragRef.current=null;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
   };
   const keyDrag=event=>{
     if(event.key==="ArrowUp"||event.key==="ArrowRight"){event.preventDefault();onAdjust(1)}
@@ -40,7 +55,7 @@ function VerticalScoreControl({ team, value, onChange, onAdjust }) {
     <small>{team}</small>
     <div className="vertical-score-rail">
       <button type="button" aria-label={`Subir goles de ${team}`} onClick={()=>onAdjust(1)}><Plus/></button>
-      <div className="vertical-score-value" role="slider" tabIndex="0" aria-label={`Arrastrar goles pronosticados de ${team}`} aria-valuemin="0" aria-valuemax={maxScore} aria-valuenow={safeScore} onPointerDown={startDrag} onPointerMove={moveDrag} onKeyDown={keyDrag}>
+      <div className="vertical-score-value" role="slider" tabIndex="0" aria-label={`Arrastrar goles pronosticados de ${team}`} aria-valuemin="0" aria-valuemax={maxScore} aria-valuenow={safeScore} onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={()=>{dragRef.current=null}} onKeyDown={keyDrag}>
         <strong>{value===""?"0":value}</strong>
         <span className="vertical-score-track" aria-hidden="true"><i style={{bottom:`${trackScore/maxScore*100}%`}}/></span>
       </div>
@@ -116,7 +131,7 @@ export function MatchCard({ match, onSaved, verticalScorePicker=false }) {
       {verticalScorePicker
         ? <div className="detail-score-picker vertical match-score-picker-vertical"><VerticalScoreControl team={match.team1} value={g1} onChange={setG1} onAdjust={delta=>adjust(setG1,g1,delta)}/><b>:</b><VerticalScoreControl team={match.team2} value={g2} onChange={setG2} onAdjust={delta=>adjust(setG2,g2,delta)}/></div>
         : <div className="score-picker"><div><small>{match.team1}</small><span><button onClick={()=>adjust(setG1,g1,-1)}><Minus/></button><input aria-label={`Goles de ${match.team1}`} inputMode="numeric" type="number" min="0" value={g1} onChange={e=>setG1(e.target.value)}/><button onClick={()=>adjust(setG1,g1,1)}><Plus/></button></span></div><b>:</b><div><small>{match.team2}</small><span><button onClick={()=>adjust(setG2,g2,-1)}><Minus/></button><input aria-label={`Goles de ${match.team2}`} inputMode="numeric" type="number" min="0" value={g2} onChange={e=>setG2(e.target.value)}/><button onClick={()=>adjust(setG2,g2,1)}><Plus/></button></span></div></div>}
-      {scorerEnabled&&<div className="scorer-pick"><span className="section-label">3. GOLEADOR DEL PARTIDO</span><SearchSelect items={availableScorers} value={scorerId} onChange={player=>setScorerId(player?.id||null)} placeholder={isNilNil?"Sin goleador":"Buscar jugador..."} label="Goleador del partido" renderItem={player=><><strong>{player.name}</strong><small>{player.team_name} · {player.position}</small></>}/></div>}
+      {scorerEnabled&&<div className="scorer-pick"><span className="section-label">3. GOLEADOR DEL PARTIDO</span>{isNilNil?<div className="scorer-selected-banner readonly"><div><span>Goleador elegido</span><strong>Sin goleador</strong><small>Marcador 0-0</small></div></div>:<ScorerPicker players={availableScorers} value={scorerId} onChange={setScorerId} matchLabel={`${match.team1} - ${match.team2}`}/>}</div>}
       <button className="primary save-prediction" onClick={save} disabled={saving || winner==="" || g1==="" || g2==="" || (scorerEnabled&&Number(g1)+Number(g2)>0&&!scorerId)}><Save size={17}/>{saving?"Guardando...":match.prediction_id?"Guardar cambios":"Guardar resultado"}</button>
       {message && <small className={message.includes("guardada")?"success-text":"error-text"}>{message}</small>}
     </div> : <div className="locked-prediction"><span>{user.is_read_only ? "Modo solo lectura" : "Tu apuesta"}</span><strong>{user.is_read_only ? "Sin participación" : match.predicted_winner ? `${match.team1} ${match.predicted_team1_goals} – ${match.predicted_team2_goals} ${match.team2}` : "Sin predicción"}</strong>{!user.is_read_only&&match.predicted_scorer&&<small>Goleador: {match.predicted_scorer.name}</small>}{!user.is_read_only&&match.status==="finished" && <b><StarPoints match={match} points={match.total_points}/></b>}</div>}
