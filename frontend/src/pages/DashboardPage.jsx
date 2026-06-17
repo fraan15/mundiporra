@@ -18,11 +18,10 @@ const dayTitle = (date, index) => {
   return date.toLocaleDateString("es-ES", { weekday: "long", day: "numeric" });
 };
 const hasResult = (match) => match.result_team1 !== null && match.result_team2 !== null;
-const matchStartsAt = (match) => new Date(`${match.match_date}T${match.match_time}:00`);
-const isCalendarMatchVisible = (match, todayKey, current) => {
+const isCalendarMatchVisible = (match, todayKey) => {
   if (!match.published) return false;
   if (match.betting_open) return true;
-  return match.match_date === todayKey && matchStartsAt(match) <= current;
+  return match.match_date === todayKey;
 };
 const predictionScoreText = (match, emptyText) => match.prediction_id ? `${match.predicted_team1_goals} – ${match.predicted_team2_goals}` : emptyText;
 const predictionScorerText = (match, user) => !user.is_read_only && Number(match.scorer_enabled) && match.prediction_id && match.predicted_scorer?.name ? `Gol: ${match.predicted_scorer.name}` : "";
@@ -49,7 +48,7 @@ function DashboardCalendar({ matches, onOpenMatch, restoreScrollTop, user, curre
   const pointerRef = useRef(null);
   const today = new Date(currentTime);
   const todayKey = dateKey(today);
-  const calendarMatches = matches.filter(match => isCalendarMatchVisible(match, todayKey, today));
+  const calendarMatches = matches.filter(match => isCalendarMatchVisible(match, todayKey));
   const days = Array.from({ length: 4 }, (_, index) => {
     const date = addDays(today, index), key = dateKey(date);
     return {
