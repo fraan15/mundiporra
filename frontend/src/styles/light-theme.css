@@ -684,6 +684,33 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 [data-theme="dark"] .star-match-card .winner-cards button,[data-theme="dark"] .star-match-card .score-picker input{background:#261d2a;border-color:#65491f}
 [data-theme="dark"] .star-match-card .score-picker button{background:#342326}
 [data-theme="dark"] .star-match-card .locked-prediction{background:#261d2a;border-color:#65491f}
+
+.scorer-picker-sheet .scorer-search{
+  display:flex!important;
+  align-items:center!important;
+  gap:9px!important;
+  height:46px!important;
+  min-height:46px!important;
+  padding:0 13px!important;
+  line-height:1!important;
+}
+.scorer-picker-sheet .scorer-search>svg{
+  position:static!important;
+  flex:0 0 18px!important;
+  width:18px!important;
+  height:18px!important;
+  margin:0!important;
+  transform:none!important;
+  align-self:center!important;
+  display:block!important;
+}
+.scorer-picker-sheet .scorer-search>input{
+  flex:1 1 auto!important;
+  height:44px!important;
+  min-height:0!important;
+  padding:0!important;
+  line-height:44px!important;
+}
 [data-theme="dark"] .star-match-card .reveal-toggle{background:#30251d;border-color:#65491f;color:#f1ca79}
 [data-theme="dark"] .star-dashboard-card{background:linear-gradient(135deg,#352717,#211823 55%,#3a1821 100%)!important}
 @media(max-width:900px){
