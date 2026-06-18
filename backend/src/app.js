@@ -11,7 +11,7 @@ import { READ_ONLY_USER, hydrateUser, requireAdmin, requireAuth, requireWritable
 import { autoCloseExpired, calculateWinner, effectiveCloseAt, isExpired, recalculateAll, recalculateMatch } from "./services/matches.js";
 import { createNotification, leaderboardRows, notifyAll, notifyAllExcept, notifyNewTopThree, saveRankingSnapshot } from "./services/notifications.js";
 import { NO_SCORER, NO_SCORER_ID, parseScorerList, parseScorerSelection, serializeActualScorers, serializePredictedScorer } from "./services/scorers.js";
-import { loadWorldCupReference, teamReferenceStats } from "./services/worldcupReference.js";
+import { loadWorldCupReference, syncWorldCupReference, teamReferenceStats } from "./services/worldcupReference.js";
 
 initDatabase();
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -1419,6 +1419,16 @@ app.get("/api/admin/actions-log", requireAdmin, (req, res) => {
   `).all(...params));
 });
 app.post("/api/admin/auto-close-expired-matches", requireAdmin, (_req, res) => res.json({ closed: autoCloseExpired() }));
+app.post("/api/admin/sync-worldcup-json", requireAdmin, async (req, res, next) => {
+  try {
+    const catalog = await syncWorldCupReference();
+    const result = { synced_at: catalog.synced_at, matches: catalog.matches.length };
+    logAction(req.user.id, "sync_worldcup_json", "settings", null, "Información JSON sincronizada manualmente", null, result);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
 app.get("/api/admin/settings", requireAdmin, (_req, res) => res.json(settings()));
 app.put("/api/admin/settings", requireAdmin, (req, res) => {
   const allowed = ["pool_name", "winner_points", "exact_result_points", "scorer_points", "auto_close_enabled", "auto_close_minutes_before"];
