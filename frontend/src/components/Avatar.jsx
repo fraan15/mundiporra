@@ -13,6 +13,6 @@ export function Avatar({ user, className = "avatar" }) {
 export function ActivityAvatar({ user, type }) {
   return <span className="activity-avatar">
     <Avatar user={user} className="activity-avatar-image" />
-    <span className={`activity-avatar-badge ${type}`} aria-hidden="true">{type === "points" ? "+" : "⚽"}</span>
+    <span className={`activity-avatar-badge activity-${type}`} aria-hidden="true">{type === "points" ? "+" : "⚽"}</span>
   </span>;
 }
