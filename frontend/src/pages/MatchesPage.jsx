@@ -35,11 +35,6 @@ export function MatchesPage() {
   const pending=user.is_read_only?[]:matches.filter(m=>m.betting_open&&!m.prediction_id);
   const finished=matches.filter(m=>hasResult(m)&&startedLessThan24HoursAgo(m)).reverse();
   const historical=matches.filter(m=>hasResult(m)&&!startedLessThan24HoursAgo(m)).reverse();
-  const pastWithoutResult=matches.filter(m=>!hasResult(m)&&m.match_date<today).reverse();
-  const pastMatches=[...pastWithoutResult,...historical].sort((a,b)=>{
-    const dateCompare=new Date(`${b.match_date}T${b.match_time||"00:00"}`)-new Date(`${a.match_date}T${a.match_time||"00:00"}`);
-    return dateCompare||b.id-a.id;
-  });
   const historyTeams=useMemo(()=>{
     const teams=new Map();
     historical.forEach(match=>{
@@ -57,7 +52,6 @@ export function MatchesPage() {
     ["finished","Partidos terminados","Resultados de las últimas 24 horas",CheckCircle2,finished],
     ["today","Partidos pendientes hoy","La jornada en juego",CircleDot,matches.filter(m=>m.match_date===today&&!hasResult(m))],
     ["upcoming","Próximos partidos","Prepara tus siguientes pronósticos",CalendarClock,matches.filter(m=>m.match_date>today&&!hasResult(m))],
-    ["past","Partidos anteriores","Encuentros ya jugados o pendientes de resultado",History,pastMatches]
   ];
   const tabs=[
     ["matches","Partidos",CircleDot,matches.length],
