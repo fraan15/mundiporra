@@ -84,9 +84,13 @@ function ScorerPickerSheet({ players, value, matchLabel, onSelect, onClose }) {
   </div>;
 }
 
-export function ScorerPicker({ players = [], value = null, onChange, disabled = false, matchLabel = "", buttonLabel = "Buscar jugador", selectedLabel = "Goleador elegido" }) {
+export function ScorerPicker({ players = [], value = null, onChange, onOpen, disabled = false, matchLabel = "", buttonLabel = "Buscar jugador", selectedLabel = "Goleador elegido" }) {
   const [open, setOpen] = useState(false);
   const selected = players.find((player) => String(player.id) === String(value));
+  const openPicker = () => {
+    onOpen?.(players.length === 0);
+    setOpen(true);
+  };
 
   return <div className="scorer-picker">
     {selected ? <div className="scorer-selected-banner">
@@ -96,11 +100,11 @@ export function ScorerPicker({ players = [], value = null, onChange, disabled = 
         <small>{selected.team_name} · {selected.position}</small>
       </div>
       <button type="button" aria-label={`Eliminar ${selected.name}`} onClick={() => onChange(null)}><Trash2 size={17}/></button>
-    </div> : <button type="button" className="scorer-search-button" disabled={disabled || players.length === 0} onClick={() => setOpen(true)}>
+    </div> : <button type="button" className="scorer-search-button" disabled={disabled} onClick={openPicker}>
       <Search size={18}/>
-      <span>{players.length ? buttonLabel : "Sin jugadores disponibles"}</span>
+      <span>{buttonLabel}</span>
     </button>}
-    {selected && <button type="button" className="scorer-search-again" onClick={() => setOpen(true)}><Search size={16}/>Buscar otro</button>}
+    {selected && <button type="button" className="scorer-search-again" onClick={openPicker}><Search size={16}/>Buscar otro</button>}
     {open && <ScorerPickerSheet players={players} value={value} matchLabel={matchLabel} onSelect={(player) => onChange(player?.id || null)} onClose={() => setOpen(false)}/>}
   </div>;
 }
