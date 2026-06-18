@@ -609,6 +609,18 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
   backdrop-filter:blur(14px) saturate(1.15);
 }
 .live-match-teams{margin:0}
+.live-match-teams>div{max-width:100%}
+.live-match-teams strong{
+  display:-webkit-box;
+  max-width:100%;
+  overflow:hidden;
+  line-height:1.2;
+  overflow-wrap:anywhere;
+  text-overflow:ellipsis;
+  white-space:normal;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:2;
+}
 .live-match-teams>div,.next-teams>div{
   padding:8px 3px;
   border:0;
