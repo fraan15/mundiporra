@@ -19,7 +19,9 @@ jobs:
           script: |
             cd /var/www/mundiporra-test
 
-            git pull
+            git fetch origin
+            git reset --hard origin/main
+            git clean -fd
 
             cd frontend
             npm ci
@@ -30,3 +32,6 @@ jobs:
 
             pm2 restart mundiporra-test
             pm2 save --force
+
+            cd /var/www/mundiporra-test
+            git restore frontend/package-lock.json backend/data/catalog/worldcup.matches.es.json
