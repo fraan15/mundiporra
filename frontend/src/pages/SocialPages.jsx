@@ -91,9 +91,12 @@ export function PublicProfilePage(){
   return <div className="page">{pointsOpen&&<PointsDetailOverlay detail={data.points_detail} username={data.user.username} onClose={()=>setPointsOpen(false)}/>}<button className="back-btn" onClick={()=>navigate(-1)}><ArrowLeft size={16}/>Volver</button><section className="profile-hero public"><Avatar user={data.user} className="profile-avatar"/><div><span className="eyebrow">FICHA DEPORTIVA</span><h1>{data.user.username}</h1><blockquote>“{data.user.personal_phrase||"Todavía sin frase personal."}”</blockquote></div><b>#{s.position}</b></section><StatCards s={s} onPointsInfo={()=>setPointsOpen(true)}/><StatsSections stats={s} history={data.history}/><section className="content-card"><h2>Medallas</h2><Badges badges={s.badges}/></section><section className="content-card"><h2>Historial visible</h2><div className="prediction-history">{visiblePredictions.map(p=><div key={p.id}><span>{p.match_date}</span><strong><Flag team={p.team1}/>{p.team1} {p.predicted_team1_goals}–{p.predicted_team2_goals} {p.team2}<Flag team={p.team2}/></strong><b>+{p.total_points}</b></div>)}</div>{totalHistoryPages>1&&<nav className="pagination" aria-label="Paginación del historial visible"><button disabled={historyPage===1} onClick={()=>setHistoryPage(historyPage-1)}><ChevronLeft/>Anterior</button><span>Página {historyPage} de {totalHistoryPages}</span><button disabled={historyPage===totalHistoryPages} onClick={()=>setHistoryPage(historyPage+1)}>Siguiente<ChevronRight/></button></nav>}</section></div>
 }
 function PointsDetailOverlay({detail,username,onClose}){
- const [matchesOpen,setMatchesOpen]=useState(true),[openMatchId,setOpenMatchId]=useState(null);
+ const [matchesOpen,setMatchesOpen]=useState(true),[openMatchId,setOpenMatchId]=useState(null),[matchesPage,setMatchesPage]=useState(1);
  useEffect(()=>{const close=event=>{if(event.key==="Escape")onClose()};document.addEventListener("keydown",close);return()=>document.removeEventListener("keydown",close)},[onClose]);
- const matches=detail?.matches||[],scoredMatches=matches.filter(match=>match.total_points>0),zeroMatches=matches.filter(match=>match.total_points===0);
+ const matches=detail?.matches||[],scoredMatches=[...matches].filter(match=>match.total_points>0).sort((a,b)=>{
+  const dateCompare=new Date(`${b.match_date}T${b.match_time||"00:00:00"}`)-new Date(`${a.match_date}T${a.match_time||"00:00:00"}`);
+  return dateCompare||Number(b.id)-Number(a.id);
+ }),zeroMatches=matches.filter(match=>match.total_points===0),matchesPageSize=10,totalMatchesPages=Math.max(1,Math.ceil(scoredMatches.length/matchesPageSize)),visibleScoredMatches=scoredMatches.slice((matchesPage-1)*matchesPageSize,matchesPage*matchesPageSize);
  const signed=value=>`${Number(value)>0?"+":""}${Number(value)||0}`;
  return <div className="team-detail-overlay points-detail-overlay" role="dialog" aria-modal="true" aria-label="Detalle de puntos" onMouseDown={event=>{if(event.target===event.currentTarget)onClose()}}>
   <section className="team-detail-panel points-detail-panel">
@@ -104,7 +107,7 @@ function PointsDetailOverlay({detail,username,onClose}){
     <article><span>Ajustes</span><strong>{signed(detail?.adjustment_points)}</strong></article>
     <article><span>Con puntos</span><strong>{detail?.matches_with_points||0}/{detail?.finished_matches||0}</strong></article>
    </div>
-   <section className="points-detail-section points-collapsible-section"><button type="button" className="points-section-toggle" aria-expanded={matchesOpen} onClick={()=>setMatchesOpen(!matchesOpen)}><span><h2>Partidos que han sumado</h2><small>{scoredMatches.length} partido{scoredMatches.length===1?"":"s"} con puntos</small></span><ChevronDown className={matchesOpen?"open":""}/></button>{matchesOpen&&(scoredMatches.length?<div className="points-match-list">{scoredMatches.map(match=><PointsMatchRow key={match.id} match={match} open={openMatchId===match.id} onToggle={()=>setOpenMatchId(openMatchId===match.id?null:match.id)}/>)}</div>:<p className="empty-state">Todavía no hay partidos con puntos.</p>)}</section>
+   <section className="points-detail-section points-collapsible-section"><button type="button" className="points-section-toggle" aria-expanded={matchesOpen} onClick={()=>setMatchesOpen(!matchesOpen)}><span><h2>Partidos que han sumado</h2><small>{scoredMatches.length} partido{scoredMatches.length===1?"":"s"} con puntos</small></span><ChevronDown className={matchesOpen?"open":""}/></button>{matchesOpen&&(scoredMatches.length?<><div className="points-match-list">{visibleScoredMatches.map(match=><PointsMatchRow key={match.id} match={match} open={openMatchId===match.id} onToggle={()=>setOpenMatchId(openMatchId===match.id?null:match.id)}/>)}</div>{totalMatchesPages>1&&<nav className="pagination" aria-label="Paginación de partidos que han sumado"><button disabled={matchesPage===1} onClick={()=>{setMatchesPage(page=>page-1);setOpenMatchId(null)}}><ChevronLeft/>Anterior</button><span>Página {matchesPage} de {totalMatchesPages}</span><button disabled={matchesPage===totalMatchesPages} onClick={()=>{setMatchesPage(page=>page+1);setOpenMatchId(null)}}>Siguiente<ChevronRight/></button></nav>}</>:<p className="empty-state">Todavía no hay partidos con puntos.</p>)}</section>
    {detail?.adjustments?.length>0&&<section className="points-detail-section"><h2>Ajustes manuales</h2><div className="points-adjustments">{detail.adjustments.map(adjustment=><article key={adjustment.id}><strong>{signed(adjustment.points)} pts</strong><span>{adjustment.reason}</span><small>{new Date(adjustment.created_at).toLocaleString("es-ES")}{adjustment.created_by_username?` · ${adjustment.created_by_username}`:""}</small></article>)}</div></section>}
    {zeroMatches.length>0&&<section className="points-detail-section"><h2>Partidos revisados sin puntos</h2><div className="zero-points-list">{zeroMatches.map(match=><span key={match.id}>{match.match_date} · {match.team1} {match.result} {match.team2} · pronóstico {match.prediction}</span>)}</div></section>}
   </section>
@@ -176,20 +179,12 @@ const winnerFromScore=(g1,g2)=>{
 };
 function HorizontalScoreControl({team,value,onChange,onAdjust}){
  const dragRef=useRef(null);
- const valueRef=useRef(null);
  const score=value===""?0:Number(value);
  const safeScore=Number.isFinite(score)?Math.max(0,score):0;
  const maxScore=10;
  const dragSensitivity=1.65;
  const vibrateStep=()=>{
   if(typeof navigator!=="undefined"&&typeof navigator.vibrate==="function")navigator.vibrate(8);
- };
- const pulseScore=()=>{
-  const element=valueRef.current;
-  if(!element)return;
-  element.classList.remove("score-step-pulse");
-  void element.offsetWidth;
-  element.classList.add("score-step-pulse");
  };
  const commitFromPointer=event=>{
   if(!dragRef.current)return;
@@ -199,7 +194,6 @@ function HorizontalScoreControl({team,value,onChange,onAdjust}){
   if(nextScore!==dragRef.current.lastScore){
    dragRef.current.lastScore=nextScore;
    vibrateStep();
-   pulseScore();
   }
   onChange(String(nextScore));
  };
@@ -237,7 +231,7 @@ function HorizontalScoreControl({team,value,onChange,onAdjust}){
   <small>{team}</small>
   <div className="horizontal-score-rail">
    <button type="button" aria-label={`Bajar goles de ${team}`} onClick={()=>onAdjust(-1)}><Minus/></button>
-   <div ref={valueRef} className="horizontal-score-value" role="slider" tabIndex="0" aria-label={`Arrastrar goles pronosticados de ${team}`} aria-valuemin="0" aria-valuemax={maxScore} aria-valuenow={safeScore} onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={event=>{event.stopPropagation();dragRef.current=null}} onKeyDown={keyDrag}>
+   <div className="horizontal-score-value" role="slider" tabIndex="0" aria-label={`Arrastrar goles pronosticados de ${team}`} aria-valuemin="0" aria-valuemax={maxScore} aria-valuenow={safeScore} onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={event=>{event.stopPropagation();dragRef.current=null}} onKeyDown={keyDrag}>
     <strong>{value===""?"0":value}</strong>
    </div>
    <button type="button" aria-label={`Subir goles de ${team}`} onClick={()=>onAdjust(1)}><Plus/></button>

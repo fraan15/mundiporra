@@ -27,6 +27,8 @@ function AdminRoute() {
 function NotificationsBell() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const notificationsRef = useRef(null);
   const [open, setOpen] = useState(false);
   const [data, setData] = useState({ notifications: [], unread: 0 });
   const load = async () => setData(await api("/notifications"));
@@ -36,6 +38,14 @@ function NotificationsBell() {
     const timer = setInterval(load, 30000);
     return () => clearInterval(timer);
   }, [user.is_read_only]);
+  useEffect(() => setOpen(false), [location.pathname, location.search, location.hash]);
+  useEffect(() => {
+    const close = (event) => {
+      if (!notificationsRef.current?.contains(event.target)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, []);
   if (user.is_read_only) return null;
   const read = async (notification) => {
     if (!notification.read) await api(`/notifications/${notification.id}/read`, { method: "PATCH" });
@@ -47,7 +57,7 @@ function NotificationsBell() {
     await api("/notifications/read-all", { method: "POST" });
     await load();
   };
-  return <div className="notifications">
+  return <div className="notifications" ref={notificationsRef}>
     <button className="bell-btn" title="Notificaciones" onClick={() => setOpen(!open)}>
       <Bell size={20}/>{data.unread > 0 && <span>{data.unread > 9 ? "9+" : data.unread}</span>}
     </button>
