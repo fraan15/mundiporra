@@ -5,3 +5,10 @@ backend/data/*.sqlite*
 backend/.env
 frontend/.env
 .env
+# Datos locales / producción / test
+backend/data/avatars/
+backend/data/backups/
+backend/data/catalog/
+backend/data/*.sqlite
+backend/data/*.sqlite-wal
+backend/data/*.sqlite-shm
