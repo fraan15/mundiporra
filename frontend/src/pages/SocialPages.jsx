@@ -176,12 +176,17 @@ const winnerFromScore=(g1,g2)=>{
 };
 function HorizontalScoreControl({team,value,onChange,onAdjust}){
  const dragRef=useRef(null);
+ const iosHapticRef=useRef(null);
  const score=value===""?0:Number(value);
  const safeScore=Number.isFinite(score)?Math.max(0,score):0;
  const maxScore=10;
  const dragSensitivity=1.65;
  const vibrateStep=()=>{
-  if(typeof navigator!=="undefined"&&typeof navigator.vibrate==="function")navigator.vibrate(8);
+  if(typeof navigator!=="undefined"&&typeof navigator.vibrate==="function"){
+   navigator.vibrate(8);
+   return;
+  }
+  iosHapticRef.current?.click();
  };
  const commitFromPointer=event=>{
   if(!dragRef.current)return;
@@ -225,6 +230,7 @@ function HorizontalScoreControl({team,value,onChange,onAdjust}){
   if(event.key==="End"){event.preventDefault();onChange(String(maxScore))}
  };
  return <div className="vertical-score-control">
+  <input ref={iosHapticRef} className="ios-haptic-switch" type="checkbox" switch="" tabIndex="-1" aria-hidden="true" />
   <small>{team}</small>
   <div className="horizontal-score-rail">
    <button type="button" aria-label={`Bajar goles de ${team}`} onClick={()=>onAdjust(-1)}><Minus/></button>
