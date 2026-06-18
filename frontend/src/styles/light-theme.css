@@ -571,9 +571,10 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 .live-match-card{display:flex;flex-direction:column;gap:12px;padding:18px 22px}
 .live-match-card.star-dashboard-card{display:flex;grid-template-columns:none}
 .live-match-teams{grid-template-columns:minmax(0,1fr) minmax(92px,auto) minmax(0,1fr)}
-.live-versus{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:92px;color:#9c6a72;text-align:center}
-.live-versus b{font-size:13px;line-height:1;letter-spacing:.12em}
-.live-versus small{display:flex;align-items:center;justify-content:center;gap:4px;color:#80666b;font-size:10px;font-weight:750;line-height:1.2;letter-spacing:0;white-space:nowrap;text-transform:none}
+.live-versus{display:grid;justify-items:center;align-content:center;gap:6px;min-width:104px;color:#9c6a72;text-align:center}
+.live-versus b{padding-left:.12em;font-size:13px;line-height:1;letter-spacing:.12em}
+.live-versus small{display:grid;grid-template-columns:12px auto;align-items:center;justify-content:center;column-gap:4px;width:max-content;min-height:14px;color:#80666b;font-size:10px;font-weight:750;line-height:14px;letter-spacing:0;white-space:nowrap;text-transform:none}
+.live-versus small svg{display:block;width:12px;height:12px}
 .live-match-prediction{display:grid;grid-template-columns:minmax(90px,.45fr) minmax(0,1fr);align-items:center;gap:18px;min-height:58px;padding:11px 15px;border:1px solid rgba(33,123,83,.16);border-radius:14px;background:rgba(230,246,238,.72);color:#256d4c}
 .live-match-prediction.no-prediction{border-color:rgba(166,103,22,.15);background:rgba(255,246,224,.7);color:#815b20}
 .live-prediction-label{font-size:10px;font-weight:900;letter-spacing:.09em;text-transform:uppercase}
@@ -583,7 +584,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 [data-theme="dark"] .live-versus small{color:#bcc9da}
 [data-theme="dark"] .live-match-prediction.has-prediction{border-color:rgba(93,195,146,.18);background:rgba(48,126,89,.16);color:#8ed7b2}
 [data-theme="dark"] .live-match-prediction.no-prediction{border-color:rgba(224,173,93,.18);background:rgba(154,104,31,.15);color:#e6bd7b}
-@media(max-width:560px){.live-match-card{padding:16px 14px}.live-match-teams{grid-template-columns:minmax(0,1fr) 82px minmax(0,1fr)}.live-versus{min-width:82px}.live-versus small{white-space:normal}.live-match-prediction{grid-template-columns:1fr;gap:7px;padding:11px 13px}.live-match-prediction .dashboard-prediction-value{grid-template-columns:auto minmax(0,1fr);gap:12px}.live-match-prediction .prediction-scorer{padding-left:12px}}
+@media(max-width:560px){.live-match-card{padding:16px 14px}.live-match-teams{grid-template-columns:minmax(0,1fr) 96px minmax(0,1fr)}.live-versus{min-width:96px}.live-versus small{white-space:nowrap}.live-match-prediction{grid-template-columns:1fr;gap:7px;padding:11px 13px}.live-match-prediction .dashboard-prediction-value{grid-template-columns:auto minmax(0,1fr);gap:12px}.live-match-prediction .prediction-scorer{padding-left:12px}}
 .live-match-card,.next-match-swipe{
   position:relative;
   isolation:isolate;

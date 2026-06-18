@@ -138,6 +138,8 @@ function ProfileMenu() {
 }
 function TodayMatchesTicker({ fallback }) {
   const [matches, setMatches] = useState([]);
+  const trackRef = useRef(null);
+  const location = useLocation();
   useEffect(() => {
     let active = true;
     const load = () => api("/matches").then(data => {
@@ -155,13 +157,42 @@ function TodayMatchesTicker({ fallback }) {
     };
   }, []);
 
+  useEffect(() => {
+    let frame;
+    const resumeAnimation = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const animation = trackRef.current?.getAnimations().find(item => item.animationName === "today-matches-scroll");
+        if (!animation) return;
+        const currentTime = animation.currentTime;
+        animation.cancel();
+        if (currentTime !== null) animation.currentTime = currentTime;
+        animation.play();
+      });
+    };
+    const resumeWhenVisible = () => {
+      if (!document.hidden) resumeAnimation();
+    };
+
+    resumeAnimation();
+    window.addEventListener("focus", resumeAnimation);
+    window.addEventListener("pageshow", resumeAnimation);
+    document.addEventListener("visibilitychange", resumeWhenVisible);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("focus", resumeAnimation);
+      window.removeEventListener("pageshow", resumeAnimation);
+      document.removeEventListener("visibilitychange", resumeWhenVisible);
+    };
+  }, [location.key, matches.length]);
+
   if (!matches.length) return <small>{fallback}</small>;
   const items = matches.map(match => `${match.team1} - ${match.team2} ${match.match_time}`);
   const group = (key) => <span className="today-matches-group" aria-hidden={key === "copy"} key={key}>
     {items.map((text, index) => <span className="today-match-item" key={`${key}-${index}`}>{text}</span>)}
   </span>;
   return <small className="today-matches-ticker" aria-label={`Partidos de hoy: ${items.join(", ")}`}>
-    <span className="today-matches-track" style={{ "--ticker-duration": `${Math.max(18, items.length * 11)}s` }}>{group("main")}{group("copy")}</span>
+    <span ref={trackRef} className="today-matches-track" style={{ "--ticker-duration": `${Math.max(18, items.length * 11)}s` }}>{group("main")}{group("copy")}</span>
   </small>;
 }
 function MainLayout() {
