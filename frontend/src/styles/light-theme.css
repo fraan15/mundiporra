@@ -575,6 +575,9 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 .live-versus b{padding-left:.12em;font-size:13px;line-height:1;letter-spacing:.12em}
 .live-versus small{display:grid;grid-template-columns:12px auto;align-items:center;justify-content:center;column-gap:4px;width:max-content;min-height:14px;color:#80666b;font-size:10px;font-weight:750;line-height:14px;letter-spacing:0;white-space:nowrap;text-transform:none}
 .live-versus small svg{display:block;width:12px;height:12px}
+.live-status-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border:1px solid rgba(35,166,111,.2);border-radius:999px;background:rgba(35,166,111,.1);color:#21865d;font-size:9px;font-style:normal;font-weight:900;line-height:1;text-transform:uppercase}
+.live-status-badge i{width:6px;height:6px;border-radius:50%;background:#23a66f;box-shadow:0 0 0 3px rgba(35,166,111,.14);animation:live-dot-pulse 1.5s ease-in-out infinite}
+@keyframes live-dot-pulse{50%{opacity:.45;transform:scale(.82)}}
 .live-match-prediction{display:grid;grid-template-columns:minmax(90px,.45fr) minmax(0,1fr);align-items:center;gap:18px;min-height:58px;padding:11px 15px;border:1px solid rgba(33,123,83,.16);border-radius:14px;background:rgba(230,246,238,.72);color:#256d4c}
 .live-match-prediction.no-prediction{border-color:rgba(166,103,22,.15);background:rgba(255,246,224,.7);color:#815b20}
 .live-prediction-label{font-size:10px;font-weight:900;letter-spacing:.09em;text-transform:uppercase}
