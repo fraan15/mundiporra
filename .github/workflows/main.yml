@@ -22,11 +22,11 @@ jobs:
             git pull
 
             cd frontend
-            npm install
+            npm ci
             npm run build
 
             cd ../backend
-            npm install
+            npm ci
 
             pm2 restart mundiporra-test
             pm2 save --force
