@@ -49,6 +49,22 @@ test("login inicial y sesión", async () => {
   assert.equal(me.body.user.username, "administrador");
 });
 
+test("el chat devuelve solo los 25 mensajes más recientes", async () => {
+  const agent = request.agent(app);
+  await agent.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+
+  for (let index = 1; index <= 30; index += 1) {
+    const response = await agent.post("/api/chat").send({ message: `Mensaje de prueba ${index}` });
+    assert.equal(response.status, 201);
+  }
+
+  const response = await agent.get("/api/chat");
+  assert.equal(response.status, 200);
+  assert.equal(response.body.length, 25);
+  assert.equal(response.body[0].message, "Mensaje de prueba 6");
+  assert.equal(response.body.at(-1).message, "Mensaje de prueba 30");
+});
+
 test("el usuario hardcodeado de solo lectura puede leer pero no escribir", async () => {
   const admin = request.agent(app);
   await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });

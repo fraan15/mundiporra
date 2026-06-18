@@ -767,14 +767,14 @@ app.get("/api/activity", requireAuth, (req, res) => {
   };
   const items = db.prepare(`
     SELECT * FROM (
-      SELECT 'prediction' type,u.username,m.team1,m.team2,NULL total_points,
+      SELECT 'prediction' type,u.username,u.avatar_filename,m.team1,m.team2,NULL total_points,
         p.created_at,NULL winner_points,NULL exact_result_points,NULL scorer_points,p.id event_id,m.is_star,1 scoring_multiplier,
         NULL predicted_scorer_name
       FROM predictions p
       JOIN users u ON u.id=p.user_id
       JOIN matches m ON m.id=p.match_id
       UNION ALL
-      SELECT 'points' type,u.username,m.team1,m.team2,p.total_points,
+      SELECT 'points' type,u.username,u.avatar_filename,m.team1,m.team2,p.total_points,
         p.updated_at created_at,p.winner_points,p.exact_result_points,p.scorer_points,p.id event_id,m.is_star,p.scoring_multiplier,
         CASE
           WHEN p.predicted_team1_goals=0 AND p.predicted_team2_goals=0 THEN 'Sin goleador'
@@ -790,6 +790,7 @@ app.get("/api/activity", requireAuth, (req, res) => {
     LIMIT 50
   `).all().map((item) => ({
     ...item,
+    avatar_url: avatarUrl(item),
     text: item.type === "points"
       ? pointsText(item)
       : `${item.username} registró un pronóstico en ${item.team1} - ${item.team2}`,
@@ -807,7 +808,7 @@ app.get("/api/chat", requireAuth, (_req, res) => {
     JOIN users u ON u.id=c.user_id
     LEFT JOIN chat_messages parent ON parent.id=c.reply_to_id
     LEFT JOIN users parent_user ON parent_user.id=parent.user_id
-    ORDER BY c.created_at DESC,c.id DESC LIMIT 30
+    ORDER BY c.created_at DESC,c.id DESC LIMIT 25
   `).all();
   res.json(messages.reverse().map((message) => ({ ...message, avatar_url: avatarUrl(message) })));
 });

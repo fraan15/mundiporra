@@ -6,7 +6,7 @@ import { useAuth } from "../App";
 import { Badges, Flag } from "../components/SportsUI";
 import { Countdown } from "../components/MatchCard";
 import { StarMatchTitle } from "../components/StarMatchTitle";
-import { Avatar } from "../components/Avatar";
+import { ActivityAvatar, Avatar } from "../components/Avatar";
 import { ScorerPicker } from "../components/ScorerPicker";
 
 const StatCards=({s,onPointsInfo})=><div className="stat-cards">
@@ -126,7 +126,7 @@ function ActivityFeedItem({item}){
  const [open,setOpen]=useState(false),breakdown=item.points_breakdown;
  const finalAddends=breakdown?.rules?.map(rule=>rule.earned_points).join(" + ");
  return <article className={open?"activity-open":""}>
-  <span className={`feed-icon ${item.type}`}>{item.type==="points"?"+":"⚽"}</span>
+  <ActivityAvatar user={item} type={item.type}/>
   <div>
    <span className="activity-summary"><strong>{item.text}</strong></span>
    <span className="activity-match-row"><span className="activity-match"><Flag team={item.team1}/>{item.team1}<b>vs</b><Flag team={item.team2}/>{item.team2}</span>{item.type==="points"&&<span className="activity-summary-actions"><button className="activity-info-button" aria-label={`${open?"Ocultar":"Ver"} desglose de puntos`} aria-expanded={open} onClick={()=>setOpen(!open)}><Info size={16}/></button><span className={`points-award ${item.exact_result_points>0?"exact":""}`}>{item.is_star?<Star size={15} fill="currentColor"/>:item.exact_result_points>0&&<Star size={15} fill="currentColor"/>}+{item.total_points} puntos</span></span>}</span>
@@ -180,11 +180,18 @@ function HorizontalScoreControl({team,value,onChange,onAdjust}){
  const safeScore=Number.isFinite(score)?Math.max(0,score):0;
  const maxScore=10;
  const dragSensitivity=1.65;
+ const vibrateStep=()=>{
+  if(typeof navigator!=="undefined"&&typeof navigator.vibrate==="function")navigator.vibrate(8);
+ };
  const commitFromPointer=event=>{
   if(!dragRef.current)return;
   const { startX, startScore }=dragRef.current;
   const delta=(event.clientX-startX)/(28*dragSensitivity);
   const nextScore=Math.min(maxScore,Math.max(0,Math.round(startScore+delta)));
+  if(nextScore!==dragRef.current.lastScore){
+   dragRef.current.lastScore=nextScore;
+   vibrateStep();
+  }
   onChange(String(nextScore));
  };
  const startDrag=event=>{
@@ -193,7 +200,8 @@ function HorizontalScoreControl({team,value,onChange,onAdjust}){
   event.currentTarget.setPointerCapture?.(event.pointerId);
   dragRef.current={
    startX:event.clientX,
-   startScore:safeScore
+   startScore:safeScore,
+   lastScore:safeScore
   };
  };
  const moveDrag=event=>{
