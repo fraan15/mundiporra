@@ -34,4 +34,4 @@ jobs:
             pm2 save --force
 
             cd /var/www/mundiporra-test
-            git restore frontend/package-lock.json backend/data/catalog/worldcup.matches.es.json
+            git restore frontend/package-lock.json 2>/dev/null || true
