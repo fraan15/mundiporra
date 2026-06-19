@@ -8,7 +8,7 @@ const catalogDir = path.join(root, "data/catalog");
 export const referencePath = path.join(catalogDir, "worldcup.matches.es.json");
 export const rawReferencePath = path.join(catalogDir, "worldcup.raw.json");
 export const WORLD_CUP_SOURCE_URL = process.env.WORLD_CUP_JSON_URL ||
-  "https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json";
+  "https://raw.githubusercontent.com/openfootball/worldcup.json/refs/heads/master/2026/worldcup.json";
 
 const teamAliases = new Map([
   ["Mexico", "MEX"], ["South Africa", "RSA"], ["South Korea", "KOR"], ["Czech Republic", "CZE"],

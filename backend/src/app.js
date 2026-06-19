@@ -1419,6 +1419,14 @@ app.get("/api/admin/actions-log", requireAdmin, (req, res) => {
   `).all(...params));
 });
 app.post("/api/admin/auto-close-expired-matches", requireAdmin, (_req, res) => res.json({ closed: autoCloseExpired() }));
+app.get("/api/admin/worldcup-json-status", requireAdmin, (_req, res) => {
+  try {
+    const catalog = loadWorldCupReference();
+    res.json({ synced_at: catalog.synced_at || null, matches: catalog.matches?.length || 0 });
+  } catch {
+    res.json({ synced_at: null, matches: 0 });
+  }
+});
 app.post("/api/admin/sync-worldcup-json", requireAdmin, async (req, res, next) => {
   try {
     const catalog = await syncWorldCupReference();
