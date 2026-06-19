@@ -14,6 +14,27 @@ export function isExpired(match) {
     new Date() >= effectiveCloseAt(match, config);
 }
 
+export function notifyAutomaticallyPublishedMatches(referenceDate = new Date()) {
+  const matches = db.prepare("SELECT * FROM matches WHERE status='open' AND force_published=0").all();
+  let count = 0;
+  for (const match of matches) {
+    const publishesAt = new Date(new Date(match.auto_close_at).getTime() - 24 * 60 * 60 * 1000);
+    if (referenceDate < publishesAt || referenceDate >= effectiveCloseAt(match)) continue;
+    const before = db.prepare("SELECT COUNT(*) count FROM notifications WHERE event_key=?").get(`match-available:${match.id}`).count;
+    notifyAll({
+      type: "match_available",
+      title: "Nuevo partido disponible",
+      message: `Ya puedes apostar en ${match.team1} - ${match.team2}.`,
+      entityType: "match",
+      entityId: match.id,
+      link: `/match/${match.id}`,
+      eventKey: `match-available:${match.id}`
+    });
+    if (!before) count += 1;
+  }
+  return count;
+}
+
 export function remindMissingPredictions(referenceDate = new Date()) {
   const config = settings();
   if (config.auto_close_enabled !== "1" || config.prediction_reminder_enabled !== "1") return 0;
