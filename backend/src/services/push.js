@@ -10,7 +10,7 @@ if (pushConfigured) {
 }
 
 const categoryForType = (type) => {
-  if (["match_closed", "result_published"].includes(type)) return "match_updates";
+  if (["match_available", "match_closed", "result_published"].includes(type)) return "match_updates";
   if (["points_earned", "points_adjustment"].includes(type)) return "points";
   if (type === "top_three") return "ranking";
   return "social";

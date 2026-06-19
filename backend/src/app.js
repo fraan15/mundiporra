@@ -941,6 +941,11 @@ app.post("/api/matches", requireAdmin, (req, res) => {
       data.auto_close_at, data.force_published, data.is_star, stamp, stamp);
   const created = db.prepare("SELECT * FROM matches WHERE id=?").get(result.lastInsertRowid);
   logAction(req.user.id, "create_match", "match", created.id, "Partido creado", null, created);
+  if (isMatchPublished(created) && created.status === "open" && !isExpired(created)) {
+    notifyAll({ type: "match_available", title: "Nuevo partido disponible",
+      message: `Ya puedes apostar en ${created.team1} - ${created.team2}.`, entityType: "match",
+      entityId: created.id, link: `/match/${created.id}`, eventKey: `match-available:${created.id}` });
+  }
   res.status(201).json(serializeMatch(created));
 });
 
@@ -982,6 +987,11 @@ app.put("/api/matches/:id", requireAdmin, (req, res) => {
   }
   const after = db.prepare("SELECT * FROM matches WHERE id=?").get(before.id);
   logAction(req.user.id, "edit_match", "match", before.id, "Partido editado", before, after);
+  if (!isMatchPublished(before) && isMatchPublished(after) && after.status === "open" && !isExpired(after)) {
+    notifyAll({ type: "match_available", title: "Nuevo partido disponible",
+      message: `Ya puedes apostar en ${after.team1} - ${after.team2}.`, entityType: "match",
+      entityId: after.id, link: `/match/${after.id}`, eventKey: `match-available:${after.id}` });
+  }
   res.json(serializeMatch(after));
 });
 

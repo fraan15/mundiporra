@@ -11,6 +11,7 @@ import { MatchesPage } from "./pages/MatchesPage";
 import { ActivityPage, MatchDetailPage, ProfilePage, PublicProfilePage } from "./pages/SocialPages";
 import { ChatPage } from "./pages/ChatPage";
 import { Avatar } from "./components/Avatar";
+import { PushSettingsPage } from "./components/PushSettings";
 
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
@@ -123,6 +124,7 @@ function ProfileMenu() {
     {open && <div className="profile-dropdown">
       {!changingPassword ? <>
         <button onClick={() => { setOpen(false); navigate("/perfil"); }}><User size={17}/><span><strong>Perfil</strong><small>Consulta tus estadísticas</small></span></button>
+        {!user.is_read_only && <button onClick={() => { setOpen(false); navigate("/notificaciones"); }}><Bell size={17}/><span><strong>Notificaciones</strong><small>Configura los avisos push</small></span></button>}
         {!user.is_read_only && <button onClick={() => { setChangingPassword(true); setMessage({ type: "", text: "" }); }}><KeyRound size={17}/><span><strong>Cambiar contraseña</strong><small>Actualiza tu clave de acceso</small></span></button>}
         <button className="sign-out" onClick={signOut}><LogOut size={17}/><span><strong>Cerrar sesión</strong><small>Volver a la pantalla de acceso</small></span></button>
       </> : <form className="password-form" onSubmit={changePassword}>
@@ -251,10 +253,12 @@ function MainLayout() {
   return <div className="app-shell">
     {adminMessage&&<div className="mandatory-message-overlay" role="dialog" aria-modal="true" aria-labelledby="mandatory-message-title">
       <section className="mandatory-message-card">
-        <span className="eyebrow">{adminMessage.type==="poll"?"ENCUESTA DE ADMINISTRACIÓN":"MENSAJE DE ADMINISTRACIÓN"}</span>
-        <h2 id="mandatory-message-title">{adminMessage.title}</h2>
-        <p>{adminMessage.body}</p>
-        {messageError&&<div className="alert error">{messageError}</div>}
+        <div className="mandatory-message-content">
+          <span className="eyebrow">{adminMessage.type==="poll"?"ENCUESTA DE ADMINISTRACIÓN":"MENSAJE DE ADMINISTRACIÓN"}</span>
+          <h2 id="mandatory-message-title">{adminMessage.title}</h2>
+          <p>{adminMessage.body}</p>
+          {messageError&&<div className="alert error">{messageError}</div>}
+        </div>
         <div className="mandatory-message-actions">
           {adminMessage.type==="poll"
             ?adminMessage.options.map(option=><button disabled={answering} className="poll-answer" key={option.id} onClick={()=>answerAdminMessage(option.id)}>{option.label}</button>)
@@ -300,6 +304,7 @@ export function App() {
         <Route path="match/:id" element={<MatchDetailPage/>}/>
         <Route path="clasificacion" element={<LeaderboardPage/>}/>
         <Route path="perfil" element={<ProfilePage/>}/>
+        <Route path="notificaciones" element={<PushSettingsPage/>}/>
         <Route path="chat" element={<ChatPage/>}/>
         <Route path="usuario/:id" element={<PublicProfilePage/>}/>
         <Route path="actividad" element={<ActivityPage/>}/>
