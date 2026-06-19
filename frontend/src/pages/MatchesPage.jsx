@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CalendarDays, CheckCircle2, ChevronDown, Clock3, History, Search, Target, X } from "lucide-react";
+import { CalendarDays, CheckCircle2, ChevronDown, Clock3, History, Target, X } from "lucide-react";
 import { api } from "../api/client";
 import { MatchCard } from "../components/MatchCard";
+import { SearchSelect } from "../components/SearchSelect";
 import { Flag } from "../components/SportsUI";
 import { useAuth } from "../App";
 
@@ -20,7 +21,7 @@ export function MatchesPage() {
   const { user } = useAuth();
   const initialView = window.location.hash === "#upcoming" ? "pending" : "today";
   const [matches,setMatches]=useState([]),[loading,setLoading]=useState(true),[view,setView]=useState(initialView);
-  const [selectedId,setSelectedId]=useState(null),[query,setQuery]=useState(""),[historyDate,setHistoryDate]=useState(()=>daysAgoKey(3));
+  const [selectedId,setSelectedId]=useState(null),[selectedTeamId,setSelectedTeamId]=useState(""),[historyDate,setHistoryDate]=useState(()=>daysAgoKey(3));
   const detailRef=useRef(null);
   const load=async()=>{setMatches(await api("/matches"));setLoading(false)};
   useEffect(()=>{load();const timer=setInterval(load,30000);return()=>clearInterval(timer)},[]);
@@ -30,6 +31,14 @@ export function MatchesPage() {
   const todayMatches=matches.filter(match=>match.match_date===today);
   const upcoming=matches.filter(match=>match.match_date>today&&!hasResult(match));
   const historical=matches.filter(hasResult).sort((a,b)=>`${b.match_date}${b.match_time}`.localeCompare(`${a.match_date}${a.match_time}`));
+  const teams=useMemo(()=>{
+    const values=new Map();
+    matches.forEach(match=>{
+      if(match.team1_team)values.set(String(match.team1_team.id),{...match.team1_team,name:match.team1});
+      if(match.team2_team)values.set(String(match.team2_team.id),{...match.team2_team,name:match.team2});
+    });
+    return [...values.values()].sort((a,b)=>a.name.localeCompare(b.name,"es"));
+  },[matches]);
   const filters=[
     ["today","Hoy",CheckCircle2,todayMatches.length],
     ["upcoming","Próximos",Clock3,upcoming.length],
@@ -37,8 +46,7 @@ export function MatchesPage() {
     ["history","Histórico",History,historical.length]
   ];
   const source=view==="today"?todayMatches:view==="upcoming"?upcoming:view==="pending"?pending:historical;
-  const normalizedQuery=query.trim().toLocaleLowerCase("es");
-  const visible=source.filter(match=>(!normalizedQuery||`${match.team1} ${match.team2} ${match.stadium||""}`.toLocaleLowerCase("es").includes(normalizedQuery))&&(!historyDate||match.match_date===historyDate));
+  const visible=source.filter(match=>(!selectedTeamId||String(match.team1_id)===String(selectedTeamId)||String(match.team2_id)===String(selectedTeamId))&&(view!=="history"||!historyDate||match.match_date===historyDate));
   const grouped=useMemo(()=>{
     const groups=new Map();
     [...visible].sort((a,b)=>view==="history"?`${b.match_date}${b.match_time}`.localeCompare(`${a.match_date}${a.match_time}`):`${a.match_date}${a.match_time}`.localeCompare(`${b.match_date}${b.match_time}`)).forEach(match=>{
@@ -60,9 +68,9 @@ export function MatchesPage() {
     <nav className="matches-filter-rail" aria-label="Vista de partidos">{filters.map(([id,label,Icon,count])=><button key={id} className={view===id?"active":""} onClick={()=>selectView(id)}><Icon size={16}/><span>{label}</span><b>{count}</b></button>)}</nav>
 
     <section className="matches-toolbar">
-      <label><Search size={17}/><input value={query} onChange={event=>setQuery(event.target.value)} placeholder="Buscar selección o estadio…"/></label>
+      <div className="matches-team-search"><SearchSelect label="Buscar selección" items={teams} value={selectedTeamId} onChange={team=>setSelectedTeamId(team?.id||"")} placeholder="Buscar selección…" renderItem={team=><><strong>{team.flag_icon} {team.name}</strong><small>{team.fifa_code||"Selección"}</small></>}/></div>
       {view==="history"&&<label className="matches-date-filter"><span>Fecha del histórico</span><input type="date" value={historyDate} aria-label="Seleccionar fecha del histórico" onChange={event=>setHistoryDate(event.target.value)}/></label>}
-      {(query||(view==="history"&&historyDate!==daysAgoKey(3)))&&<button onClick={()=>{setQuery("");if(view==="history")setHistoryDate(daysAgoKey(3))}}><X size={15}/> Restablecer</button>}
+      {(selectedTeamId||(view==="history"&&historyDate!==daysAgoKey(3)))&&<button onClick={()=>{setSelectedTeamId("");if(view==="history")setHistoryDate(daysAgoKey(3))}}><X size={15}/> Restablecer</button>}
       <small>{visible.length} partido{visible.length===1?"":"s"}</small>
     </section>
 
