@@ -425,7 +425,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(18
 .avatar img,.mini-avatar img,.chat-avatar img,.profile-avatar img{width:100%;height:100%;display:block;border-radius:50%;object-fit:cover;object-position:center}
 
 /* Navigation badges, carousels and detail controls */
-html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:100%;max-width:100%;overflow-x:hidden}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:100%;max-width:100%;overflow-x:clip}
 .nav-icon{position:relative;display:grid;place-items:center}.chat-unread-dot{position:absolute;top:-4px;right:-6px;width:9px;height:9px;border-radius:50%;background:#ffcf4b;border:2px solid #fff;box-shadow:0 0 0 1px rgba(100,20,30,.12)}
 .match-carousel-controls{display:grid;grid-template-columns:42px 1fr 42px;align-items:center;gap:10px;margin-top:13px}.match-carousel-controls>button{border:1px solid var(--line);border-radius:50%;background:var(--panel);color:var(--accent);padding:0}.match-carousel-controls>div{display:flex;justify-content:center;gap:7px}.match-carousel-controls>div button{width:8px;height:8px;min-height:0;padding:0;border:0;border-radius:50%;background:#d8c9ca}.match-carousel-controls>div button.active{width:22px;border-radius:8px;background:var(--accent)}
 .next-match-swipe{max-width:100%;padding:18px 10px;touch-action:pan-y}
