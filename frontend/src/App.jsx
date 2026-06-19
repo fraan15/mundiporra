@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { Navigate, NavLink, Outlet, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { Activity, BarChart3, Bell, CheckCheck, ChevronDown, KeyRound, LayoutDashboard, LogOut, MessageCircle, Moon, Shield, Sun, Trophy, User, X } from "lucide-react";
 import { api } from "./api/client";
 import { LoginPage } from "./pages/LoginPage";
@@ -276,7 +276,7 @@ function MainLayout() {
       </button>
       <div className="user-area"><button className="icon-btn" title="Cambiar tema" onClick={()=>setTheme(theme==="dark"?"light":"dark")}>{theme==="dark"?<Sun size={18}/>:<Moon size={18}/>}</button><NotificationsBell/><ProfileMenu/></div>
     </header>
-    <nav className="main-nav" style={{ "--nav-items": items.length }}>{items.map(([to, label, Icon]) => <button key={to} className={location.pathname === to || (to !== "/" && location.pathname.startsWith(to)) ? "active" : ""} onClick={() => navigate(to)}><span className="nav-icon"><Icon size={18}/>{to==="/chat"&&unreadChat>0&&<i className="chat-unread-dot" aria-label={`${unreadChat} mensajes sin leer`}/>}</span><span>{label}</span></button>)}</nav>
+    <nav className="main-nav" style={{ "--nav-items": items.length }}>{items.map(([to, label, Icon]) => <NavLink key={to} to={to} end={to==="/"} className={({isActive})=>isActive?"active":""}><span className="nav-icon"><Icon size={18}/>{to==="/chat"&&unreadChat>0&&<i className="chat-unread-dot" aria-label={`${unreadChat} mensajes sin leer`}/>}</span><span>{label}</span></NavLink>)}</nav>
     <main><Outlet /></main>
   </div>;
 }
