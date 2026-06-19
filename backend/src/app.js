@@ -933,10 +933,10 @@ app.get("/api/matches/:id/detail", requireAuth, (req, res) => {
       id: participant.id,
       username: participant.username,
       avatar_url: avatarUrl(participant),
-      participating: participant.participating,
+      participating: Boolean(participant.participating),
       ...predictionValidation(match, participant)
     }
-    : { id: participant.id, username: participant.username, avatar_url: avatarUrl(participant), participating: participant.participating });
+    : { id: participant.id, username: participant.username, avatar_url: avatarUrl(participant), participating: Boolean(participant.participating) });
   const participants = open ? (req.user.role === "admin" ? participantStatusRows() : []) : db.prepare(`
     SELECT u.id,COALESCE(NULLIF(u.display_name,''),u.username) username,u.avatar_filename,
       CASE WHEN p.id IS NULL THEN 0 ELSE 1 END participating,
@@ -952,7 +952,11 @@ app.get("/api/matches/:id/detail", requireAuth, (req, res) => {
       u.username
   `).all(match.id).map((participant) => {
     const { avatar_filename: _avatarFilename, ...publicParticipant } = participant;
-    const participantWithAvatar = { ...publicParticipant, avatar_url: avatarUrl(participant) };
+    const participantWithAvatar = {
+      ...publicParticipant,
+      avatar_url: avatarUrl(participant),
+      participating: Boolean(participant.participating)
+    };
     return participant.participating &&
       participant.predicted_team1_goals === 0 &&
       participant.predicted_team2_goals === 0

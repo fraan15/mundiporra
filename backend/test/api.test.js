@@ -1044,7 +1044,7 @@ test("el administrador ve quien falta sin ver pronosticos en partidos abiertos",
   assert.equal(detail.body.revealed, false);
   assert.deepEqual(detail.body.distribution, []);
   assert.ok(detail.body.participants.length > 0);
-  assert.equal(detail.body.participants.every((participant) => participant.participating === 0 || participant.participating === 1), true);
+  assert.equal(detail.body.participants.every((participant) => typeof participant.participating === "boolean"), true);
   assert.equal(detail.body.participants.some((participant) => participant.username === "administrador"), false);
   assert.equal(detail.body.participants.some((participant) => Object.hasOwn(participant, "predicted_winner")), false);
   assert.equal(detail.body.participants.some((participant) => Object.hasOwn(participant, "predicted_team1_goals")), false);
@@ -1072,7 +1072,7 @@ test("el detalle muestra los participantes solo cuando el partido está cerrado"
   assert.equal(detail.status, 200);
   assert.equal(detail.body.revealed, true);
   assert.ok(detail.body.participants.length > 0);
-  assert.equal(detail.body.participants.every((participant) => participant.participating === 0 || participant.participating === 1), true);
+  assert.equal(detail.body.participants.every((participant) => typeof participant.participating === "boolean"), true);
   assert.equal(detail.body.participants.some((participant) => participant.username === "administrador"), false);
 });
 
