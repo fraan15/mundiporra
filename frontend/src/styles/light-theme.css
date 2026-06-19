@@ -304,7 +304,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(18
     inset:auto 0 0;
     display:grid;
     grid-template-columns:repeat(var(--nav-items),minmax(0,1fr));
-    width:100%;
+    width:auto;
     height:calc(72px + env(safe-area-inset-bottom));
     padding:6px 6px calc(6px + env(safe-area-inset-bottom));
     gap:3px;
@@ -314,6 +314,13 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(18
     border-top:1px solid var(--line);
     border-bottom:0;
     box-shadow:0 -6px 24px rgba(70,40,44,.1);
+    /* Keep iOS/WebKit from attaching the fixed bar to a stale scroll layer
+       after the standalone app resumes or the viewport changes quickly. */
+    -webkit-backdrop-filter:none;
+    backdrop-filter:none;
+    -webkit-transform:translate3d(0,0,0);
+    transform:translate3d(0,0,0);
+    will-change:transform;
     z-index:40;
   }
   .main-nav button{
