@@ -178,59 +178,25 @@ export function teamReferenceStats(team) {
   }
 }
 
-function madridLocalParts(date = new Date()) {
-  return Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Madrid",
-    year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", second: "2-digit",
-    hourCycle: "h23"
-  }).formatToParts(date).map(({ type, value }) => [type, value]));
-}
-
-function madridLocalToInstant(local) {
-  const match = local.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})$/);
-  const [, year, month, day, hour, minute, second] = match;
-  const target = Date.UTC(+year, +month - 1, +day, +hour, +minute, +second);
-  let instant = target;
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    const parts = madridLocalParts(new Date(instant));
-    const represented = Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute, +parts.second);
-    instant += target - represented;
-  }
-  return new Date(instant);
-}
-
-function nextMadridSix() {
-  const parts = madridLocalParts();
-  let localDate = `${parts.year}-${parts.month}-${parts.day}`;
-  if (Number(parts.hour) >= 6) {
-    const next = new Date(`${localDate}T12:00:00Z`);
-    next.setUTCDate(next.getUTCDate() + 1);
-    localDate = next.toISOString().slice(0, 10);
-  }
-  return madridLocalToInstant(`${localDate}T06:00:00`);
-}
-
-export function startWorldCupReferenceSync({ logger = console } = {}) {
+export function startWorldCupReferenceSync({ logger = console, intervalMs = 3 * 60 * 60 * 1000 } = {}) {
   if (process.env.WORLD_CUP_SYNC_ENABLED === "false") return { stop() {} };
   let timer = null;
   let stopped = false;
-  const schedule = () => {
-    if (stopped) return;
-    const delay = Math.max(1000, nextMadridSix().getTime() - Date.now());
-    timer = setTimeout(async () => {
-      try {
-        const catalog = await syncWorldCupReference();
-        logger.log(`[worldcup] JSON sincronizado: ${catalog.matches.length} partidos.`);
-      } catch (error) {
-        logger.error(`[worldcup] No se pudo sincronizar worldcup.json: ${error.message}`);
-      } finally {
-        schedule();
+  const run = async () => {
+    try {
+      const catalog = await syncWorldCupReference();
+      logger.log(`[worldcup] JSON sincronizado: ${catalog.matches.length} partidos.`);
+    } catch (error) {
+      logger.error(`[worldcup] No se pudo sincronizar worldcup.json: ${error.message}`);
+    } finally {
+      if (!stopped) {
+        timer = setTimeout(run, intervalMs);
+        timer.unref?.();
       }
-    }, delay);
-    timer.unref?.();
+    }
   };
-  schedule();
+  timer = setTimeout(run, 0);
+  timer.unref?.();
   return {
     stop() {
       stopped = true;
