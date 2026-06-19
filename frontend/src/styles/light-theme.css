@@ -1085,3 +1085,14 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 .reveal-list>div span{justify-self:stretch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .day-reveals span{display:inline-flex;align-items:center;gap:4px;max-width:100%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:800px){.reveal-list>div{grid-template-columns:minmax(80px,.8fr) minmax(0,1.2fr) auto}.day-reveals span{width:100%}}
+[data-theme="dark"] .chart-grid .content-card{background:#10243a;border-color:rgba(143,178,214,.14)}
+[data-theme="dark"] .stat-change-row{background:rgba(20,43,70,.72);border-color:rgba(143,178,214,.13)}
+[data-theme="dark"] .stat-change-row span,[data-theme="dark"] .stat-change-row small{color:#9eb1c5}
+[data-theme="dark"] .stat-change-row.positive strong,[data-theme="dark"] .stat-change-row.positive small{color:#67c99b}
+[data-theme="dark"] .stat-change-row.negative strong,[data-theme="dark"] .stat-change-row.negative small{color:#ef8d96}
+[data-theme="dark"] .team-detail-panel{background:#0c1a2b;border:1px solid rgba(143,178,214,.12)}
+[data-theme="dark"] .team-profile-header,[data-theme="dark"] .team-form.collapsible-team-section,[data-theme="dark"] .team-squad.collapsible-team-section{background:linear-gradient(135deg,#10243a,#0f2034);border-color:rgba(143,178,214,.14);box-shadow:none}
+[data-theme="dark"] .team-profile-header{border-bottom-color:rgba(143,178,214,.14)}
+[data-theme="dark"] .team-squad .position-groups>section{background:#10243a}
+[data-theme="dark"] .team-profile-header .team-detail-close{background:#142b46;border-color:rgba(255,107,120,.4);color:#ff6b78}
+[data-theme="dark"] .team-profile-header .team-detail-close:hover{background:#3a1c29;border-color:#ff6b78;color:#ff8994}

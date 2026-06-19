@@ -1,4 +1,5 @@
 import { db, now } from "../db/database.js";
+import { sendPushToUser } from "./push.js";
 
 export const leaderboardRows = () => db.prepare(`
   WITH latest_finished_match AS (
@@ -60,11 +61,12 @@ export function scheduleDailyRankingSnapshot() {
 export function createNotification({
   userId, type, title, message, entityType = null, entityId = null, link = "/", eventKey = null
 }) {
-  db.prepare(`
+  const result = db.prepare(`
     INSERT OR IGNORE INTO notifications
       (user_id,type,title,message,entity_type,entity_id,link,event_key,created_at)
     VALUES (?,?,?,?,?,?,?,?,?)
   `).run(userId, type, title, message, entityType, entityId, link, eventKey, now());
+  if (result.changes) void sendPushToUser(userId, { type, title, message, entityId, link, eventKey });
 }
 
 export function notifyAll(payload) {

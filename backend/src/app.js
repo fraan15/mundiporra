@@ -12,6 +12,7 @@ import { autoCloseExpired, calculateWinner, effectiveCloseAt, isExpired, recalcu
 import { createNotification, leaderboardRows, notifyAll, notifyAllExcept, notifyNewTopThree, saveRankingSnapshot } from "./services/notifications.js";
 import { NO_SCORER, NO_SCORER_ID, parseScorerList, parseScorerSelection, serializeActualScorers, serializePredictedScorer } from "./services/scorers.js";
 import { loadWorldCupReference, syncWorldCupReference, teamReferenceStats } from "./services/worldcupReference.js";
+import { getPushPreferences, pushConfigured, savePushSubscription, vapidPublicKey } from "./services/push.js";
 
 initDatabase();
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -1266,6 +1267,37 @@ app.patch("/api/notifications/:id/read", requireAuth, requireWritableUser, (req,
 app.post("/api/notifications/read-all", requireAuth, requireWritableUser, (req, res) => {
   db.prepare("UPDATE notifications SET read=1,read_at=? WHERE user_id=? AND read=0").run(now(), req.user.id);
   res.json({ ok: true });
+});
+
+app.get("/api/push/status", requireAuth, (req, res) => {
+  res.json({
+    configured: pushConfigured,
+    public_key: pushConfigured ? vapidPublicKey : null,
+    subscriptions: db.prepare("SELECT COUNT(*) count FROM push_subscriptions WHERE user_id=?").get(req.user.id).count,
+    preferences: getPushPreferences(req.user.id)
+  });
+});
+app.post("/api/push/subscribe", requireAuth, requireWritableUser, (req, res) => {
+  if (!pushConfigured) return res.status(503).json({ error: "Las notificaciones push no estan configuradas en el servidor." });
+  try {
+    savePushSubscription(req.user.id, req.body.subscription, req.get("user-agent"));
+    res.status(201).json({ ok: true });
+  } catch (error) { res.status(400).json({ error: error.message }); }
+});
+app.delete("/api/push/unsubscribe", requireAuth, requireWritableUser, (req, res) => {
+  const endpoint = String(req.body.endpoint || "");
+  if (endpoint) db.prepare("DELETE FROM push_subscriptions WHERE user_id=? AND endpoint=?").run(req.user.id, endpoint);
+  res.json({ ok: true });
+});
+app.patch("/api/push/preferences", requireAuth, requireWritableUser, (req, res) => {
+  const current = getPushPreferences(req.user.id), stamp = now();
+  const value = (key) => req.body[key] === undefined ? Number(current[key]) : req.body[key] ? 1 : 0;
+  db.prepare(`
+    INSERT INTO notification_preferences(user_id,match_updates,points,ranking,social,updated_at)
+    VALUES(?,?,?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET match_updates=excluded.match_updates,
+      points=excluded.points,ranking=excluded.ranking,social=excluded.social,updated_at=excluded.updated_at
+  `).run(req.user.id, value("match_updates"), value("points"), value("ranking"), value("social"), stamp);
+  res.json(getPushPreferences(req.user.id));
 });
 
 app.get("/api/leaderboard", requireAuth, (_req, res) => res.json(leaderboardRows()));

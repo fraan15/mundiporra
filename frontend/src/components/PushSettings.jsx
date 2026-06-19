@@ -1,0 +1,22 @@
+import { useEffect, useState } from "react";
+import { Bell, BellOff } from "lucide-react";
+import { api } from "../api/client";
+
+const decodeKey=value=>{const padding="=".repeat((4-value.length%4)%4),raw=atob((value+padding).replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)))};
+export function PushSettings(){
+  const supported="serviceWorker" in navigator&&"PushManager" in window&&"Notification" in window;
+  const ios=/iphone|ipad|ipod/i.test(navigator.userAgent),standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+  const [server,setServer]=useState(null),[subscription,setSubscription]=useState(null),[busy,setBusy]=useState(false),[message,setMessage]=useState("");
+  const refresh=async()=>{const status=await api("/push/status");setServer(status);if(supported)setSubscription(await(await navigator.serviceWorker.ready).pushManager.getSubscription())};
+  useEffect(()=>{refresh().catch(error=>setMessage(error.message))},[]);
+  const enable=async()=>{setBusy(true);setMessage("");try{if(Notification.permission==="denied")throw new Error("El permiso esta bloqueado. Activalo desde los ajustes del sistema.");if(await Notification.requestPermission()!=="granted")throw new Error("No se concedio el permiso para mostrar notificaciones.");const registration=await navigator.serviceWorker.ready,created=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:decodeKey(server.public_key)});await api("/push/subscribe",{method:"POST",body:{subscription:created.toJSON()}});setSubscription(created);setMessage("Notificaciones activadas en este dispositivo.");await refresh()}catch(error){setMessage(error.message)}finally{setBusy(false)}};
+  const disable=async()=>{setBusy(true);setMessage("");try{const endpoint=subscription?.endpoint;if(subscription)await subscription.unsubscribe();if(endpoint)await api("/push/unsubscribe",{method:"DELETE",body:{endpoint}});setSubscription(null);setMessage("Notificaciones desactivadas en este dispositivo.");await refresh()}catch(error){setMessage(error.message)}finally{setBusy(false)}};
+  const updatePreference=async(key,checked)=>{const preferences=await api("/push/preferences",{method:"PATCH",body:{[key]:checked}});setServer(current=>({...current,preferences}))};
+  if(!server)return <section className="content-card push-settings"><h2>Notificaciones push</h2><p>Comprobando disponibilidad...</p></section>;
+  return <section className="content-card push-settings"><div className="push-settings-head"><div><h2>Notificaciones push</h2><p>Recibe avisos aunque MundiPorra no este abierta.</p></div>{subscription?<Bell size={24}/>:<BellOff size={24}/>}</div>
+    {!server.configured&&<div className="alert error">El servidor aun no tiene configuradas las claves VAPID.</div>}{!supported&&<div className="alert error">Este navegador no admite notificaciones push web.</div>}
+    {ios&&!standalone&&<div className="push-ios-help"><strong>En iPhone o iPad</strong><p>Abre esta web en Safari, pulsa Compartir, elige "Anadir a pantalla de inicio" y abre MundiPorra desde el nuevo icono.</p></div>}
+    {supported&&server.configured&&!(ios&&!standalone)&&<button className={subscription?"secondary":"primary"} disabled={busy} onClick={subscription?disable:enable}>{subscription?"Desactivar en este dispositivo":"Activar en este dispositivo"}</button>}
+    {supported&&Notification.permission==="denied"&&<small className="error-text">Has bloqueado el permiso. Debes habilitarlo en los ajustes del sistema.</small>}{message&&<small className={message.includes("activadas")?"success-text":"error-text"}>{message}</small>}
+    <fieldset disabled={!supported||!server.configured} className="push-preferences"><legend>Quiero recibir</legend>{[["match_updates","Cierres y resultados de partidos"],["points","Puntos y ajustes obtenidos"],["ranking","Cambios importantes de clasificacion"],["social","Comentarios y actividad social"]].map(([key,label])=><label key={key}><input type="checkbox" checked={Boolean(server.preferences[key])} onChange={event=>updatePreference(key,event.target.checked)}/><span>{label}</span></label>)}</fieldset><small>La activacion se aplica solamente a este navegador y dispositivo.</small>
+  </section>}

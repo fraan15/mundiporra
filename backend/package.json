@@ -13,7 +13,8 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "express-session": "^1.18.1",
-    "sharp": "^0.35.1"
+    "sharp": "^0.35.1",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "supertest": "^7.0.0"

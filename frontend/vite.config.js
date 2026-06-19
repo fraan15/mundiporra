@@ -7,6 +7,9 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.js",
       injectRegister: "auto",
       manifest: {
         name: "MundiPorra",
@@ -40,14 +43,7 @@ export default defineConfig({
           }
         ]
       },
-      workbox: {
-        cleanupOutdatedCaches: true,
-        clientsClaim: true,
-        skipWaiting: true,
-        navigateFallback: null,
-        globPatterns: [],
-        runtimeCaching: []
-      }
+      injectManifest: { globPatterns: ["**/*.{js,css,html,png,svg,ico,webp}"] }
     })
   ],
   server: {

@@ -50,6 +50,7 @@ Copia `.env.example` como `.env` y ajusta:
 - `COOKIE_SECURE=true`: obliga a enviar la cookie solo mediante HTTPS.
 - `DB_PATH`: ruta opcional de SQLite.
 - `SEED_DEMO_DATA`: crea usuarios de demostración únicamente cuando vale `true`.
+- `VAPID_SUBJECT`, `VAPID_PUBLIC_KEY` y `VAPID_PRIVATE_KEY`: identidad y claves para Web Push. Se generan una sola vez con `npx web-push generate-vapid-keys` dentro de `backend`.
 
 En producción, `npm start` compila React y arranca Express. Tanto la web como `/api` quedan disponibles en el mismo puerto.
 

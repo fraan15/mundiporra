@@ -175,6 +175,24 @@ export function initDatabase() {
       read_at TEXT,
       UNIQUE(user_id, event_key)
     );
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      endpoint TEXT NOT NULL UNIQUE,
+      p256dh TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      user_agent TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS notification_preferences (
+      user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      match_updates INTEGER NOT NULL DEFAULT 1 CHECK(match_updates IN (0,1)),
+      points INTEGER NOT NULL DEFAULT 1 CHECK(points IN (0,1)),
+      ranking INTEGER NOT NULL DEFAULT 1 CHECK(ranking IN (0,1)),
+      social INTEGER NOT NULL DEFAULT 1 CHECK(social IN (0,1)),
+      updated_at TEXT NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS match_comments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       match_id INTEGER NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
@@ -234,6 +252,7 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_match_scorers_player ON match_scorers(player_id);
     CREATE INDEX IF NOT EXISTS idx_log_created ON admin_actions_log(created_at);
     CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, read, created_at);
+    CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id);
     CREATE INDEX IF NOT EXISTS idx_comments_match ON match_comments(match_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_chat_created ON chat_messages(created_at);
     CREATE INDEX IF NOT EXISTS idx_admin_message_responses_user ON admin_message_responses(user_id, message_id);
