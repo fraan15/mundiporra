@@ -3,6 +3,7 @@ import { CornerUpLeft, MessageCircle, Send, X } from "lucide-react";
 import { api } from "../api/client";
 import { useAuth } from "../App";
 import { Avatar } from "../components/Avatar";
+import { startVisiblePolling } from "../utils/visiblePolling";
 
 export function ChatPage() {
   const { user } = useAuth();
@@ -25,11 +26,7 @@ export function ChatPage() {
       });
     }
   };
-  useEffect(() => {
-    load();
-    const timer = setInterval(load, 10000);
-    return () => clearInterval(timer);
-  }, []);
+  useEffect(() => startVisiblePolling(load, 10000), []);
 
   const submit = async (event) => {
     event.preventDefault();

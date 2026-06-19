@@ -12,6 +12,7 @@ import { ActivityPage, MatchDetailPage, ProfilePage, PublicProfilePage } from ".
 import { ChatPage } from "./pages/ChatPage";
 import { Avatar } from "./components/Avatar";
 import { PushSettingsPage } from "./components/PushSettings";
+import { startVisiblePolling } from "./utils/visiblePolling";
 
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
@@ -151,11 +152,10 @@ function TodayMatchesTicker({ fallback }) {
         .filter(match => match.match_date === today && match.result_team1 === null && match.result_team2 === null)
         .sort((a, b) => a.match_time.localeCompare(b.match_time)));
     }).catch(() => {});
-    load();
-    const timer = setInterval(load, 30000);
+    const stopPolling = startVisiblePolling(load, 30000);
     return () => {
       active = false;
-      clearInterval(timer);
+      stopPolling();
     };
   }, []);
 
@@ -223,16 +223,12 @@ function MainLayout() {
   },[user.role,user.is_read_only]);
   useEffect(()=>{
     const loadChatStatus=()=>api("/chat/status").then(data=>setUnreadChat(data.unread)).catch(()=>{});
-    loadChatStatus();
-    const timer=setInterval(loadChatStatus,10000);
-    return()=>clearInterval(timer);
+    return startVisiblePolling(loadChatStatus,10000);
   },[location.pathname]);
   const loadAdminMessage=()=>api("/admin-messages/pending").then(data=>setAdminMessage(data.message)).catch(()=>{});
   useEffect(()=>{
     if(user.role==="admin"||user.is_read_only)return;
-    loadAdminMessage();
-    const timer=setInterval(loadAdminMessage,15000);
-    return()=>clearInterval(timer);
+    return startVisiblePolling(loadAdminMessage,15000);
   },[user.role,user.is_read_only]);
   const answerAdminMessage=async optionId=>{
     setAnswering(true);setMessageError("");

@@ -3,6 +3,7 @@ import { AlertCircle, ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, Clock3,
 import { useLocation, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../App";
+import { startVisiblePolling } from "../utils/visiblePolling";
 import { Flag } from "../components/SportsUI";
 import { StarMatchTitle } from "../components/StarMatchTitle";
 import { ActivityAvatar } from "../components/Avatar";
@@ -132,7 +133,7 @@ export function DashboardPage() {
   const calendarRestoreScrollTop=calendarReturnInfo ? calendarReturnInfo.scrollTop : null;
   const swipeStart=useRef(null),liveSwipeStart=useRef(null),suppressNextClick=useRef(false),suppressLiveClick=useRef(false);
   const loadDashboard=()=>api("/dashboard").then(setData);
-  useEffect(()=>{Promise.all([api("/dashboard"),api("/activity?page=1&page_size=5"),api("/dashboard/calendar")]).then(([d,a,matches])=>{setData(d);setActivity(Array.isArray(a)?a.slice(0,5):a.items);setCalendarMatches(matches)});const tickTimer=setInterval(()=>setTick(Date.now()),1000);const refreshTimer=setInterval(loadDashboard,15000);const matchesTimer=setInterval(()=>api("/dashboard/calendar").then(setCalendarMatches),30000);return()=>{clearInterval(tickTimer);clearInterval(refreshTimer);clearInterval(matchesTimer)}},[]);
+  useEffect(()=>{api("/activity?page=1&page_size=5").then(a=>setActivity(Array.isArray(a)?a.slice(0,5):a.items));const tickTimer=setInterval(()=>setTick(Date.now()),1000);const stopDashboard=startVisiblePolling(loadDashboard,15000);const stopMatches=startVisiblePolling(()=>api("/dashboard/calendar").then(setCalendarMatches),30000);return()=>{clearInterval(tickTimer);stopDashboard();stopMatches()}},[]);
   useEffect(()=>{if(location.pathname==="/")sessionStorage.removeItem("dashboardCalendarReturn")},[location.pathname]);
   if(!data)return <div className="page-loader"><span/></div>;
   const s=data.summary,inPlayMatches=data.in_play_matches||[],nextMatches=data.next_matches||[],m=nextMatches[matchIndex]||data.next_match,remaining=m?Math.max(0,new Date(m.effective_close_at)-tick):0;

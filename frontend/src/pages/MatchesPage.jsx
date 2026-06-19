@@ -5,6 +5,7 @@ import { MatchCard } from "../components/MatchCard";
 import { SearchSelect } from "../components/SearchSelect";
 import { Flag } from "../components/SportsUI";
 import { useAuth } from "../App";
+import { startVisiblePolling } from "../utils/visiblePolling";
 
 const dateKey = date => date.toLocaleDateString("sv-SE");
 const hasResult = match => match.result_team1 !== null && match.result_team2 !== null;
@@ -24,7 +25,7 @@ export function MatchesPage() {
   const [selectedId,setSelectedId]=useState(null),[selectedTeamId,setSelectedTeamId]=useState(""),[historyDate,setHistoryDate]=useState(()=>daysAgoKey(3));
   const detailRef=useRef(null);
   const load=async()=>{setMatches(await api("/matches"));setLoading(false)};
-  useEffect(()=>{load();const timer=setInterval(load,30000);return()=>clearInterval(timer)},[]);
+  useEffect(()=>startVisiblePolling(load,30000),[]);
 
   const today=dateKey(new Date());
   const pending=user.is_read_only?[]:matches.filter(match=>match.betting_open&&!match.prediction_id);

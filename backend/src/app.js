@@ -83,7 +83,15 @@ app.use(session({
   }
 }));
 app.use(hydrateUser);
-app.use("/api", (req, _res, next) => { if (!req.path.startsWith("/auth")) autoCloseExpired(); next(); });
+let lastRequestAutoCloseCheck = 0;
+app.use("/api", (req, _res, next) => {
+  const currentTime = Date.now();
+  if (!req.path.startsWith("/auth") && currentTime - lastRequestAutoCloseCheck >= 1000) {
+    lastRequestAutoCloseCheck = currentTime;
+    autoCloseExpired();
+  }
+  next();
+});
 
 const avatarUrl = (user) => user?.avatar_filename ? `/avatars/${user.avatar_filename}` : null;
 const safeUser = (user) => user && ({ id: user.id, username: user.username, display_name: user.display_name || user.username, role: user.role, active: user.active, is_read_only: Boolean(user.is_read_only), personal_phrase: user.personal_phrase || "", avatar_url: avatarUrl(user), created_at: user.created_at });

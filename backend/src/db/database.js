@@ -10,6 +10,7 @@ fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 
 export const db = new Database(dbPath);
 db.pragma("journal_mode = WAL");
+db.pragma("busy_timeout = 5000");
 db.pragma("foreign_keys = ON");
 
 const now = () => new Date().toISOString();
@@ -245,6 +246,7 @@ export function initDatabase() {
       PRIMARY KEY(message_id, user_id)
     );
     CREATE INDEX IF NOT EXISTS idx_matches_date ON matches(match_date, match_time);
+    CREATE INDEX IF NOT EXISTS idx_matches_status_close ON matches(status, auto_close_at);
     CREATE INDEX IF NOT EXISTS idx_predictions_match ON predictions(match_id);
     CREATE UNIQUE INDEX IF NOT EXISTS idx_teams_fifa_code ON teams(fifa_code);
     CREATE INDEX IF NOT EXISTS idx_players_team_fifa_code ON players(team_fifa_code);
@@ -257,6 +259,8 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_comments_match ON match_comments(match_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_chat_created ON chat_messages(created_at);
     CREATE INDEX IF NOT EXISTS idx_admin_message_responses_user ON admin_message_responses(user_id, message_id);
+    CREATE INDEX IF NOT EXISTS idx_sessions_expire ON sessions(expire);
+    CREATE INDEX IF NOT EXISTS idx_points_adjustments_user ON points_adjustments(user_id);
   `);
   const userColumns = db.prepare("PRAGMA table_info(users)").all().map((column) => column.name);
   if (!userColumns.includes("personal_phrase")) db.exec("ALTER TABLE users ADD COLUMN personal_phrase TEXT NOT NULL DEFAULT ''");
