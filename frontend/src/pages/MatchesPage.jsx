@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CalendarDays, CheckCircle2, ChevronDown, Clock3, History, Target, X } from "lucide-react";
+import { CalendarDays, CheckCircle2, Clock3, Goal, History, Target, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { SearchSelect } from "../components/SearchSelect";
@@ -79,10 +79,9 @@ export function MatchesPage() {
     {loading?<div className="matches-agenda-skeleton"><i/><i/><i/></div>:grouped.length?<div className="matches-agenda">{grouped.map(([date,items])=><section className="matches-day" key={date}>
       <header><div><strong>{dateLabel(date)}</strong><span>{new Date(`${date}T12:00:00`).toLocaleDateString("es-ES",{day:"2-digit",month:"short"})}</span></div><small>{items.length} encuentro{items.length===1?"":"s"}</small></header>
       <div>{items.map(match=><button type="button" className="agenda-match-row" key={match.id} onClick={()=>openMatch(match.id)}>
-        <span className="agenda-time"><strong>{match.match_time?.slice(0,5)}</strong><small className={match.in_play?"live":""}>{match.in_play?"LIVE":hasResult(match)?"FINAL":""}</small></span>
+        <span className="agenda-time"><strong>{match.match_time?.slice(0,5)}</strong><small className={match.in_play?"live":hasResult(match)?"":"upcoming"}>{match.in_play?"LIVE":hasResult(match)?"FINAL":"PRÓXIMAMENTE"}</small></span>
         <span className="agenda-fixture"><span><strong>{match.team1}</strong><Flag team={match.team1} teamData={match.team1_team}/></span><b>{hasResult(match)?`${match.result_team1} — ${match.result_team2}`:"VS"}</b><span><Flag team={match.team2} teamData={match.team2_team}/><strong>{match.team2}</strong></span></span>
-        <span className={`agenda-bet-state ${match.prediction_id?"done":match.betting_open?"pending":"closed"}`}>{user.is_read_only?"Ver partido":match.prediction_id?<><span>Tu apuesta {match.predicted_team1_goals}–{match.predicted_team2_goals}</span>{match.predicted_scorer?.name&&<small>Goleador: {match.predicted_scorer.name}</small>}</>:match.betting_open?"Apostar ahora":hasResult(match)?"Ver resultado":"Apuestas cerradas"}</span>
-        <ChevronDown size={17}/>
+        <span className="agenda-match-actions"><span className={`agenda-bet-state ${match.prediction_id?"done":match.betting_open?"pending":"closed"}`}>{user.is_read_only?"Ver partido":match.prediction_id?`Tu apuesta ${match.predicted_team1_goals}–${match.predicted_team2_goals}`:match.betting_open?"Apostar ahora":hasResult(match)?"Ver resultado":"Apuestas cerradas"}</span>{!user.is_read_only&&match.prediction_id&&match.predicted_scorer?.name&&<span className="agenda-scorer-tag"><Goal size={13}/>{match.predicted_scorer.name}</span>}</span>
       </button>)}</div>
     </section>)}</div>:<div className="matches-empty"><CalendarDays/><strong>No hay partidos en esta vista</strong><span>Prueba con otro filtro o limpia la búsqueda.</span></div>}
 
