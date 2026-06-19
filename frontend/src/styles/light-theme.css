@@ -1118,7 +1118,16 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 [data-theme="dark"] .team-profile-header .team-detail-close:hover{background:#3a1c29;border-color:#ff6b78;color:#ff8994}
 
 /* Match agenda rows keep a stable appearance on mouse hover and touch gestures. */
-.agenda-match-row:hover:not(.selected){background:transparent}
+.agenda-match-row{
+  -webkit-tap-highlight-color:transparent;
+  touch-action:pan-y;
+}
+.agenda-match-row:hover:not(.selected),
+.agenda-match-row:active:not(.selected),
+.agenda-match-row:focus:not(:focus-visible):not(.selected){
+  background:transparent;
+  outline:0;
+}
 
 /* Ajustes de legibilidad de la agenda de partidos */
 .agenda-match-row.needs-bet{box-shadow:none}
