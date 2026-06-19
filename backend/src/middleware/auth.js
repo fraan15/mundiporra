@@ -3,6 +3,7 @@ import { db } from "../db/database.js";
 export const READ_ONLY_USER = {
   id: -1,
   username: "espectador",
+  display_name: "Espectador",
   role: "user",
   active: 1,
   is_read_only: true,
@@ -18,7 +19,7 @@ export function hydrateUser(req, _res, next) {
     return next();
   }
   if (req.session?.userId) {
-    const user = db.prepare("SELECT id,username,role,active,avatar_filename,created_at,updated_at FROM users WHERE id=?").get(req.session.userId);
+    const user = db.prepare("SELECT id,username,display_name,role,active,avatar_filename,created_at,updated_at FROM users WHERE id=?").get(req.session.userId);
     req.user = user?.active ? user : null;
     if (!req.user) req.session.userId = null;
   }

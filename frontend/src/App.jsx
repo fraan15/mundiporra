@@ -118,7 +118,7 @@ function ProfileMenu() {
   return <div className="profile-menu" ref={menuRef}>
     <button className="profile-shortcut" aria-expanded={open} aria-haspopup="menu" onClick={toggle}>
       <Avatar user={user}/>
-      <span><strong>{user.username}</strong><small>{user.is_read_only ? "Solo lectura" : user.role === "admin" ? "Administrador" : "Participante"}</small></span>
+      <span><strong>{user.display_name||user.username}</strong><small>{user.is_read_only ? "Solo lectura" : user.role === "admin" ? "Administrador" : "Participante"}</small></span>
       <ChevronDown className={open ? "open" : ""} size={15}/>
     </button>
     {open && <div className="profile-dropdown">

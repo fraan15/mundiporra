@@ -57,6 +57,7 @@ export function initDatabase() {
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT NOT NULL UNIQUE COLLATE NOCASE,
+      display_name TEXT NOT NULL DEFAULT '',
       password TEXT NOT NULL,
       role TEXT NOT NULL DEFAULT 'user' CHECK(role IN ('admin','user')),
       active INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0,1)),
@@ -260,6 +261,15 @@ export function initDatabase() {
   const userColumns = db.prepare("PRAGMA table_info(users)").all().map((column) => column.name);
   if (!userColumns.includes("personal_phrase")) db.exec("ALTER TABLE users ADD COLUMN personal_phrase TEXT NOT NULL DEFAULT ''");
   if (!userColumns.includes("avatar_filename")) db.exec("ALTER TABLE users ADD COLUMN avatar_filename TEXT");
+  if (!userColumns.includes("display_name")) db.exec("ALTER TABLE users ADD COLUMN display_name TEXT NOT NULL DEFAULT ''");
+  db.exec("UPDATE users SET display_name=username WHERE TRIM(display_name)=''");
+  db.exec(`CREATE TABLE IF NOT EXISTS display_name_changes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    previous_name TEXT NOT NULL,
+    new_name TEXT NOT NULL,
+    changed_at TEXT NOT NULL
+  ); CREATE INDEX IF NOT EXISTS idx_display_name_changes_user_time ON display_name_changes(user_id,changed_at);`);
   const matchColumns = db.prepare("PRAGMA table_info(matches)").all().map((column) => column.name);
   if (!matchColumns.includes("force_published")) db.exec("ALTER TABLE matches ADD COLUMN force_published INTEGER NOT NULL DEFAULT 0 CHECK(force_published IN (0,1))");
   if (!matchColumns.includes("is_star")) db.exec("ALTER TABLE matches ADD COLUMN is_star INTEGER NOT NULL DEFAULT 0 CHECK(is_star IN (0,1))");

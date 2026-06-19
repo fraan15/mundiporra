@@ -8,17 +8,18 @@ import { Countdown } from "../components/MatchCard";
 import { StarMatchTitle } from "../components/StarMatchTitle";
 import { ActivityAvatar, Avatar } from "../components/Avatar";
 import { ScorerPicker } from "../components/ScorerPicker";
+import { AvatarCropper } from "../components/AvatarCropper";
 
 const StatCards=({s,onPointsInfo})=><div className="stat-cards">
   {[["Posición",`#${s.position}`],["Puntos",s.total_points],["Pronósticos",s.predicted_matches],["Ganadores",s.winner_hits],["Exactos",s.exact_hits],["Media",`${s.average_points} pts`]].map(([k,v])=><article key={k} className={k==="Puntos"?"points-stat-card":""}><span>{k}</span><strong>{v}</strong>{k==="Puntos"&&onPointsInfo&&<button type="button" className="points-info-trigger" aria-label="Ver de dónde salen todos los puntos" onClick={onPointsInfo}><Info size={16}/></button>}</article>)}
 </div>;
 
 export function ProfilePage(){
-  const {user:authUser,setUser}=useAuth(); const [data,setData]=useState(null),[phrase,setPhrase]=useState(""),[saved,setSaved]=useState(false),[avatarMessage,setAvatarMessage]=useState(""),[uploading,setUploading]=useState(false),[pointsOpen,setPointsOpen]=useState(false);
-  const load=()=>api("/profile/me").then(d=>{setData(d);setPhrase(d.user.personal_phrase||"")});
+  const {user:authUser,setUser}=useAuth(); const [data,setData]=useState(null),[phrase,setPhrase]=useState(""),[displayName,setDisplayName]=useState(""),[saved,setSaved]=useState(false),[saveError,setSaveError]=useState(""),[avatarMessage,setAvatarMessage]=useState(""),[uploading,setUploading]=useState(false),[cropFile,setCropFile]=useState(null),[pointsOpen,setPointsOpen]=useState(false);
+  const load=()=>api("/profile/me").then(d=>{setData(d);setPhrase(d.user.personal_phrase||"");setDisplayName(d.user.display_name||d.user.username)});
   useEffect(()=>{load()},[]);
   if(!data)return <div className="page-loader"><span/></div>;
-  const save=async()=>{const user=await api("/profile/me",{method:"PATCH",body:{personal_phrase:phrase}});setUser(u=>({...u,...user}));setSaved(true);load()};
+  const save=async()=>{setSaved(false);setSaveError("");try{const user=await api("/profile/me",{method:"PATCH",body:{display_name:displayName,personal_phrase:phrase}});setUser(u=>({...u,...user}));setSaved(true);load()}catch(error){setSaveError(error.message)}};
   const changeAvatar=async event=>{
     const input=event.currentTarget,file=input.files?.[0];input.value="";if(!file)return;
     const typeByExtension={jpg:"image/jpeg",jpeg:"image/jpeg",png:"image/png",webp:"image/webp"};
@@ -26,15 +27,18 @@ export function ProfilePage(){
     if(!contentType||file.type&&!["image/jpeg","image/png","image/webp"].includes(file.type)){setAvatarMessage(`El archivo "${file.name}" no es válido. Solo se admiten imágenes JPEG, PNG o WebP.`);return}
     if(file.size===0){setAvatarMessage("El archivo seleccionado está vacío.");return}
     if(file.size>5*1024*1024){setAvatarMessage(`La imagen ocupa ${(file.size/1024/1024).toFixed(1)} MB y el máximo permitido es 5 MB.`);return}
+    setAvatarMessage("");setCropFile(file);
+  };
+  const uploadAvatar=async file=>{
     setUploading(true);setAvatarMessage("");
     try{
       const uploadUrl=new URL("/api/profile/avatar",window.location.origin);
-      const response=await fetch(uploadUrl.toString(),{method:"PUT",credentials:"same-origin",headers:{"Content-Type":contentType},body:file});
+      const response=await fetch(uploadUrl.toString(),{method:"PUT",credentials:"same-origin",headers:{"Content-Type":file.type||"image/jpeg"},body:file});
       const responseType=response.headers.get("content-type")||"";
       const user=responseType.includes("application/json")?await response.json():null;
       if(!response.ok)throw new Error(user?.error||`El servidor rechazó la imagen (error ${response.status}).`);
       if(!user?.avatar_url)throw new Error("El servidor no devolvió una foto de perfil válida.");
-      setUser(current=>({...current,...user}));setData(current=>({...current,user}));setAvatarMessage("Foto de perfil actualizada.");
+      setUser(current=>({...current,...user}));setData(current=>({...current,user}));setCropFile(null);setAvatarMessage("Foto de perfil actualizada.");
     }catch(error){
       console.error("Error al subir la foto de perfil:",error);
       setAvatarMessage(error instanceof TypeError||error?.name==="SyntaxError"
@@ -44,9 +48,9 @@ export function ProfilePage(){
   };
   const removeAvatar=async()=>{setUploading(true);setAvatarMessage("");try{const user=await api("/profile/avatar",{method:"DELETE"});setUser(current=>({...current,...user}));setData(current=>({...current,user}));setAvatarMessage("Foto eliminada.")}catch(error){setAvatarMessage(error.message)}finally{setUploading(false)}};
   const s=data.stats;
-  return <div className="page"><section className="profile-hero"><div className="profile-avatar-editor"><Avatar user={data.user} className="profile-avatar"/>{!authUser.is_read_only&&<><label className="avatar-upload"><input type="file" accept="image/jpeg,image/png,image/webp" onChange={changeAvatar} disabled={uploading}/>{uploading?"Procesando...":data.user.avatar_url?"Cambiar foto":"Añadir foto"}</label>{data.user.avatar_url&&<button type="button" onClick={removeAvatar} disabled={uploading}>Eliminar</button>}</>}</div><div><span className="eyebrow">PERFIL DE JUGADOR</span><h1>{data.user.username}</h1><p>{authUser.is_read_only?"Solo lectura":data.user.role==="admin"?"Administrador":"Participante"} · Desde {new Date(data.user.created_at).toLocaleDateString("es-ES")}</p>{!authUser.is_read_only&&<small className="avatar-requirements">JPEG, PNG o WebP · máximo 5 MB · mínimo 100 × 100 px</small>}{avatarMessage&&<small className={avatarMessage.includes("actualizada")||avatarMessage.includes("eliminada")?"success-text":"error-text"}>{avatarMessage}</small>}</div></section>
-    {pointsOpen&&<PointsDetailOverlay detail={data.points_detail} username={data.user.username} onClose={()=>setPointsOpen(false)}/>}<StatCards s={s} onPointsInfo={()=>setPointsOpen(true)}/>{!authUser.is_read_only&&<section className="content-card"><h2>Mi frase</h2><div className="phrase-editor"><input maxLength="120" value={phrase} onChange={e=>setPhrase(e.target.value)} placeholder="Este año gano yo."/><button className="primary" onClick={save}><Edit3 size={16}/>Guardar</button></div>{saved&&<small className="success-text">Frase actualizada.</small>}</section>}
-    <StatsSections stats={s} history={data.history}/><section className="content-card"><h2>Medallas</h2><Badges badges={s.badges}/></section>
+  return <div className="page"><section className="profile-hero"><div className="profile-avatar-editor"><Avatar user={data.user} className="profile-avatar"/>{!authUser.is_read_only&&<><label className="avatar-upload"><input type="file" accept="image/jpeg,image/png,image/webp" onChange={changeAvatar} disabled={uploading}/>{uploading?"Procesando...":data.user.avatar_url?"Cambiar foto":"Añadir foto"}</label>{data.user.avatar_url&&<button type="button" onClick={removeAvatar} disabled={uploading}>Eliminar</button>}</>}</div><div><span className="eyebrow">PERFIL DE JUGADOR</span><h1>{data.user.display_name||data.user.username}</h1><p>{authUser.is_read_only?"Solo lectura":data.user.role==="admin"?"Administrador":"Participante"} · Desde {new Date(data.user.created_at).toLocaleDateString("es-ES")}</p>{!authUser.is_read_only&&<small className="avatar-requirements">JPEG, PNG o WebP · máximo 5 MB · mínimo 100 × 100 px</small>}{avatarMessage&&<small className={avatarMessage.includes("actualizada")||avatarMessage.includes("eliminada")?"success-text":"error-text"}>{avatarMessage}</small>}</div></section>
+    {pointsOpen&&<PointsDetailOverlay detail={data.points_detail} username={data.user.display_name||data.user.username} onClose={()=>setPointsOpen(false)}/>}<StatCards s={s} onPointsInfo={()=>setPointsOpen(true)}/>{!authUser.is_read_only&&<section className="content-card"><h2>Editar perfil</h2><div className="phrase-editor"><input minLength="2" maxLength="40" value={displayName} onChange={e=>setDisplayName(e.target.value)} placeholder="Nombre visible"/><input maxLength="120" value={phrase} onChange={e=>setPhrase(e.target.value)} placeholder="Este año gano yo."/><button className="primary" onClick={save}><Edit3 size={16}/>Guardar</button></div><small>Puedes cambiar el nombre visible hasta 3 veces cada 24 horas. Tu usuario de acceso no cambia.</small>{saved&&<small className="success-text">Perfil actualizado.</small>}{saveError&&<small className="error-text">{saveError}</small>}</section>}
+    {cropFile&&<AvatarCropper file={cropFile} onCancel={()=>setCropFile(null)} onConfirm={uploadAvatar}/>}<StatsSections stats={s} history={data.history}/><section className="content-card"><h2>Medallas</h2><Badges badges={s.badges}/></section>
   </div>
 }
 function formatStatDate(date){return new Date(`${date}T12:00:00`).toLocaleDateString("es-ES",{day:"2-digit",month:"short"})}
@@ -88,7 +92,7 @@ export function PublicProfilePage(){
     return dateCompare||b.id-a.id;
   }),[data?.predictions]);
   if(!data)return <div className="page-loader"><span/></div>;const s=data.stats,totalHistoryPages=Math.max(1,Math.ceil(predictions.length/pageSize)),visiblePredictions=predictions.slice((historyPage-1)*pageSize,historyPage*pageSize);
-  return <div className="page">{pointsOpen&&<PointsDetailOverlay detail={data.points_detail} username={data.user.username} onClose={()=>setPointsOpen(false)}/>}<button className="back-btn" onClick={()=>navigate(-1)}><ArrowLeft size={16}/>Volver</button><section className="profile-hero public"><Avatar user={data.user} className="profile-avatar"/><div><span className="eyebrow">FICHA DEPORTIVA</span><h1>{data.user.username}</h1><blockquote>“{data.user.personal_phrase||"Todavía sin frase personal."}”</blockquote></div><b>#{s.position}</b></section><StatCards s={s} onPointsInfo={()=>setPointsOpen(true)}/><StatsSections stats={s} history={data.history}/><section className="content-card"><h2>Medallas</h2><Badges badges={s.badges}/></section><section className="content-card"><h2>Historial visible</h2><div className="prediction-history">{visiblePredictions.map(p=><div key={p.id}><span>{p.match_date}</span><strong><Flag team={p.team1}/>{p.team1} {p.predicted_team1_goals}–{p.predicted_team2_goals} {p.team2}<Flag team={p.team2}/></strong><b>+{p.total_points}</b></div>)}</div>{totalHistoryPages>1&&<nav className="pagination" aria-label="Paginación del historial visible"><button disabled={historyPage===1} onClick={()=>setHistoryPage(historyPage-1)}><ChevronLeft/>Anterior</button><span>Página {historyPage} de {totalHistoryPages}</span><button disabled={historyPage===totalHistoryPages} onClick={()=>setHistoryPage(historyPage+1)}>Siguiente<ChevronRight/></button></nav>}</section></div>
+  return <div className="page">{pointsOpen&&<PointsDetailOverlay detail={data.points_detail} username={data.user.display_name||data.user.username} onClose={()=>setPointsOpen(false)}/>}<button className="back-btn" onClick={()=>navigate(-1)}><ArrowLeft size={16}/>Volver</button><section className="profile-hero public"><Avatar user={data.user} className="profile-avatar"/><div><span className="eyebrow">FICHA DEPORTIVA</span><h1>{data.user.display_name||data.user.username}</h1><blockquote>“{data.user.personal_phrase||"Todavía sin frase personal."}”</blockquote></div><b>#{s.position}</b></section><StatCards s={s} onPointsInfo={()=>setPointsOpen(true)}/><StatsSections stats={s} history={data.history}/><section className="content-card"><h2>Medallas</h2><Badges badges={s.badges}/></section><section className="content-card"><h2>Historial visible</h2><div className="prediction-history">{visiblePredictions.map(p=><div key={p.id}><span>{p.match_date}</span><strong><Flag team={p.team1}/>{p.team1} {p.predicted_team1_goals}–{p.predicted_team2_goals} {p.team2}<Flag team={p.team2}/></strong><b>+{p.total_points}</b></div>)}</div>{totalHistoryPages>1&&<nav className="pagination" aria-label="Paginación del historial visible"><button disabled={historyPage===1} onClick={()=>setHistoryPage(historyPage-1)}><ChevronLeft/>Anterior</button><span>Página {historyPage} de {totalHistoryPages}</span><button disabled={historyPage===totalHistoryPages} onClick={()=>setHistoryPage(historyPage+1)}>Siguiente<ChevronRight/></button></nav>}</section></div>
 }
 function PointsDetailOverlay({detail,username,onClose}){
  const [matchesOpen,setMatchesOpen]=useState(true),[openMatchId,setOpenMatchId]=useState(null),[matchesPage,setMatchesPage]=useState(1);

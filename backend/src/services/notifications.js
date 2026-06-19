@@ -9,7 +9,7 @@ export const leaderboardRows = () => db.prepare(`
     ORDER BY match_date DESC, match_time DESC, id DESC
     LIMIT 1
   )
-  SELECT u.id,u.username,u.personal_phrase,u.avatar_filename,
+  SELECT u.id,COALESCE(NULLIF(u.display_name,''),u.username) username,u.personal_phrase,u.avatar_filename,
     CASE WHEN u.avatar_filename IS NULL THEN NULL ELSE '/avatars/' || u.avatar_filename END avatar_url,
     COALESCE(SUM(p.total_points),0)+COALESCE(adj.adjustments,0) total_points,
     COALESCE(last_match.total_points,0) last_match_points,

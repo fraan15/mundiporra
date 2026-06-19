@@ -86,7 +86,7 @@ app.use(hydrateUser);
 app.use("/api", (req, _res, next) => { if (!req.path.startsWith("/auth")) autoCloseExpired(); next(); });
 
 const avatarUrl = (user) => user?.avatar_filename ? `/avatars/${user.avatar_filename}` : null;
-const safeUser = (user) => user && ({ id: user.id, username: user.username, role: user.role, active: user.active, is_read_only: Boolean(user.is_read_only), personal_phrase: user.personal_phrase || "", avatar_url: avatarUrl(user), created_at: user.created_at });
+const safeUser = (user) => user && ({ id: user.id, username: user.username, display_name: user.display_name || user.username, role: user.role, active: user.active, is_read_only: Boolean(user.is_read_only), personal_phrase: user.personal_phrase || "", avatar_url: avatarUrl(user), created_at: user.created_at });
 const parseIntField = (value) => Number.isInteger(Number(value)) && Number(value) >= 0 ? Number(value) : null;
 const MATCH_TIME_ZONE = "Europe/Madrid";
 const madridDateTimeToIso = (value) => {
@@ -486,7 +486,7 @@ const pointsDetail = (userId, stats) => {
     ORDER BY m.match_date DESC,m.match_time DESC,m.id DESC
   `).all(userId);
   const adjustments = db.prepare(`
-    SELECT a.id,a.points,a.reason,a.created_at,u.username created_by_username
+    SELECT a.id,a.points,a.reason,a.created_at,COALESCE(NULLIF(u.display_name,''),u.username) created_by_username
     FROM points_adjustments a
     LEFT JOIN users u ON u.id=a.created_by
     WHERE a.user_id=?
@@ -635,7 +635,22 @@ app.get("/api/profile/me", requireAuth, (req, res) => {
 });
 app.patch("/api/profile/me", requireAuth, requireWritableUser, (req, res) => {
   const phrase = String(req.body.personal_phrase || "").trim().slice(0, 120);
-  db.prepare("UPDATE users SET personal_phrase=?,updated_at=? WHERE id=?").run(phrase, now(), req.user.id);
+  const current = db.prepare("SELECT * FROM users WHERE id=?").get(req.user.id);
+  const displayName = req.body.display_name === undefined ? current.display_name : String(req.body.display_name).trim();
+  if (displayName.length < 2 || displayName.length > 40 || /[\x00-\x1F\x7F]/.test(displayName)) {
+    return res.status(400).json({ error: "El nombre visible debe tener entre 2 y 40 caracteres y no contener saltos de línea." });
+  }
+  const changed = displayName !== current.display_name;
+  if (changed) {
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const count = db.prepare("SELECT COUNT(*) count FROM display_name_changes WHERE user_id=? AND changed_at>=?").get(req.user.id, since).count;
+    if (count >= 3) return res.status(429).json({ error: "Has alcanzado el límite de 3 cambios de nombre en 24 horas." });
+  }
+  const stamp = now();
+  db.transaction(() => {
+    db.prepare("UPDATE users SET display_name=?,personal_phrase=?,updated_at=? WHERE id=?").run(displayName, phrase, stamp, req.user.id);
+    if (changed) db.prepare("INSERT INTO display_name_changes(user_id,previous_name,new_name,changed_at) VALUES(?,?,?,?)").run(req.user.id, current.display_name || current.username, displayName, stamp);
+  })();
   res.json(safeUser(db.prepare("SELECT * FROM users WHERE id=?").get(req.user.id)));
 });
 app.put(
@@ -712,7 +727,7 @@ app.patch("/api/profile/password", requireAuth, requireWritableUser, (req, res) 
   res.json({ ok: true });
 });
 app.get("/api/users/:id/public", requireAuth, (req, res) => {
-  const user = db.prepare("SELECT id,username,role,personal_phrase,avatar_filename,created_at FROM users WHERE id=? AND active=1").get(req.params.id);
+  const user = db.prepare("SELECT id,username,display_name,role,personal_phrase,avatar_filename,created_at FROM users WHERE id=? AND active=1").get(req.params.id);
   if (!user) return res.status(404).json({ error: "Usuario no encontrado." });
   const predictions = db.prepare(`
     SELECT p.*,m.team1,m.team2,m.match_date,m.status,m.result_team1,m.result_team2
@@ -766,14 +781,14 @@ app.get("/api/activity", requireAuth, (req, res) => {
   };
   const items = db.prepare(`
     SELECT * FROM (
-      SELECT 'prediction' type,u.username,u.avatar_filename,m.team1,m.team2,NULL total_points,
+      SELECT 'prediction' type,COALESCE(NULLIF(u.display_name,''),u.username) username,u.avatar_filename,m.team1,m.team2,NULL total_points,
         p.created_at,NULL winner_points,NULL exact_result_points,NULL scorer_points,p.id event_id,m.is_star,1 scoring_multiplier,
         NULL predicted_scorer_name
       FROM predictions p
       JOIN users u ON u.id=p.user_id
       JOIN matches m ON m.id=p.match_id
       UNION ALL
-      SELECT 'points' type,u.username,u.avatar_filename,m.team1,m.team2,p.total_points,
+      SELECT 'points' type,COALESCE(NULLIF(u.display_name,''),u.username) username,u.avatar_filename,m.team1,m.team2,p.total_points,
         p.updated_at created_at,p.winner_points,p.exact_result_points,p.scorer_points,p.id event_id,m.is_star,p.scoring_multiplier,
         CASE
           WHEN p.predicted_team1_goals=0 AND p.predicted_team2_goals=0 THEN 'Sin goleador'
@@ -801,8 +816,8 @@ app.get("/api/activity", requireAuth, (req, res) => {
 
 app.get("/api/chat", requireAuth, (_req, res) => {
   const messages = db.prepare(`
-    SELECT c.id,c.message,c.created_at,c.reply_to_id,u.id user_id,u.username,u.avatar_filename,
-      parent.message reply_message,parent_user.username reply_username
+    SELECT c.id,c.message,c.created_at,c.reply_to_id,u.id user_id,COALESCE(NULLIF(u.display_name,''),u.username) username,u.avatar_filename,
+      parent.message reply_message,COALESCE(NULLIF(parent_user.display_name,''),parent_user.username) reply_username
     FROM chat_messages c
     JOIN users u ON u.id=c.user_id
     LEFT JOIN chat_messages parent ON parent.id=c.reply_to_id
@@ -850,7 +865,7 @@ app.get("/api/matches/:id/detail", requireAuth, (req, res) => {
     WHERE p.match_id=? AND u.role='user'
   `).get(match.id).count;
   const participantStatusRows = () => db.prepare(`
-    SELECT u.id,u.username,
+    SELECT u.id,COALESCE(NULLIF(u.display_name,''),u.username) username,
       CASE WHEN p.id IS NULL THEN 0 ELSE 1 END participating,
       p.id prediction_id,p.predicted_winner,p.predicted_team1_goals,p.predicted_team2_goals,p.predicted_scorer_id
     FROM users u
@@ -866,7 +881,7 @@ app.get("/api/matches/:id/detail", requireAuth, (req, res) => {
     }
     : { id: participant.id, username: participant.username, participating: participant.participating });
   const participants = open ? (req.user.role === "admin" ? participantStatusRows() : []) : db.prepare(`
-    SELECT u.id,u.username,
+    SELECT u.id,COALESCE(NULLIF(u.display_name,''),u.username) username,
       CASE WHEN p.id IS NULL THEN 0 ELSE 1 END participating,
       p.predicted_winner,p.predicted_team1_goals,p.predicted_team2_goals,p.predicted_scorer_id,
       player.name predicted_scorer_name,p.scorer_points,p.total_points
@@ -890,7 +905,7 @@ app.get("/api/matches/:id/comments", requireAuth, (req, res) => {
   const match = db.prepare("SELECT * FROM matches WHERE id=?").get(req.params.id);
   if (!match || !canAccessMatch(req, match)) return res.status(404).json({ error: "Partido no encontrado." });
   const comments = db.prepare(`
-    SELECT c.*,u.username,u.role,u.avatar_filename FROM match_comments c JOIN users u ON u.id=c.user_id
+    SELECT c.*,COALESCE(NULLIF(u.display_name,''),u.username) username,u.role,u.avatar_filename FROM match_comments c JOIN users u ON u.id=c.user_id
     WHERE c.match_id=? ORDER BY c.created_at DESC
   `).all(req.params.id);
   res.json(comments.map((comment) => ({ ...comment, avatar_url: avatarUrl(comment) })));
@@ -904,7 +919,7 @@ app.post("/api/matches/:id/comments", requireAuth, requireWritableUser, (req, re
   notifyAllExcept(req.user.id, {
     type: "match_comment",
     title: "Nuevo comentario",
-    message: `${req.user.username} ha comentado en ${match.team1} - ${match.team2}.`,
+    message: `${req.user.display_name || req.user.username} ha comentado en ${match.team1} - ${match.team2}.`,
     entityType: "match_comment",
     entityId: result.lastInsertRowid,
     link: `/match/${match.id}#comentarios`,
@@ -1207,7 +1222,7 @@ app.get("/api/predictions/match/:matchId", requireAuth, (req, res) => {
     return res.json({ revealed: false, count, participants: [] });
   }
   const predictions = db.prepare(`
-    SELECT p.id,u.username,p.predicted_winner,p.predicted_team1_goals,p.predicted_team2_goals,
+    SELECT p.id,COALESCE(NULLIF(u.display_name,''),u.username) username,p.predicted_winner,p.predicted_team1_goals,p.predicted_team2_goals,
       p.winner_points,p.exact_result_points,p.scorer_points,p.total_points,p.predicted_scorer_id,
       player.name predicted_scorer_name,player.position predicted_scorer_position
     FROM predictions p JOIN users u ON u.id=p.user_id LEFT JOIN players player ON player.id=p.predicted_scorer_id
@@ -1325,7 +1340,7 @@ app.get("/api/leaderboard", requireAuth, (_req, res) => res.json(leaderboardRows
 app.get("/api/leaderboard/daily", requireAuth, (_req, res) => {
   const latestDate = db.prepare("SELECT MAX(match_date) date FROM matches WHERE status='finished'").get().date;
   const rows = db.prepare(`
-    SELECT u.id,u.username,u.personal_phrase,
+    SELECT u.id,COALESCE(NULLIF(u.display_name,''),u.username) username,u.personal_phrase,
       COALESCE(SUM(p.total_points),0) total_points,
       COALESCE(SUM(CASE WHEN p.winner_points>0 THEN 1 ELSE 0 END),0) winner_hits,
       COALESCE(SUM(CASE WHEN p.exact_result_points>0 THEN 1 ELSE 0 END),0) exact_hits
@@ -1357,7 +1372,7 @@ app.get("/api/history/day/:date", requireAuth, (req, res) => {
   const details = Object.fromEntries(visibleMatches.map((match) => {
     if (match.status === "open" && !isExpired(match)) return [match.id, null];
     return [match.id, db.prepare(`
-      SELECT u.username,p.predicted_winner,p.predicted_team1_goals,p.predicted_team2_goals,p.total_points,
+      SELECT COALESCE(NULLIF(u.display_name,''),u.username) username,p.predicted_winner,p.predicted_team1_goals,p.predicted_team2_goals,p.total_points,
         p.predicted_scorer_id,player.name predicted_scorer_name
       FROM predictions p JOIN users u ON u.id=p.user_id
       LEFT JOIN players player ON player.id=p.predicted_scorer_id
@@ -1370,7 +1385,7 @@ app.get("/api/history/day/:date", requireAuth, (req, res) => {
 });
 app.get("/api/history/day/:date/summary", requireAuth, (req, res) => {
   res.json(db.prepare(`
-    SELECT u.username,COALESCE(SUM(p.total_points),0) points,
+    SELECT COALESCE(NULLIF(u.display_name,''),u.username) username,COALESCE(SUM(p.total_points),0) points,
       COALESCE(SUM(CASE WHEN p.winner_points>0 THEN 1 ELSE 0 END),0) winner_hits,
       COALESCE(SUM(CASE WHEN p.exact_result_points>0 THEN 1 ELSE 0 END),0) exact_hits
     FROM users u LEFT JOIN predictions p ON p.user_id=u.id

@@ -157,6 +157,26 @@ test("un usuario puede cambiar su propia contraseña", async () => {
   });
 });
 
+test("el nombre visible se publica sin cambiar la identidad y admite 3 cambios cada 24 horas", async () => {
+  const agent = request.agent(app);
+  await agent.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
+  const before = db.prepare("SELECT id,username FROM users WHERE username='lucia'").get();
+
+  for (const displayName of ["Lucía Uno", "Lucía Dos", "Lucía Final"]) {
+    const changed = await agent.patch("/api/profile/me").send({ display_name: displayName, personal_phrase: "" });
+    assert.equal(changed.status, 200);
+    assert.equal(changed.body.display_name, displayName);
+    assert.equal(changed.body.username, "lucia");
+  }
+
+  const rejected = await agent.patch("/api/profile/me").send({ display_name: "Lucía Cuatro", personal_phrase: "" });
+  assert.equal(rejected.status, 429);
+  const after = db.prepare("SELECT id,username,display_name FROM users WHERE id=?").get(before.id);
+  assert.deepEqual(after, { ...before, display_name: "Lucía Final" });
+  const leaderboard = await agent.get("/api/leaderboard");
+  assert.equal(leaderboard.body.find((row) => row.id === before.id).username, "Lucía Final");
+});
+
 test("un usuario puede subir y eliminar una foto de perfil", async () => {
   const agent = request.agent(app);
   await agent.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
