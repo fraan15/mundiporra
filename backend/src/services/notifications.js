@@ -67,6 +67,7 @@ export function createNotification({
     VALUES (?,?,?,?,?,?,?,?,?)
   `).run(userId, type, title, message, entityType, entityId, link, eventKey, now());
   if (result.changes && sendPush) void sendPushToUser(userId, { type, title, message, entityId, link, eventKey });
+  return Boolean(result.changes);
 }
 
 export function notifyAll(payload) {

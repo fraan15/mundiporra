@@ -165,7 +165,7 @@ export function initDatabase() {
     CREATE TABLE IF NOT EXISTS notifications (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      type TEXT NOT NULL CHECK(type IN ('match_available','match_closed','result_published','points_earned','top_three','points_adjustment','match_comment')),
+      type TEXT NOT NULL CHECK(type IN ('match_available','match_reminder','match_closed','result_published','points_earned','top_three','points_adjustment','match_comment')),
       title TEXT NOT NULL,
       message TEXT NOT NULL,
       entity_type TEXT,
@@ -306,13 +306,13 @@ export function initDatabase() {
       WHERE stadium_id IS NULL AND stadium!='' AND (SELECT COUNT(*) FROM stadiums WHERE stadiums.name=matches.stadium)=1;
   `);
   const notificationsSql = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='notifications'").get()?.sql || "";
-  if (!notificationsSql.includes("'match_comment'") || !notificationsSql.includes("'match_available'")) {
+  if (!notificationsSql.includes("'match_comment'") || !notificationsSql.includes("'match_available'") || !notificationsSql.includes("'match_reminder'")) {
     db.exec(`
       ALTER TABLE notifications RENAME TO notifications_legacy;
       CREATE TABLE notifications (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        type TEXT NOT NULL CHECK(type IN ('match_available','match_closed','result_published','points_earned','top_three','points_adjustment','match_comment')),
+        type TEXT NOT NULL CHECK(type IN ('match_available','match_reminder','match_closed','result_published','points_earned','top_three','points_adjustment','match_comment')),
         title TEXT NOT NULL,
         message TEXT NOT NULL,
         entity_type TEXT,
@@ -338,7 +338,8 @@ export function initDatabase() {
     ["exact_result_points", "5"],
     ["scorer_points", "2"],
     ["auto_close_enabled", "1"],
-    ["auto_close_minutes_before", "0"]
+    ["auto_close_minutes_before", "0"],
+    ["prediction_reminder_enabled", "1"]
   ].forEach(([key, value]) => addSetting.run(key, value, stamp));
 
   const addUser = db.prepare(`

@@ -1,5 +1,5 @@
 import { db, logAction, now, settings } from "../db/database.js";
-import { notifyAll } from "./notifications.js";
+import { createNotification, notifyAll } from "./notifications.js";
 import { NO_SCORER_ID } from "./scorers.js";
 
 export function effectiveCloseAt(match, config = settings()) {
@@ -12,6 +12,40 @@ export function isExpired(match) {
   return !(match.status === "open" && match.close_reason === "manual") &&
     config.auto_close_enabled === "1" &&
     new Date() >= effectiveCloseAt(match, config);
+}
+
+export function remindMissingPredictions(referenceDate = new Date()) {
+  const config = settings();
+  if (config.auto_close_enabled !== "1" || config.prediction_reminder_enabled !== "1") return 0;
+  const reminderThresholds = [60, 30, 10];
+  const matches = db.prepare("SELECT * FROM matches WHERE status='open' AND COALESCE(close_reason,'')!='manual'").all();
+  let count = 0;
+  for (const match of matches) {
+    const closesAt = effectiveCloseAt(match, config);
+    const remainingMs = closesAt.getTime() - referenceDate.getTime();
+    if (remainingMs <= 0 || remainingMs > reminderThresholds[0] * 60000) continue;
+    const remainingMinutes = remainingMs / 60000;
+    const threshold = reminderThresholds.find((minutes, index) =>
+      remainingMinutes <= minutes && (index === reminderThresholds.length - 1 || remainingMinutes > reminderThresholds[index + 1])
+    );
+    if (!threshold) continue;
+    const users = db.prepare(`
+      SELECT u.id FROM users u
+      WHERE u.active=1 AND u.role='user' AND NOT EXISTS (
+        SELECT 1 FROM predictions p WHERE p.user_id=u.id AND p.match_id=?
+      )
+    `).all(match.id);
+    for (const user of users) {
+      const created = createNotification({
+        userId: user.id, type: "match_reminder", title: "Aún no has apostado",
+        message: `Te quedan ${threshold} minutos para apostar en ${match.team1} - ${match.team2}.`,
+        entityType: "match", entityId: match.id, link: `/match/${match.id}`,
+        eventKey: `match-reminder:${match.id}:${threshold}:${user.id}`
+      });
+      if (created) count += 1;
+    }
+  }
+  return count;
 }
 
 export function autoCloseExpired() {

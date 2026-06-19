@@ -1519,7 +1519,7 @@ app.post("/api/admin/sync-worldcup-json", requireAdmin, async (req, res, next) =
 });
 app.get("/api/admin/settings", requireAdmin, (_req, res) => res.json(settings()));
 app.put("/api/admin/settings", requireAdmin, (req, res) => {
-  const allowed = ["pool_name", "winner_points", "exact_result_points", "scorer_points", "auto_close_enabled", "auto_close_minutes_before"];
+  const allowed = ["pool_name", "winner_points", "exact_result_points", "scorer_points", "auto_close_enabled", "auto_close_minutes_before", "prediction_reminder_enabled"];
   const numeric = ["winner_points", "exact_result_points", "scorer_points", "auto_close_minutes_before"];
   if (numeric.some((key) => req.body[key] !== undefined && (!Number.isInteger(Number(req.body[key])) || Number(req.body[key]) < 0))) {
     return res.status(400).json({ error: "Las puntuaciones y los minutos deben ser enteros positivos o cero." });
