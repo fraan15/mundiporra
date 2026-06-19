@@ -44,13 +44,9 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
-        navigateFallbackDenylist: [/^\/api(?:\/|$)/, /^\/avatars(?:\/|$)/],
-        globPatterns: [
-          "**/*.{js,css,html,woff,woff2}",
-          "favicon.png",
-          "apple-touch-icon.png",
-          "icons/mundiporra-icon-{192,512}.png"
-        ]
+        navigateFallback: null,
+        globPatterns: [],
+        runtimeCaching: []
       }
     })
   ],

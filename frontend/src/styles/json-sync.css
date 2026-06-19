@@ -1,0 +1,24 @@
+.json-sync-status {
+  width: min(420px, 100%);
+  margin: 16px auto 0;
+  padding: 13px 18px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--panel2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  text-align: center;
+}
+
+.json-sync-status span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.json-sync-status strong { font-size: 14px; }
+.json-sync-status small { color: var(--muted); font-size: 11px; }
