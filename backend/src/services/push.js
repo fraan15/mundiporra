@@ -23,7 +23,9 @@ export function getPushPreferences(userId) {
 }
 
 export async function sendPushToUser(userId, payload) {
-  if (!pushConfigured || !getPushPreferences(userId)[categoryForType(payload.type)]) return;
+  const preferences = getPushPreferences(userId);
+  const categories = payload.categories || [categoryForType(payload.type)];
+  if (!pushConfigured || !categories.some((category) => preferences[category])) return;
   const subscriptions = db.prepare("SELECT * FROM push_subscriptions WHERE user_id=?").all(userId);
   await Promise.allSettled(subscriptions.map(async (row) => {
     try {

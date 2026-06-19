@@ -59,14 +59,14 @@ export function scheduleDailyRankingSnapshot() {
 }
 
 export function createNotification({
-  userId, type, title, message, entityType = null, entityId = null, link = "/", eventKey = null
+  userId, type, title, message, entityType = null, entityId = null, link = "/", eventKey = null, sendPush = true
 }) {
   const result = db.prepare(`
     INSERT OR IGNORE INTO notifications
       (user_id,type,title,message,entity_type,entity_id,link,event_key,created_at)
     VALUES (?,?,?,?,?,?,?,?,?)
   `).run(userId, type, title, message, entityType, entityId, link, eventKey, now());
-  if (result.changes) void sendPushToUser(userId, { type, title, message, entityId, link, eventKey });
+  if (result.changes && sendPush) void sendPushToUser(userId, { type, title, message, entityId, link, eventKey });
 }
 
 export function notifyAll(payload) {
@@ -79,10 +79,12 @@ export function notifyAllExcept(excludedUserId, payload) {
   db.transaction(() => users.forEach(({ id }) => createNotification({ ...payload, userId: id })))();
 }
 
-export function notifyNewTopThree(beforeRows, eventKey) {
+export function notifyNewTopThree(beforeRows, eventKey, sendPush = true) {
   const previous = new Set(beforeRows.slice(0, 3).map((row) => row.id));
+  const newcomers = [];
   leaderboardRows().slice(0, 3).forEach((row, index) => {
     if (!previous.has(row.id)) {
+      newcomers.push({ ...row, position: index + 1 });
       createNotification({
         userId: row.id,
         type: "top_three",
@@ -90,8 +92,10 @@ export function notifyNewTopThree(beforeRows, eventKey) {
         message: `Has subido al puesto ${index + 1} con ${row.total_points} puntos.`,
         entityType: "leaderboard",
         link: "/clasificacion",
-        eventKey: `top-three:${eventKey}:${row.id}`
+        eventKey: `top-three:${eventKey}:${row.id}`,
+        sendPush
       });
     }
   });
+  return newcomers;
 }

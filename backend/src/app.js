@@ -12,7 +12,7 @@ import { autoCloseExpired, calculateWinner, effectiveCloseAt, isExpired, recalcu
 import { createNotification, leaderboardRows, notifyAll, notifyAllExcept, notifyNewTopThree, saveRankingSnapshot } from "./services/notifications.js";
 import { NO_SCORER, NO_SCORER_ID, parseScorerList, parseScorerSelection, serializeActualScorers, serializePredictedScorer } from "./services/scorers.js";
 import { loadWorldCupReference, syncWorldCupReference, teamReferenceStats } from "./services/worldcupReference.js";
-import { getPushPreferences, pushConfigured, savePushSubscription, vapidPublicKey } from "./services/push.js";
+import { getPushPreferences, pushConfigured, savePushSubscription, sendPushToUser, vapidPublicKey } from "./services/push.js";
 
 initDatabase();
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -1125,8 +1125,10 @@ app.post("/api/matches/:id/finish", requireAdmin, (req, res) => {
     entityType: "match",
     entityId: before.id,
     link: "/",
-    eventKey: resultNotificationEventKey
+    eventKey: resultNotificationEventKey,
+    sendPush: false
   });
+  const pointsByUser = new Map();
   db.prepare("SELECT user_id,total_points,scoring_multiplier FROM predictions WHERE match_id=? AND total_points>0").all(before.id)
     .forEach((prediction) => createNotification({
       userId: prediction.user_id,
@@ -1138,9 +1140,18 @@ app.post("/api/matches/:id/finish", requireAdmin, (req, res) => {
       entityType: "match",
       entityId: before.id,
       link: "/clasificacion",
-      eventKey: `points:${before.id}:${g1}-${g2}:${prediction.total_points}:x${prediction.scoring_multiplier}`
+      eventKey: `points:${before.id}:${g1}-${g2}:${prediction.total_points}:x${prediction.scoring_multiplier}`,
+      sendPush: (pointsByUser.set(prediction.user_id, prediction.total_points), false)
     }));
-  notifyNewTopThree(leaderboardBefore, `result:${before.id}:${g1}-${g2}`);
+  const topThree = new Map(notifyNewTopThree(leaderboardBefore, `result:${before.id}:${g1}-${g2}`, false)
+    .map((row) => [row.id, row.position]));
+  db.prepare("SELECT id FROM users WHERE active=1").all().forEach(({ id }) => {
+    const points = pointsByUser.get(id) || 0, position = topThree.get(id);
+    const details = [points ? `Has sumado ${points} ${points === 1 ? "punto" : "puntos"}.` : "Consulta tus puntos.", position ? `Ahora estas en el top 3 (puesto ${position}).` : ""].filter(Boolean).join(" ");
+    void sendPushToUser(id, { type: "result_published", categories: ["match_updates", ...(points ? ["points"] : []), ...(position ? ["ranking"] : [])],
+      title: `${before.team1} ${g1} - ${g2} ${before.team2}`, message: details, entityId: before.id,
+      link: "/clasificacion", eventKey: `result-summary:${resultNotificationEventKey}:${id}` });
+  });
   res.json(serializeMatch(after));
 });
 
