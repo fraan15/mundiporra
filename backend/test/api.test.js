@@ -1219,3 +1219,57 @@ test("un ajuste guarda el histórico y el detalle público cuadra exactamente", 
   assert.equal(profile.body.stats.total_points, detail.total_points);
   assert.equal(detail.adjustments.some((item) => item.reason === reason && item.points === 1), true);
 });
+
+test("un administrador corrige una apuesta cerrada con auditoría sin reabrir el partido", async () => {
+  const admin = request.agent(app), user = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  const username = `correccion-${Date.now()}`;
+  await admin.post("/api/users").send({ username, password: "prueba-segura", role: "user" });
+  await user.post("/api/auth/login").send({ username, password: "prueba-segura" });
+  const created = await admin.post("/api/matches").send({
+    match_date: "2099-07-10", match_time: "18:00", team1: "Corrección A", team2: "Corrección B",
+    force_published: true, scorer_enabled: false
+  });
+  const prediction = await user.post("/api/predictions").send({
+    match_id: created.body.id, predicted_winner: "team1", predicted_team1_goals: 1,
+    predicted_team2_goals: 0, predicted_scorer_id: null
+  });
+  await admin.patch(`/api/matches/${created.body.id}/status`).send({ status: "closed" });
+
+  const correction = await admin.patch(`/api/admin/matches/${created.body.id}/predictions/${prediction.body.id}`).send({
+    predicted_team1_goals: 0, predicted_team2_goals: 2, predicted_scorer_id: null,
+    reason: "Error de transcripción comprobado"
+  });
+  assert.equal(correction.status, 200);
+  assert.equal(correction.body.predicted_winner, "team2");
+  assert.equal(db.prepare("SELECT status FROM matches WHERE id=?").get(created.body.id).status, "closed");
+  const log = db.prepare("SELECT * FROM admin_actions_log WHERE action_type='edit_prediction' AND entity_id=? ORDER BY id DESC").get(prediction.body.id);
+  assert.ok(log);
+  assert.equal(JSON.parse(log.before_data).predicted_team1_goals, 1);
+  assert.equal(JSON.parse(log.after_data).predicted_team2_goals, 2);
+  assert.match(log.description, /Error de transcripción/);
+});
+
+test("la corrección de una apuesta finalizada recalcula sus puntos y está protegida", async () => {
+  const admin = request.agent(app), user = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  const username = `recalculo-${Date.now()}`;
+  await admin.post("/api/users").send({ username, password: "prueba-segura", role: "user" });
+  await user.post("/api/auth/login").send({ username, password: "prueba-segura" });
+  const created = await admin.post("/api/matches").send({
+    match_date: "2099-07-11", match_time: "18:00", team1: "Final A", team2: "Final B",
+    force_published: true, scorer_enabled: false
+  });
+  const prediction = await user.post("/api/predictions").send({ match_id: created.body.id, predicted_winner: "draw", predicted_team1_goals: 0, predicted_team2_goals: 0, predicted_scorer_id: null });
+  await admin.patch(`/api/matches/${created.body.id}/status`).send({ status: "closed" });
+  await admin.post(`/api/matches/${created.body.id}/finish`).send({ result_team1: 2, result_team2: 1, scorer_ids: [] });
+  const forbidden = await user.patch(`/api/admin/matches/${created.body.id}/predictions/${prediction.body.id}`).send({ predicted_team1_goals: 2, predicted_team2_goals: 1, predicted_scorer_id: null, reason: "No autorizado" });
+  assert.equal(forbidden.status, 403);
+  const corrected = await admin.patch(`/api/admin/matches/${created.body.id}/predictions/${prediction.body.id}`).send({ predicted_team1_goals: 2, predicted_team2_goals: 1, predicted_scorer_id: null, reason: "Corrección tras revisión" });
+  assert.equal(corrected.status, 200);
+  assert.equal(corrected.body.recalculated, true);
+  const stored = db.prepare("SELECT winner_points,exact_result_points,total_points FROM predictions WHERE id=?").get(prediction.body.id);
+  assert.ok(stored.winner_points > 0);
+  assert.ok(stored.exact_result_points > 0);
+  assert.equal(stored.total_points, stored.winner_points + stored.exact_result_points);
+});
