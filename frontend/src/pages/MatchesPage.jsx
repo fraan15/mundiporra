@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, CheckCircle2, ChevronDown, Clock3, History, Target, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
-import { MatchCard } from "../components/MatchCard";
 import { SearchSelect } from "../components/SearchSelect";
 import { Flag } from "../components/SportsUI";
 import { useAuth } from "../App";
@@ -20,12 +20,14 @@ const dateLabel = value => {
 
 export function MatchesPage() {
   const { user } = useAuth();
-  const initialView = window.location.hash === "#upcoming" ? "pending" : "today";
+  const navigate=useNavigate();
+  const savedState=useRef((()=>{try{return JSON.parse(sessionStorage.getItem("matchesPageReturn")||"null")}catch{return null}})()).current;
+  const initialView = savedState?.view || (window.location.hash === "#upcoming" ? "pending" : "today");
   const [matches,setMatches]=useState([]),[loading,setLoading]=useState(true),[view,setView]=useState(initialView);
-  const [selectedId,setSelectedId]=useState(null),[selectedTeamId,setSelectedTeamId]=useState(""),[historyDate,setHistoryDate]=useState(()=>daysAgoKey(3));
-  const detailRef=useRef(null);
+  const [selectedTeamId,setSelectedTeamId]=useState(savedState?.selectedTeamId||""),[historyDate,setHistoryDate]=useState(savedState?.historyDate||daysAgoKey(3));
   const load=async()=>{setMatches(await api("/matches"));setLoading(false)};
   useEffect(()=>startVisiblePolling(load,30000),[]);
+  useEffect(()=>{if(loading||!savedState)return;requestAnimationFrame(()=>window.scrollTo({top:savedState.scrollY||0,behavior:"auto"}));sessionStorage.removeItem("matchesPageReturn")},[loading,savedState]);
 
   const today=dateKey(new Date());
   const pending=user.is_read_only?[]:matches.filter(match=>match.betting_open&&!match.prediction_id);
@@ -56,9 +58,8 @@ export function MatchesPage() {
     });
     return [...groups.entries()];
   },[visible,view]);
-  const selected=matches.find(match=>match.id===selectedId);
-  const selectView=id=>{setView(id);setSelectedId(null);if(id==="history"&&!historyDate)setHistoryDate(daysAgoKey(3));window.history.replaceState(null,"",id==="pending"?"#upcoming":window.location.pathname)};
-  const openMatch=id=>{setSelectedId(current=>current===id?null:id);setTimeout(()=>detailRef.current?.scrollIntoView({behavior:"smooth",block:"start"}),30)};
+  const selectView=id=>{setView(id);if(id==="history"&&!historyDate)setHistoryDate(daysAgoKey(3));window.history.replaceState(null,"",id==="pending"?"#upcoming":window.location.pathname)};
+  const openMatch=id=>{sessionStorage.setItem("matchesPageReturn",JSON.stringify({view,selectedTeamId,historyDate,scrollY:window.scrollY}));navigate(`/match/${id}`,{state:{fromMatchesPage:true}})};
 
   return <div className="page matches-page-redesign">
     <section className="matches-command-header">
@@ -77,14 +78,13 @@ export function MatchesPage() {
 
     {loading?<div className="matches-agenda-skeleton"><i/><i/><i/></div>:grouped.length?<div className="matches-agenda">{grouped.map(([date,items])=><section className="matches-day" key={date}>
       <header><div><strong>{dateLabel(date)}</strong><span>{new Date(`${date}T12:00:00`).toLocaleDateString("es-ES",{day:"2-digit",month:"short"})}</span></div><small>{items.length} encuentro{items.length===1?"":"s"}</small></header>
-      <div>{items.map(match=><button type="button" className={`agenda-match-row ${selectedId===match.id?"selected":""}`} key={match.id} onClick={()=>openMatch(match.id)}>
-        <span className="agenda-time"><strong>{match.match_time?.slice(0,5)}</strong><small>{match.in_play?"EN JUEGO":hasResult(match)?"FINAL":""}</small></span>
+      <div>{items.map(match=><button type="button" className="agenda-match-row" key={match.id} onClick={()=>openMatch(match.id)}>
+        <span className="agenda-time"><strong>{match.match_time?.slice(0,5)}</strong><small className={match.in_play?"live":""}>{match.in_play?"LIVE":hasResult(match)?"FINAL":""}</small></span>
         <span className="agenda-fixture"><span><strong>{match.team1}</strong><Flag team={match.team1} teamData={match.team1_team}/></span><b>{hasResult(match)?`${match.result_team1} — ${match.result_team2}`:"VS"}</b><span><Flag team={match.team2} teamData={match.team2_team}/><strong>{match.team2}</strong></span></span>
-        <span className={`agenda-bet-state ${match.prediction_id?"done":match.betting_open?"pending":"closed"}`}>{user.is_read_only?"Ver partido":match.prediction_id?`Tu apuesta ${match.predicted_team1_goals}–${match.predicted_team2_goals}`:match.betting_open?"Apostar ahora":hasResult(match)?"Ver resultado":"Apuestas cerradas"}</span>
+        <span className={`agenda-bet-state ${match.prediction_id?"done":match.betting_open?"pending":"closed"}`}>{user.is_read_only?"Ver partido":match.prediction_id?<><span>Tu apuesta {match.predicted_team1_goals}–{match.predicted_team2_goals}</span>{match.predicted_scorer?.name&&<small>Goleador: {match.predicted_scorer.name}</small>}</>:match.betting_open?"Apostar ahora":hasResult(match)?"Ver resultado":"Apuestas cerradas"}</span>
         <ChevronDown size={17}/>
       </button>)}</div>
     </section>)}</div>:<div className="matches-empty"><CalendarDays/><strong>No hay partidos en esta vista</strong><span>Prueba con otro filtro o limpia la búsqueda.</span></div>}
 
-    {selected&&<section className="matches-detail-drawer" ref={detailRef}><header><div><small>PARTIDO SELECCIONADO</small><strong>{selected.team1} · {selected.team2}</strong></div><button aria-label="Cerrar partido" onClick={()=>setSelectedId(null)}><X/></button></header><MatchCard match={selected} onSaved={load} verticalScorePicker/></section>}
   </div>;
 }
