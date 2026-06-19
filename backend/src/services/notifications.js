@@ -42,6 +42,21 @@ export function saveRankingSnapshot(date = new Date().toISOString().slice(0, 10)
   ))();
 }
 
+export function scheduleDailyRankingSnapshot() {
+  const runAndReschedule = () => {
+    saveRankingSnapshot();
+    schedule();
+  };
+  const schedule = () => {
+    const nextRun = new Date();
+    nextRun.setHours(3, 0, 5, 0);
+    if (nextRun <= new Date()) nextRun.setDate(nextRun.getDate() + 1);
+    const timer = setTimeout(runAndReschedule, nextRun.getTime() - Date.now());
+    timer.unref();
+  };
+  schedule();
+}
+
 export function createNotification({
   userId, type, title, message, entityType = null, entityId = null, link = "/", eventKey = null
 }) {

@@ -566,7 +566,6 @@ const pointsDetail = (userId, stats) => {
 };
 
 app.get("/api/dashboard", requireAuth, (req, res) => {
-  saveRankingSnapshot();
   const stats = userStats(req.user.id) || {
     position: "—", total_points: 0, exact_hits: 0, winner_hits: 0,
     predicted_matches: 0, average_points: 0
@@ -712,7 +711,6 @@ app.patch("/api/profile/password", requireAuth, requireWritableUser, (req, res) 
   res.json({ ok: true });
 });
 app.get("/api/users/:id/public", requireAuth, (req, res) => {
-  saveRankingSnapshot();
   const user = db.prepare("SELECT id,username,role,personal_phrase,avatar_filename,created_at FROM users WHERE id=? AND active=1").get(req.params.id);
   if (!user) return res.status(404).json({ error: "Usuario no encontrado." });
   const predictions = db.prepare(`
@@ -990,6 +988,7 @@ app.delete("/api/matches/:id", requireAdmin, (req, res) => {
   const before = db.prepare("SELECT * FROM matches WHERE id=?").get(req.params.id);
   if (!before) return res.status(404).json({ error: "Partido no encontrado." });
   db.prepare("DELETE FROM matches WHERE id=?").run(before.id);
+  if (before.status === "finished") saveRankingSnapshot();
   logAction(req.user.id, "delete_match", "match", before.id, "Partido eliminado", before, null);
   res.json({ ok: true });
 });
@@ -1337,6 +1336,7 @@ app.post("/api/users", requireAdmin, (req, res) => {
     const stamp = now();
     const result = db.prepare("INSERT INTO users(username,password,role,active,created_at,updated_at) VALUES(?,?,?,1,?,?)").run(username, password, role, stamp, stamp);
     const user = db.prepare("SELECT id,username,role,active,created_at,updated_at FROM users WHERE id=?").get(result.lastInsertRowid);
+    if (user.role === "user") saveRankingSnapshot();
     logAction(req.user.id, "create_user", "user", user.id, "Usuario creado", null, user);
     res.status(201).json(user);
   } catch { res.status(409).json({ error: "Ese nombre de usuario ya existe." }); }
@@ -1350,6 +1350,7 @@ app.put("/api/users/:id", requireAdmin, (req, res) => {
   try {
     db.prepare("UPDATE users SET username=?,password=?,role=?,updated_at=? WHERE id=?").run(username, password, role, now(), before.id);
     const after = db.prepare("SELECT * FROM users WHERE id=?").get(before.id);
+    if (before.role === "user" || after.role === "user") saveRankingSnapshot();
     logAction(req.user.id, role !== before.role ? "change_role" : "edit_user", "user", before.id, "Usuario editado", safeUser(before), safeUser(after));
     res.json(safeUser(after));
   } catch { res.status(409).json({ error: "Ese nombre de usuario ya existe." }); }
@@ -1360,6 +1361,7 @@ app.patch("/api/users/:id/active", requireAdmin, (req, res) => {
   if (before.username.toLowerCase() === "administrador" && !req.body.active) return res.status(400).json({ error: "El administrador inicial no se puede desactivar." });
   db.prepare("UPDATE users SET active=?,updated_at=? WHERE id=?").run(req.body.active ? 1 : 0, now(), before.id);
   const after = db.prepare("SELECT * FROM users WHERE id=?").get(before.id);
+  if (before.role === "user") saveRankingSnapshot();
   logAction(req.user.id, req.body.active ? "activate_user" : "deactivate_user", "user", before.id, "Estado de usuario modificado", safeUser(before), safeUser(after));
   res.json(safeUser(after));
 });
@@ -1368,6 +1370,7 @@ app.delete("/api/users/:id", requireAdmin, (req, res) => {
   if (!before) return res.status(404).json({ error: "Usuario no encontrado." });
   if (before.username.toLowerCase() === "administrador" || before.id === req.user.id) return res.status(400).json({ error: "Este usuario administrador no se puede eliminar." });
   db.prepare("DELETE FROM users WHERE id=?").run(before.id);
+  if (before.role === "user" && before.active) saveRankingSnapshot();
   logAction(req.user.id, "delete_user", "user", before.id, "Usuario eliminado", safeUser(before), null);
   res.json({ ok: true });
 });
@@ -1393,6 +1396,7 @@ app.post("/api/admin/points-adjustments", requireAdmin, (req, res) => {
   if (!Number.isInteger(points) || !points || !reason || !db.prepare("SELECT id FROM users WHERE id=?").get(userId)) return res.status(400).json({ error: "Usuario, puntos distintos de cero y motivo son obligatorios." });
   const leaderboardBefore = leaderboardRows();
   const result = db.prepare("INSERT INTO points_adjustments(user_id,points,reason,created_by,created_at) VALUES(?,?,?,?,?)").run(userId, points, reason, req.user.id, now());
+  saveRankingSnapshot();
   logAction(req.user.id, "adjust_points", "user", userId, `${points > 0 ? "+" : ""}${points} puntos: ${reason}`, null, { points, reason });
   createNotification({
     userId,

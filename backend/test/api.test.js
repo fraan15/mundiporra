@@ -1153,3 +1153,49 @@ test("un comentario nuevo notifica a los demás y enlaza a los comentarios", asy
   const authorNotifications = await author.get("/api/notifications");
   assert.equal(authorNotifications.body.notifications.some((item) => item.event_key === `match-comment:${created.body.id}`), false);
 });
+
+test("consultar dashboard y perfiles no escribe instantáneas de clasificación", async () => {
+  const agent = request.agent(app);
+  await agent.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
+  const lucia = db.prepare("SELECT id FROM users WHERE username=?").get("lucia");
+  const date = new Date().toISOString().slice(0, 10);
+  db.prepare("DELETE FROM ranking_snapshots WHERE snapshot_date=?").run(date);
+
+  assert.equal((await agent.get("/api/dashboard")).status, 200);
+  assert.equal((await agent.get("/api/profile/me")).status, 200);
+  assert.equal((await agent.get(`/api/users/${lucia.id}/public`)).status, 200);
+
+  const written = db.prepare("SELECT COUNT(*) count FROM ranking_snapshots WHERE snapshot_date=?").get(date).count;
+  assert.equal(written, 0);
+});
+
+test("un ajuste guarda el histórico y el detalle público cuadra exactamente", async () => {
+  const admin = request.agent(app);
+  const user = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  await user.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
+  const lucia = db.prepare("SELECT id FROM users WHERE username=?").get("lucia");
+  const reason = `Comprobación de histórico ${Date.now()}`;
+
+  const adjustment = await admin.post("/api/admin/points-adjustments").send({
+    user_id: lucia.id,
+    points: 1,
+    reason
+  });
+  assert.equal(adjustment.status, 201);
+
+  const date = new Date().toISOString().slice(0, 10);
+  const snapshot = db.prepare("SELECT position,points FROM ranking_snapshots WHERE user_id=? AND snapshot_date=?").get(lucia.id, date);
+  const leaderboard = await user.get("/api/leaderboard");
+  const rankingRow = leaderboard.body.find((row) => row.id === lucia.id);
+  assert.deepEqual(snapshot, { position: leaderboard.body.findIndex((row) => row.id === lucia.id) + 1, points: rankingRow.total_points });
+
+  const profile = await user.get(`/api/users/${lucia.id}/public`);
+  assert.equal(profile.status, 200);
+  const detail = profile.body.points_detail;
+  assert.equal(detail.automatic_points, detail.matches.reduce((sum, match) => sum + match.total_points, 0));
+  assert.equal(detail.adjustment_points, detail.adjustments.reduce((sum, item) => sum + item.points, 0));
+  assert.equal(detail.total_points, detail.automatic_points + detail.adjustment_points);
+  assert.equal(profile.body.stats.total_points, detail.total_points);
+  assert.equal(detail.adjustments.some((item) => item.reason === reason && item.points === 1), true);
+});
