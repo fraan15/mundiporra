@@ -1108,3 +1108,9 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 [data-theme="dark"] .team-squad .position-groups>section{background:#10243a}
 [data-theme="dark"] .team-profile-header .team-detail-close{background:#142b46;border-color:rgba(255,107,120,.4);color:#ff6b78}
 [data-theme="dark"] .team-profile-header .team-detail-close:hover{background:#3a1c29;border-color:#ff6b78;color:#ff8994}
+
+/* Ajustes de legibilidad de la agenda de partidos */
+.agenda-match-row.needs-bet{box-shadow:none}
+.agenda-fixture{grid-template-columns:minmax(0,1fr) 68px minmax(0,1fr)}
+.agenda-fixture>b{white-space:nowrap;word-break:keep-all;line-height:1}
+@media(max-width:700px){.agenda-fixture{grid-template-columns:minmax(0,1fr) 54px minmax(0,1fr)}}

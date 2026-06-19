@@ -7,6 +7,7 @@ import { useAuth } from "../App";
 
 const dateKey = date => date.toLocaleDateString("sv-SE");
 const hasResult = match => match.result_team1 !== null && match.result_team2 !== null;
+const daysAgoKey = days => { const date=new Date(); date.setDate(date.getDate()-days); return dateKey(date); };
 const dateLabel = value => {
   const date = new Date(`${value}T12:00:00`), today = new Date(), tomorrow = new Date();
   tomorrow.setDate(today.getDate() + 1);
@@ -17,9 +18,9 @@ const dateLabel = value => {
 
 export function MatchesPage() {
   const { user } = useAuth();
-  const initialView = window.location.hash === "#upcoming" ? "pending" : "all";
+  const initialView = window.location.hash === "#upcoming" ? "pending" : "today";
   const [matches,setMatches]=useState([]),[loading,setLoading]=useState(true),[view,setView]=useState(initialView);
-  const [selectedId,setSelectedId]=useState(null),[query,setQuery]=useState(""),[historyDate,setHistoryDate]=useState("");
+  const [selectedId,setSelectedId]=useState(null),[query,setQuery]=useState(""),[historyDate,setHistoryDate]=useState(()=>daysAgoKey(3));
   const detailRef=useRef(null);
   const load=async()=>{setMatches(await api("/matches"));setLoading(false)};
   useEffect(()=>{load();const timer=setInterval(load,30000);return()=>clearInterval(timer)},[]);
@@ -30,13 +31,12 @@ export function MatchesPage() {
   const upcoming=matches.filter(match=>match.match_date>today&&!hasResult(match));
   const historical=matches.filter(hasResult).sort((a,b)=>`${b.match_date}${b.match_time}`.localeCompare(`${a.match_date}${a.match_time}`));
   const filters=[
-    ["all","Agenda",CalendarDays,matches.length],
     ["today","Hoy",CheckCircle2,todayMatches.length],
-    ["upcoming","Por venir",Clock3,upcoming.length],
+    ["upcoming","Próximos",Clock3,upcoming.length],
     ["pending",user.is_read_only?"Solo lectura":"Sin apostar",Target,pending.length],
     ["history","Histórico",History,historical.length]
   ];
-  const source=view==="today"?todayMatches:view==="upcoming"?upcoming:view==="pending"?pending:view==="history"?historical:matches;
+  const source=view==="today"?todayMatches:view==="upcoming"?upcoming:view==="pending"?pending:historical;
   const normalizedQuery=query.trim().toLocaleLowerCase("es");
   const visible=source.filter(match=>(!normalizedQuery||`${match.team1} ${match.team2} ${match.stadium||""}`.toLocaleLowerCase("es").includes(normalizedQuery))&&(!historyDate||match.match_date===historyDate));
   const grouped=useMemo(()=>{
@@ -48,7 +48,7 @@ export function MatchesPage() {
     return [...groups.entries()];
   },[visible,view]);
   const selected=matches.find(match=>match.id===selectedId);
-  const selectView=id=>{setView(id);setSelectedId(null);setHistoryDate("");window.history.replaceState(null,"",id==="pending"?"#upcoming":window.location.pathname)};
+  const selectView=id=>{setView(id);setSelectedId(null);if(id==="history"&&!historyDate)setHistoryDate(daysAgoKey(3));window.history.replaceState(null,"",id==="pending"?"#upcoming":window.location.pathname)};
   const openMatch=id=>{setSelectedId(current=>current===id?null:id);setTimeout(()=>detailRef.current?.scrollIntoView({behavior:"smooth",block:"start"}),30)};
 
   return <div className="page matches-page-redesign">
@@ -61,14 +61,14 @@ export function MatchesPage() {
 
     <section className="matches-toolbar">
       <label><Search size={17}/><input value={query} onChange={event=>setQuery(event.target.value)} placeholder="Buscar selección o estadio…"/></label>
-      {view==="history"&&<label className="matches-date-filter"><span>Fecha</span><input type="date" value={historyDate} onChange={event=>setHistoryDate(event.target.value)}/></label>}
-      {(query||historyDate)&&<button onClick={()=>{setQuery("");setHistoryDate("")}}><X size={15}/> Limpiar</button>}
+      {view==="history"&&<label className="matches-date-filter"><span>Fecha del histórico</span><input type="date" value={historyDate} aria-label="Seleccionar fecha del histórico" onChange={event=>setHistoryDate(event.target.value)}/></label>}
+      {(query||(view==="history"&&historyDate!==daysAgoKey(3)))&&<button onClick={()=>{setQuery("");if(view==="history")setHistoryDate(daysAgoKey(3))}}><X size={15}/> Restablecer</button>}
       <small>{visible.length} partido{visible.length===1?"":"s"}</small>
     </section>
 
     {loading?<div className="matches-agenda-skeleton"><i/><i/><i/></div>:grouped.length?<div className="matches-agenda">{grouped.map(([date,items])=><section className="matches-day" key={date}>
       <header><div><strong>{dateLabel(date)}</strong><span>{new Date(`${date}T12:00:00`).toLocaleDateString("es-ES",{day:"2-digit",month:"short"})}</span></div><small>{items.length} encuentro{items.length===1?"":"s"}</small></header>
-      <div>{items.map(match=><button type="button" className={`agenda-match-row ${selectedId===match.id?"selected":""} ${match.betting_open&&!match.prediction_id&&!user.is_read_only?"needs-bet":""}`} key={match.id} onClick={()=>openMatch(match.id)}>
+      <div>{items.map(match=><button type="button" className={`agenda-match-row ${selectedId===match.id?"selected":""}`} key={match.id} onClick={()=>openMatch(match.id)}>
         <span className="agenda-time"><strong>{match.match_time?.slice(0,5)}</strong><small>{match.in_play?"EN JUEGO":hasResult(match)?"FINAL":""}</small></span>
         <span className="agenda-fixture"><span><strong>{match.team1}</strong><Flag team={match.team1} teamData={match.team1_team}/></span><b>{hasResult(match)?`${match.result_team1} — ${match.result_team2}`:"VS"}</b><span><Flag team={match.team2} teamData={match.team2_team}/><strong>{match.team2}</strong></span></span>
         <span className={`agenda-bet-state ${match.prediction_id?"done":match.betting_open?"pending":"closed"}`}>{user.is_read_only?"Ver partido":match.prediction_id?`Tu apuesta ${match.predicted_team1_goals}–${match.predicted_team2_goals}`:match.betting_open?"Apostar ahora":hasResult(match)?"Ver resultado":"Apuestas cerradas"}</span>
