@@ -27,6 +27,6 @@ export function MiniChart({ data = [], field = "points", inverse = false }) {
   </div>;
 }
 
-export const Badges = ({ badges = [] }) => <div className="badges">
-  {badges.length ? badges.map((badge) => <div className="badge-card" key={badge.name}><span>{badge.icon}</span><strong>{badge.name}</strong></div>) : <p className="empty-state">Los logros se desbloquean jugando.</p>}
+export const Badges = ({ badges = [] }) => <div className="badges" aria-label="Medallas del jugador">
+  {badges.length ? badges.map((badge) => <div className={`badge-card ${badge.kind || ""}`} key={badge.name} title={badge.name}><span aria-hidden="true">{badge.icon}</span><strong>{badge.name}</strong></div>) : <p className="empty-state">Los logros se desbloquean jugando.</p>}
 </div>;

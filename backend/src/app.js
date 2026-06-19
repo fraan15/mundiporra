@@ -439,6 +439,53 @@ const userStats = (userId) => {
   const row = leaderboard.find((item) => item.id === Number(userId));
   if (!row) return null;
   const position = leaderboard.findIndex((item) => item.id === Number(userId)) + 1;
+  const dynamicBadges = (() => {
+    const awards = new Map(leaderboard.map((item) => [item.id, []]));
+    const add = (id, badge) => awards.get(id)?.push(badge);
+    const pointRows = db.prepare(`
+      SELECT p.user_id,p.total_points,m.id match_id,m.match_date,m.match_time
+      FROM predictions p JOIN matches m ON m.id=p.match_id JOIN users u ON u.id=p.user_id
+      WHERE m.status='finished' AND u.active=1 AND u.role='user'
+      ORDER BY m.match_date,m.match_time,m.id,p.user_id
+    `).all();
+    const totals = new Map(leaderboard.map((item) => [item.id, 0]));
+    const thresholdWinners = new Map();
+    for (const prediction of pointRows) {
+      const total = (totals.get(prediction.user_id) || 0) + Number(prediction.total_points || 0);
+      totals.set(prediction.user_id, total);
+      for (let threshold = 100; threshold <= 800; threshold += 100) {
+        if (total >= threshold && !thresholdWinners.has(threshold)) thresholdWinners.set(threshold, prediction.user_id);
+      }
+    }
+    for (const [threshold, winnerId] of thresholdWinners) add(winnerId, {
+      icon: "🏁", name: `Primero en ${threshold} puntos`, kind: "record"
+    });
+
+    const dailyRecords = db.prepare(`
+      SELECT p.user_id,m.match_date,SUM(p.total_points) points
+      FROM predictions p JOIN matches m ON m.id=p.match_id JOIN users u ON u.id=p.user_id
+      WHERE m.status='finished' AND u.active=1 AND u.role='user'
+      GROUP BY p.user_id,m.match_date ORDER BY points DESC,p.user_id
+    `).all();
+    const dailyRecord = Number(dailyRecords[0]?.points || 0);
+    if (dailyRecord > 0) dailyRecords.filter((item) => Number(item.points) === dailyRecord).forEach((item) =>
+      add(item.user_id, { icon: "⚡", name: `Récord diario · ${dailyRecord} pts`, kind: "record" })
+    );
+
+    const drawLeaders = db.prepare(`
+      SELECT p.user_id,COUNT(*) draws FROM predictions p
+      JOIN matches m ON m.id=p.match_id JOIN users u ON u.id=p.user_id
+      WHERE m.status='finished' AND p.predicted_winner='draw' AND u.active=1 AND u.role='user'
+      GROUP BY p.user_id ORDER BY draws DESC,p.user_id
+    `).all();
+    const mostDraws = Number(drawLeaders[0]?.draws || 0);
+    if (mostDraws > 0) drawLeaders.filter((item) => Number(item.draws) === mostDraws).forEach((item) =>
+      add(item.user_id, { icon: "🤝", name: `Rey del empate · ${mostDraws}`, kind: "leader" })
+    );
+
+    if (leaderboard.length) add(leaderboard.at(-1).id, { icon: "🤖", name: "Medalla del bot", kind: "leader" });
+    return awards;
+  })();
   const finished = db.prepare(`
     SELECT p.*,m.match_date,m.team1,m.team2,m.winner FROM predictions p
     JOIN matches m ON m.id=p.match_id WHERE p.user_id=? AND m.status='finished'
@@ -469,6 +516,7 @@ const userStats = (userId) => {
   if (row.total_points >= 100) badges.push({ icon: "🏆", name: "Centenario" });
   const draws = finished.filter((p) => p.predicted_winner === "draw" && p.winner_points > 0).length;
   if (draws >= 3) badges.push({ icon: "⚽", name: "Especialista en empates" });
+  badges.push(...(dynamicBadges.get(Number(userId)) || []));
   return {
     ...row, position, finished_matches: finished.length,
     winner_percentage: finished.length ? Math.round(row.winner_hits / finished.length * 100) : 0,
