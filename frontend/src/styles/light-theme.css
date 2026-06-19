@@ -1126,3 +1126,19 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 [data-theme="dark"] .agenda-scorer-tag{background:#3b3024;color:#e7c58d}
 .matches-team-search{flex:1;min-width:220px}.matches-team-search .search-select-control{border:1px solid var(--line);border-radius:13px;background:var(--panel);box-shadow:none}.matches-team-search .search-select-control:focus-within{border-color:var(--line);box-shadow:none}.matches-team-search input,.matches-team-search input:focus{border:0!important;outline:0!important;box-shadow:none!important;background:transparent}.matches-team-search .search-select-value{margin-top:5px}.matches-toolbar>.matches-team-search:first-child{flex-basis:auto}
 @media(max-width:700px){.agenda-fixture{grid-template-columns:minmax(0,1fr) 54px minmax(0,1fr)}.agenda-match-row{grid-template-columns:48px minmax(0,1fr)}.agenda-match-actions{grid-column:2;justify-content:center;flex-wrap:wrap}.agenda-time{grid-row:1/3}.agenda-time small.upcoming{font-size:7px}.agenda-scorer-tag{max-width:145px}}
+
+/* Touch browsers can leave :hover stuck after a cancelled tap or swipe. */
+@media (max-width:800px) and (hover:none), (max-width:800px) and (pointer:coarse){
+  .main-nav button{
+    -webkit-tap-highlight-color:transparent;
+    touch-action:manipulation;
+  }
+  .main-nav button:not(.active):hover{
+    background:transparent;
+    color:#706667;
+  }
+  [data-theme="dark"] .main-nav button:not(.active):hover{
+    background:transparent;
+    color:#a9bad0;
+  }
+}
