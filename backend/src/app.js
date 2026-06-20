@@ -607,6 +607,17 @@ const pointsDetail = (userId, stats) => {
     };
   });
   const automaticTotal = matchRows.reduce((total, match) => total + match.total_points, 0);
+  let runningMatchPoints = 0;
+  [...matchRows]
+    .sort((a, b) => {
+      const dateCompare = new Date(`${a.match_date}T${a.match_time || "00:00:00"}`) - new Date(`${b.match_date}T${b.match_time || "00:00:00"}`);
+      return dateCompare || Number(a.match_id) - Number(b.match_id);
+    })
+    .forEach((match) => {
+      match.points_before = runningMatchPoints;
+      runningMatchPoints += match.total_points;
+      match.points_after = runningMatchPoints;
+    });
   const adjustmentTotal = adjustments.reduce((total, adjustment) => total + Number(adjustment.points || 0), 0);
   return {
     total_points: Number(stats?.total_points || 0),
@@ -616,6 +627,7 @@ const pointsDetail = (userId, stats) => {
     exact_result_points: Number(stats?.exact_result_points || 0),
     scorer_points: Number(stats?.scorer_points || 0),
     matches_with_points: matchRows.filter((match) => match.total_points > 0).length,
+    matches_without_points: matchRows.filter((match) => match.total_points === 0).length,
     finished_matches: matchRows.length,
     matches: matchRows,
     adjustments
