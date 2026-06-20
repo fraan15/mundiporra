@@ -178,6 +178,7 @@ input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(18
 .profile-real-username{display:block;margin:-1px 0 8px;color:var(--muted);font-size:13px;font-style:italic;font-weight:500}
 .points-match-ledger button{width:27px;height:27px;min-height:0;display:grid;place-items:center;margin-top:2px;padding:0;border-radius:50%;background:transparent;font-size:0}
 .points-match-summary{display:grid;gap:9px;width:100%}.points-match-summary time{color:var(--muted);font-size:11px;font-weight:800;text-transform:capitalize}.points-match-toggle .points-match-summary>strong{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:12px;font-size:16px}.points-match-summary>strong>span{display:flex;align-items:center;gap:6px;min-width:0}.points-match-summary>strong>span:last-child{justify-content:flex-end;text-align:right}.points-match-summary>strong>b{padding:5px 9px;border-radius:9px;background:var(--accent-soft);color:var(--text);font-size:18px}.points-match-summary footer{display:flex;align-items:center;gap:8px;min-width:0}.points-match-summary footer>span{margin:0;padding:4px 7px;border-radius:999px;font-size:9px;font-weight:900;text-transform:uppercase}.points-match-summary footer .finished{background:var(--panel2);color:var(--muted)}.points-match-summary footer .live{background:#ffe1e4;color:#b42335}.points-match-summary footer small{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}.points-match-summary footer em{margin-left:auto;color:var(--accent);font-size:14px;font-style:normal;font-weight:900;white-space:nowrap}
+.points-match-summary>header{display:flex;align-items:center;justify-content:space-between;gap:10px}.points-match-summary>header i{flex:0 0 auto;padding:4px 8px;border-radius:999px;font-size:9px;font-style:normal;font-weight:900;text-transform:uppercase}.points-match-summary>header i.finished{background:var(--panel2);color:var(--text)}.points-match-summary>header i.live{background:#ffe1e4;color:#b42335}.points-match-summary>strong>span>em{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-style:normal}.points-match-summary>strong>span:last-child>em{text-align:right}
 .points-match-ledger button,.points-match-ledger button:hover,.points-match-ledger button:focus-visible{padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
 .points-match-ledger{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.points-match-ledger span{display:grid;align-content:center;gap:4px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);color:var(--muted);font-size:11px;font-weight:800;text-align:center}.points-match-ledger strong{color:var(--text);font-size:20px}.points-match-ledger button{justify-self:center;min-height:0;margin-top:2px;padding:5px 10px;border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--accent);font-size:10px;font-weight:900}.points-match-ledger button:hover{background:var(--accent-soft)}.missed-rules>strong{display:block;margin-bottom:7px;color:var(--muted);font-size:12px}.points-match-toggle>b{min-width:48px;text-align:right}
 .avatar img,.mini-avatar img,.chat-avatar img,.profile-avatar img{width:100%;height:100%;display:block;border-radius:inherit;object-fit:cover}.profile-avatar-editor{display:flex;flex-direction:column;align-items:center;gap:6px;flex:0 0 auto}.profile-avatar-editor button,.avatar-upload{min-height:0;border:0;background:transparent;color:var(--accent);font-size:11px;font-weight:800;cursor:pointer}.avatar-upload input{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.profile-avatar-editor button{color:var(--danger)}.profile-hero>div>small{display:block;margin-top:8px}
@@ -919,6 +920,33 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 }
 @media(max-width:800px){.ranking-block .podium{padding-top:20px}}
 
+/* Keep the illustrated podium and its labels legible in both color schemes. */
+[data-theme="dark"] .leaderboard-page .ranking-block{
+  background:url('/images/podio-mundial-2026.jpg') center/100% 100% no-repeat;
+  border:0;
+  box-shadow:0 22px 48px rgba(0,0,0,.34);
+}
+.leaderboard-page .podium-card,
+.leaderboard-page .podium-card:hover,
+.leaderboard-page .podium-card:active,
+.leaderboard-page .podium-card:focus{background:transparent!important;border-color:transparent!important;box-shadow:none!important;transform:none!important}
+.leaderboard-page .podium-card>strong{
+  color:#fff!important;
+  font-weight:950;
+  letter-spacing:.01em;
+  text-shadow:0 2px 4px rgba(19,10,16,.95),0 0 12px rgba(19,10,16,.72);
+}
+.leaderboard-page .podium-card .leaderboard-total em{
+  color:#fff!important;
+  font-weight:950;
+  text-shadow:0 2px 5px rgba(19,10,16,.96),0 0 14px rgba(19,10,16,.74);
+}
+.leaderboard-page .podium-card>small{
+  color:#fff!important;
+  font-weight:950;
+  text-shadow:0 2px 4px rgba(19,10,16,.96),0 0 10px rgba(19,10,16,.72);
+}
+
 /* Illustrated World Cup podium supplied by the user. */
 .leaderboard-page .ranking-block{
   width:min(820px,100%);
@@ -1268,3 +1296,10 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 .podium-card.place-3{--podium-fill:rgba(145,72,28,.65);--podium-edge:rgba(177,91,35,.88)}
 .podium-step{background:linear-gradient(105deg,rgba(255,255,255,.12),var(--podium-fill) 48%,rgba(31,22,21,.13)),linear-gradient(180deg,var(--podium-edge),rgba(82,61,57,.38));border-color:var(--podium-edge);box-shadow:inset 0 1px 0 rgba(255,255,255,.34),inset 0 -18px 28px rgba(55,35,32,.13),0 -10px 24px color-mix(in srgb,var(--podium-color) 14%,transparent)}
 @media(max-width:800px){.ranking-block .podium{padding-top:20px}}
+
+/* Definitive illustrated-podium theme overrides. */
+[data-theme="dark"] .leaderboard-page .ranking-block{background:url('/images/podio-mundial-2026.jpg') center/100% 100% no-repeat;border:0;box-shadow:0 22px 48px rgba(0,0,0,.34)}
+.leaderboard-page .podium-card,.leaderboard-page .podium-card:hover,.leaderboard-page .podium-card:active,.leaderboard-page .podium-card:focus{background:transparent!important;border-color:transparent!important;box-shadow:none!important;transform:none!important}
+.leaderboard-page .podium-card>strong{color:#fff!important;font-weight:950;letter-spacing:.01em;text-shadow:0 2px 4px rgba(19,10,16,.95),0 0 12px rgba(19,10,16,.72)}
+.leaderboard-page .podium-card .leaderboard-total em{color:#fff!important;font-weight:950;text-shadow:0 2px 5px rgba(19,10,16,.96),0 0 14px rgba(19,10,16,.74)}
+.leaderboard-page .podium-card>small{color:#fff!important;font-weight:950;text-shadow:0 2px 4px rgba(19,10,16,.96),0 0 10px rgba(19,10,16,.72)}
