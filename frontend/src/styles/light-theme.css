@@ -1349,3 +1349,11 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 .leaderboard-page .podium-player-info .leaderboard-total em{color:#fff!important;font-weight:950;text-shadow:0 2px 5px rgba(19,10,16,.96),0 0 14px rgba(19,10,16,.74)}
 .leaderboard-page .podium-player-info>small{margin-top:0;color:#fff!important;font-size:clamp(8px,1.3vw,12px);font-weight:950;letter-spacing:.16em;text-shadow:0 2px 4px rgba(19,10,16,.96),0 0 10px rgba(19,10,16,.72)}
 @media(max-width:520px){.leaderboard-page .podium-player-info{width:96%;padding:5px 4px 6px;border-radius:10px}}
+
+/* Disposición definitiva del historial: tres filas completas. */
+.prediction-history-summary{display:grid;grid-template-columns:minmax(0,1fr) 22px;grid-template-rows:auto auto auto;column-gap:10px;row-gap:9px}
+.prediction-history-summary>time{grid-column:1;grid-row:1}
+.prediction-history-summary>strong{grid-column:1;grid-row:2;display:grid;grid-template-columns:minmax(max-content,1fr) auto minmax(max-content,1fr);width:100%;justify-content:stretch;overflow:visible;line-height:1.3}
+.prediction-history-summary>footer{grid-column:1;grid-row:3}
+.prediction-history-summary>svg{grid-column:2;grid-row:1/4}
+@media(max-width:700px){.prediction-history-summary>strong{font-size:10px;gap:5px}}
