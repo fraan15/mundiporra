@@ -925,6 +925,8 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 .prediction-history-summary time{grid-column:1;grid-row:1;color:var(--muted);font-size:11px;letter-spacing:.04em;text-transform:capitalize}
 .prediction-history-summary>strong{grid-column:1;grid-row:2;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:10px;width:100%;font-size:14px}
 .prediction-history-summary>strong>span{display:flex;align-items:center;gap:6px;min-width:0;overflow-wrap:anywhere}
+.prediction-history-summary>strong>span{overflow:hidden;white-space:nowrap;overflow-wrap:normal;word-break:normal;text-overflow:ellipsis}
+.prediction-history-summary>strong>span:first-child{justify-content:flex-start}
 .prediction-history-summary>strong>span:last-child{justify-content:flex-end;text-align:right}
 .prediction-history-summary>strong>b{white-space:nowrap}
 .prediction-history-summary>footer{grid-column:1;grid-row:3;display:flex;align-items:center;gap:9px;min-width:0}
@@ -965,7 +967,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 /* Illustrated World Cup podium supplied by the user. */
 .leaderboard-page .ranking-block{
   width:min(820px,100%);
-  aspect-ratio:1122/1402;
+  aspect-ratio:2/3;
   margin-inline:auto;
   padding:0;
   border:0;
@@ -1002,10 +1004,10 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
   transform:none!important;
   -webkit-tap-highlight-color:transparent;
 }
-.leaderboard-page .podium-card.place-1{width:34%;padding-bottom:38%}
-.leaderboard-page .podium-card.place-2{order:1;padding-bottom:29%}
+.leaderboard-page .podium-card.place-1{width:34%;padding-bottom:48%}
+.leaderboard-page .podium-card.place-2{order:1;padding-bottom:40%}
 .leaderboard-page .podium-card.place-1{order:2}
-.leaderboard-page .podium-card.place-3{order:3;padding-bottom:28%}
+.leaderboard-page .podium-card.place-3{order:3;padding-bottom:39%}
 .leaderboard-page .podium-crown,.leaderboard-page .podium-step{display:none}
 .leaderboard-page .podium-orbit{width:clamp(72px,13vw,136px);height:clamp(72px,13vw,136px);border-width:clamp(5px,.7vw,8px);box-shadow:0 7px 22px rgba(25,18,24,.25),0 0 0 3px rgba(255,255,255,.58)}
 .leaderboard-page .podium-card.place-1 .podium-orbit{width:clamp(88px,16vw,164px);height:clamp(88px,16vw,164px)}
@@ -1018,9 +1020,9 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
   .leaderboard-page .ranking-block{border-radius:16px}
   .leaderboard-page .ranking-block .podium{inset:40% 2% 5%}
   .leaderboard-page .podium-card{padding-inline:0}
-  .leaderboard-page .podium-card.place-1{padding-bottom:39%}
-  .leaderboard-page .podium-card.place-2{padding-bottom:29%}
-  .leaderboard-page .podium-card.place-3{padding-bottom:28%}
+  .leaderboard-page .podium-card.place-1{padding-bottom:49%}
+  .leaderboard-page .podium-card.place-2{padding-bottom:41%}
+  .leaderboard-page .podium-card.place-3{padding-bottom:40%}
 }
 
 /* Historial del perfil: cabecera en dos líneas sin colisiones. */
