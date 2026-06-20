@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { Navigate, NavLink, Outlet, Route, Routes, useLocation, useNavigate } from "react-router-dom";
-import { Activity, BarChart3, Bell, CheckCheck, ChevronDown, KeyRound, LayoutDashboard, LogOut, MessageCircle, Moon, Shield, Sun, Trophy, User, X } from "lucide-react";
+import { Activity, ArrowDown, ArrowRight, ArrowUp, BarChart3, Bell, Check, CheckCheck, ChevronDown, ChevronLeft, ChevronRight, Goal, KeyRound, LayoutDashboard, LogOut, MessageCircle, Moon, Shield, Sparkles, Sun, Trophy, User, X } from "lucide-react";
 import { api } from "./api/client";
 import { LoginPage } from "./pages/LoginPage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -197,6 +197,44 @@ function TodayMatchesTicker({ fallback }) {
     <span ref={trackRef} className="today-matches-track" style={{ "--ticker-duration": `${Math.max(18, items.length * 11)}s` }}>{group("main")}{group("copy")}</span>
   </small>;
 }
+function MovementSummaryPanel({ enabled = true }) {
+  const [summaries,setSummaries]=useState([]);
+  const [index,setIndex]=useState(0);
+  const touchStart=useRef(null);
+  useEffect(()=>{
+    let active=true;
+    api("/movement-summaries/pending").then(data=>active&&setSummaries(data.summaries||[])).catch(()=>{});
+    return()=>{active=false};
+  },[]);
+  const close=async()=>{
+    const current=summaries;
+    setSummaries([]);
+    try{await api("/movement-summaries/seen",{method:"POST",body:{ids:current.map(item=>item.id)}})}
+    catch{setSummaries(current)}
+  };
+  if(!enabled||!summaries.length)return null;
+  const item=summaries[index];
+  const prediction=item.prediction;
+  const movement=Number(item.ranking.movement||0);
+  const go=delta=>setIndex(value=>Math.max(0,Math.min(summaries.length-1,value+delta)));
+  const reasons=prediction?[{
+    label:"Ganador",points:prediction.winner_points
+  },{label:"Resultado exacto",points:prediction.exact_result_points},{label:"Goleador",points:prediction.scorer_points}]:[];
+  return <div className="movement-overlay" role="dialog" aria-modal="true" aria-labelledby="movement-title">
+    <section className="movement-card" onTouchStart={event=>{touchStart.current=event.touches[0].clientX}} onTouchEnd={event=>{if(touchStart.current===null)return;const distance=event.changedTouches[0].clientX-touchStart.current;if(Math.abs(distance)>45)go(distance<0?1:-1);touchStart.current=null}}>
+      <header className="movement-head"><div><span><Sparkles size={13}/> TU JORNADA</span><h2 id="movement-title">Resumen movimientos</h2></div><button onClick={close} aria-label="Cerrar resumen"><X size={21}/></button></header>
+      <div className="movement-scroll">
+        <div className="movement-match-meta"><time>{new Date(`${item.match.date}T12:00:00`).toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"})}</time>{item.match.is_star&&<b>PARTIDO ESTRELLA ×2</b>}</div>
+        <div className="movement-score"><span>{item.match.team1}</span><strong>{item.match.result_team1}<i>–</i>{item.match.result_team2}</strong><span>{item.match.team2}</span></div>
+        <div className="movement-scorers"><Goal size={15}/><span>Goleadores</span><strong>{item.match.scorers.length?item.match.scorers.join(", "):"Sin goleadores"}</strong></div>
+        <div className="movement-points"><div><small>Has sumado</small><strong>+{item.points}</strong><span>puntos</span></div><div className="movement-reasons"><small>¿Por qué?</small>{prediction?<>{reasons.map(reason=><span className={Number(reason.points)>0?"earned":""} key={reason.label}>{Number(reason.points)>0?<Check size={13}/>:<X size={13}/>}<b>{reason.label}</b><em>+{reason.points||0}</em></span>)}{Number(prediction.scoring_multiplier)>1&&<span className="earned"><Sparkles size={13}/><b>Multiplicador estrella</b><em>×{prediction.scoring_multiplier}</em></span>}</>:<p>No registraste pronóstico para este partido.</p>}</div></div>
+        <div className="movement-ranking-head"><div><small>Tu posición ahora</small><strong>#{item.ranking.position}</strong></div><span className={movement>0?"up":movement<0?"down":"same"}>{movement>0?<ArrowUp/>:movement<0?<ArrowDown/>:<ArrowRight/>}<b>{movement===0?"Sin cambios":`${Math.abs(movement)} ${Math.abs(movement)===1?"puesto":"puestos"}`}</b></span></div>
+        <div className="movement-ranking">{item.ranking.context.map(row=><div className={row.is_me?"me":""} key={row.id}><b>#{row.position}</b><span>{row.username}{row.is_me&&<small>Tú</small>}</span><strong>{row.points} pts</strong></div>)}</div>
+      </div>
+      {summaries.length>1&&<footer className="movement-pagination"><button disabled={index===0} onClick={()=>go(-1)} aria-label="Partido anterior"><ChevronLeft/></button><div>{summaries.map((_,dot)=><button key={dot} className={dot===index?"active":""} onClick={()=>setIndex(dot)} aria-label={`Ver resumen ${dot+1}`}/>)}</div><span>{index+1} de {summaries.length}</span><button disabled={index===summaries.length-1} onClick={()=>go(1)} aria-label="Partido siguiente"><ChevronRight/></button></footer>}
+    </section>
+  </div>;
+}
 function MainLayout() {
   const { user, settings } = useAuth();
   const location = useLocation();
@@ -247,6 +285,7 @@ function MainLayout() {
     ...(user.role === "admin" ? [["/gestion", "Gestión", Shield]] : [])
   ];
   return <div className="app-shell">
+    <MovementSummaryPanel enabled={!adminMessage}/>
     {adminMessage&&<div className="mandatory-message-overlay" role="dialog" aria-modal="true" aria-labelledby="mandatory-message-title">
       <section className="mandatory-message-card">
         <div className="mandatory-message-content">

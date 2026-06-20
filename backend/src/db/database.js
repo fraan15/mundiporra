@@ -224,6 +224,16 @@ export function initDatabase() {
       created_at TEXT NOT NULL,
       UNIQUE(user_id, snapshot_date)
     );
+    CREATE TABLE IF NOT EXISTS movement_summaries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_key TEXT NOT NULL,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      match_id INTEGER NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
+      payload TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      seen_at TEXT,
+      UNIQUE(event_key,user_id)
+    );
     CREATE TABLE IF NOT EXISTS admin_messages (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       type TEXT NOT NULL CHECK(type IN ('message','poll')),
@@ -259,6 +269,7 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_comments_match ON match_comments(match_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_chat_created ON chat_messages(created_at);
     CREATE INDEX IF NOT EXISTS idx_admin_message_responses_user ON admin_message_responses(user_id, message_id);
+    CREATE INDEX IF NOT EXISTS idx_movement_summaries_pending ON movement_summaries(user_id,seen_at,created_at);
     CREATE INDEX IF NOT EXISTS idx_sessions_expire ON sessions(expire);
     CREATE INDEX IF NOT EXISTS idx_points_adjustments_user ON points_adjustments(user_id);
   `);

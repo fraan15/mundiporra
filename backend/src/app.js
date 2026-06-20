@@ -1206,6 +1206,7 @@ app.post("/api/matches/:id/finish", requireAdmin, (req, res) => {
   })();
   recalculateMatch(before.id);
   saveRankingSnapshot();
+  const leaderboardAfter = leaderboardRows();
   const after = db.prepare("SELECT * FROM matches WHERE id=?").get(before.id);
   logAction(req.user.id, before.status === "finished" ? "edit_result" : "finish_match", "match", before.id, "Resultado guardado y puntos recalculados", before, after);
   const resultNotificationTitle = before.status === "finished"
@@ -1214,6 +1215,37 @@ app.post("/api/matches/:id/finish", requireAdmin, (req, res) => {
   const resultNotificationEventKey = before.status === "finished"
     ? `result-edit:${before.id}:${crypto.randomUUID()}`
     : `result:${before.id}:${g1}-${g2}`;
+  const actualScorers = playerScorerIds.length ? db.prepare(`
+    SELECT p.name FROM players p WHERE p.id IN (${playerScorerIds.map(() => "?").join(",")}) ORDER BY p.name
+  `).all(...playerScorerIds).map((row) => row.name) : [];
+  const beforePositions = new Map(leaderboardBefore.map((row, index) => [row.id, index + 1]));
+  const predictionByUser = new Map(db.prepare(`
+    SELECT user_id,predicted_team1_goals,predicted_team2_goals,winner_points,
+      exact_result_points,scorer_points,total_points,scoring_multiplier,
+      CASE WHEN predicted_scorer_id IS NULL THEN NULL ELSE
+        COALESCE((SELECT name FROM players WHERE id=predicted_scorer_id),'Sin goleador') END predicted_scorer_name
+    FROM predictions WHERE match_id=?
+  `).all(before.id).map((row) => [row.user_id, row]));
+  const insertMovement = db.prepare(`
+    INSERT INTO movement_summaries(event_key,user_id,match_id,payload,created_at)
+    VALUES(?,?,?,?,?)
+  `);
+  db.transaction(() => leaderboardAfter.forEach((row, index) => {
+    const position = index + 1;
+    const prediction = predictionByUser.get(row.id);
+    const context = leaderboardAfter.slice(Math.max(0, position - 3), position + 2).map((ranked, offset) => ({
+      id: ranked.id, username: ranked.username, points: ranked.total_points,
+      position: Math.max(0, position - 3) + offset + 1, is_me: ranked.id === row.id
+    }));
+    insertMovement.run(resultNotificationEventKey, row.id, before.id, JSON.stringify({
+      match: { id: before.id, date: before.match_date, time: before.match_time, team1: before.team1,
+        team2: before.team2, result_team1: g1, result_team2: g2, is_star: Boolean(before.is_star), scorers: actualScorers },
+      points: prediction ? Number(prediction.total_points) : 0,
+      prediction: prediction ? { ...prediction, scoring_multiplier: Number(prediction.scoring_multiplier || 1) } : null,
+      ranking: { position, previous_position: beforePositions.get(row.id) || position,
+        movement: (beforePositions.get(row.id) || position) - position, total_points: row.total_points, context }
+    }), now());
+  }))();
   notifyAll({
     type: "result_published",
     title: resultNotificationTitle,
@@ -1354,6 +1386,22 @@ function savePrediction(req, res, predictionId = null) {
 }
 app.post("/api/predictions", requireAuth, requireWritableUser, (req, res) => savePrediction(req, res));
 app.put("/api/predictions/:id", requireAuth, requireWritableUser, (req, res) => savePrediction(req, res, req.params.id));
+
+app.get("/api/movement-summaries/pending", requireAuth, (req, res) => {
+  if (req.user.role === "admin" || req.user.is_read_only) return res.json({ summaries: [] });
+  const summaries = db.prepare(`
+    SELECT id,payload,created_at FROM movement_summaries
+    WHERE user_id=? AND seen_at IS NULL ORDER BY created_at,id
+  `).all(req.user.id).map((row) => ({ id: row.id, created_at: row.created_at, ...JSON.parse(row.payload) }));
+  res.json({ summaries });
+});
+app.post("/api/movement-summaries/seen", requireAuth, requireWritableUser, (req, res) => {
+  const ids = Array.isArray(req.body.ids) ? [...new Set(req.body.ids.map(Number).filter(Number.isInteger))] : [];
+  if (!ids.length) return res.status(400).json({ error: "No hay resúmenes que marcar como vistos." });
+  db.prepare(`UPDATE movement_summaries SET seen_at=? WHERE user_id=? AND id IN (${ids.map(() => "?").join(",")})`)
+    .run(now(), req.user.id, ...ids);
+  res.json({ ok: true });
+});
 
 app.get("/api/notifications", requireAuth, (req, res) => {
   const notifications = db.prepare(`
