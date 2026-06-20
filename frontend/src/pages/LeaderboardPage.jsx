@@ -35,9 +35,11 @@ export function LeaderboardPage() {
             <Avatar user={row} className="podium-avatar" />
             <b className="podium-rank">{index + 1}</b>
           </span>
-          <strong>{row.username}</strong>
-          <span className="leaderboard-total"><em>{row.total_points}</em><LastMatchPoints points={row.last_match_points} /></span>
-          <small>PTS</small>
+          <span className="podium-player-info">
+            <strong>{row.username}</strong>
+            <span className="leaderboard-total"><em>{row.total_points}</em><LastMatchPoints points={row.last_match_points} /></span>
+            <small>PTS</small>
+          </span>
           <span className="podium-step" aria-hidden="true">{index + 1}</span>
         </button>)}
       </div>
