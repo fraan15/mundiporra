@@ -927,6 +927,8 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 .prediction-history-summary>strong>span{display:flex;align-items:center;gap:6px;min-width:0;overflow-wrap:anywhere}
 .prediction-history-summary>strong>span{overflow:hidden;white-space:nowrap;overflow-wrap:normal;word-break:normal;text-overflow:ellipsis}
 .prediction-history-summary>strong>span:first-child{justify-content:flex-start}
+.prediction-history-summary>strong{grid-template-columns:minmax(max-content,1fr) auto minmax(max-content,1fr);font-size:clamp(10px,2.4vw,14px)}
+.prediction-history-summary>strong>span{overflow:visible;white-space:nowrap;text-overflow:clip}
 .prediction-history-summary>strong>span:last-child{justify-content:flex-end;text-align:right}
 .prediction-history-summary>strong>b{white-space:nowrap}
 .prediction-history-summary>footer{grid-column:1;grid-row:3;display:flex;align-items:center;gap:9px;min-width:0}
