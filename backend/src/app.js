@@ -593,6 +593,7 @@ const pointsDetail = (userId, stats) => {
       team2: match.team2,
       match_date: match.match_date,
       match_time: match.match_time,
+      status: match.status,
       result: `${match.result_team1}-${match.result_team2}`,
       prediction: `${match.predicted_team1_goals}-${match.predicted_team2_goals}`,
       predicted_winner_label: winnerLabel(match.predicted_winner, match),
