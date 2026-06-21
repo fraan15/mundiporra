@@ -18,7 +18,9 @@ initDatabase();
 const here = path.dirname(fileURLToPath(import.meta.url));
 const frontendDist = path.resolve(here, "../../frontend/dist");
 const avatarsDir = path.resolve(here, "../data/avatars");
+const chatMediaDir = path.resolve(here, "../data/chat-media");
 fs.mkdirSync(avatarsDir, { recursive: true });
+fs.mkdirSync(chatMediaDir, { recursive: true });
 
 class SQLiteSessionStore extends session.Store {
   get(sid, callback) {
@@ -63,6 +65,7 @@ app.use(cors((req, callback) => {
   });
 }));
 app.use("/avatars", express.static(avatarsDir, { immutable: true, maxAge: "1y", fallthrough: false }));
+app.use("/chat-media", express.static(chatMediaDir, { immutable: true, maxAge: "1y", fallthrough: false }));
 app.use(express.json());
 app.use((req, _res, next) => {
   const forwarded = req.get("x-forwarded-for")?.split(",")[0]?.trim();
@@ -930,9 +933,45 @@ app.get("/api/activity", requireAuth, (req, res) => {
   res.json({ items: items.slice(start, start + pageSize), page, page_size: pageSize, total: items.length, total_pages: Math.max(1, Math.ceil(items.length / pageSize)) });
 });
 
+app.get("/api/chat/mentions", requireAuth, (req, res) => {
+  const query = String(req.query.q || "").trim().slice(0, 50);
+  if (query.length < 2) return res.json([]);
+  const like = `%${query}%`;
+  const users = db.prepare(`
+    SELECT id,username,COALESCE(NULLIF(display_name,''),username) display_name,avatar_filename
+    FROM users WHERE active=1 AND (username LIKE ? COLLATE NOCASE OR display_name LIKE ? COLLATE NOCASE)
+    ORDER BY CASE WHEN username LIKE ? COLLATE NOCASE OR display_name LIKE ? COLLATE NOCASE THEN 0 ELSE 1 END,
+      display_name COLLATE NOCASE LIMIT 8
+  `).all(like, like, `${query}%`, `${query}%`);
+  res.json(users.map((item) => ({ ...item, avatar_url: avatarUrl(item) })));
+});
+
+app.put(
+  "/api/chat/image",
+  requireAuth,
+  requireWritableUser,
+  express.raw({ type: "*/*", limit: "8mb" }),
+  async (req, res, next) => {
+    try {
+      const contentType = String(req.get("content-type") || "").split(";")[0].toLowerCase();
+      if (!new Set(["image/jpeg", "image/png", "image/webp"]).has(contentType) || !Buffer.isBuffer(req.body) || !req.body.length) {
+        return res.status(415).json({ error: "Selecciona una imagen JPEG, PNG o WebP válida." });
+      }
+      const source = sharp(req.body, { failOn: "warning", limitInputPixels: 40_000_000 }).rotate();
+      const metadata = await source.metadata();
+      if (!metadata.width || !metadata.height || (metadata.pages || 1) > 1) return res.status(400).json({ error: "La imagen no es válida o es animada." });
+      const token = `chat-${req.user.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const filename = `${token}.webp`, previewFilename = `${token}-thumb.webp`;
+      const full = await source.clone().resize(1600, 1600, { fit: "inside", withoutEnlargement: true }).webp({ quality: 80 }).toFile(path.join(chatMediaDir, filename));
+      await source.clone().resize(420, 420, { fit: "inside", withoutEnlargement: true }).webp({ quality: 72 }).toFile(path.join(chatMediaDir, previewFilename));
+      res.json({ type: "image", provider: "local", id: token, url: `/chat-media/${filename}`, preview_url: `/chat-media/${previewFilename}`, width: full.width, height: full.height });
+    } catch (error) { next(error); }
+  }
+);
+
 app.get("/api/chat", requireAuth, (_req, res) => {
   const messages = db.prepare(`
-    SELECT c.id,c.message,c.created_at,c.reply_to_id,u.id user_id,COALESCE(NULLIF(u.display_name,''),u.username) username,u.avatar_filename,
+    SELECT c.id,c.message,c.created_at,c.reply_to_id,c.media_type,c.media_provider,c.media_id,c.media_url,c.media_preview_url,c.media_width,c.media_height,u.id user_id,COALESCE(NULLIF(u.display_name,''),u.username) username,u.avatar_filename,
       parent.message reply_message,COALESCE(NULLIF(parent_user.display_name,''),parent_user.username) reply_username
     FROM chat_messages c
     JOIN users u ON u.id=c.user_id
@@ -944,13 +983,22 @@ app.get("/api/chat", requireAuth, (_req, res) => {
 });
 app.post("/api/chat", requireAuth, requireWritableUser, (req, res) => {
   const message = String(req.body.message || "").trim().slice(0, 500);
+  const media = req.body.media && typeof req.body.media === "object" ? req.body.media : null;
+  const mediaType = ["gif", "sticker", "image"].includes(media?.type) ? media.type : null;
   const replyToId = req.body.reply_to_id ? Number(req.body.reply_to_id) : null;
-  if (!message) return res.status(400).json({ error: "Escribe un mensaje." });
+  if (!message && !mediaType) return res.status(400).json({ error: "Escribe un mensaje o selecciona un archivo." });
+  if (["gif", "sticker"].includes(mediaType) && (!media.id || !validGiphyUrl(media.url))) return res.status(400).json({ error: "El GIF o sticker no es válido." });
+  if (mediaType === "image" && (media.provider !== "local" || !/^\/chat-media\/chat-[\w.-]+\.webp$/.test(media.url || "") || !/^\/chat-media\/chat-[\w.-]+-thumb\.webp$/.test(media.preview_url || ""))) return res.status(400).json({ error: "La imagen no es válida." });
   if (replyToId && !db.prepare("SELECT id FROM chat_messages WHERE id=?").get(replyToId)) {
     return res.status(400).json({ error: "El mensaje al que respondes ya no existe." });
   }
-  const result = db.prepare("INSERT INTO chat_messages(user_id,reply_to_id,message,created_at) VALUES(?,?,?,?)")
-    .run(req.user.id, replyToId, message, now());
+  const result = db.prepare(`INSERT INTO chat_messages(user_id,reply_to_id,message,media_type,media_provider,media_id,media_url,media_preview_url,media_width,media_height,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)`)
+    .run(req.user.id, replyToId, message, mediaType, mediaType === "image" ? "local" : mediaType ? "giphy" : null, mediaType ? String(media.id).slice(0, 100) : null, mediaType ? media.url : null, mediaType ? (media.preview_url || media.url) : null, mediaType ? Math.max(1, Math.min(2000, Number(media.width) || 480)) : null, mediaType ? Math.max(1, Math.min(2000, Number(media.height) || 360)) : null, now());
+  const expired = db.prepare("SELECT id,media_url,media_preview_url FROM chat_messages ORDER BY created_at DESC,id DESC LIMIT -1 OFFSET 25").all();
+  if (expired.length) {
+    db.prepare(`DELETE FROM chat_messages WHERE id IN (${expired.map(() => "?").join(",")})`).run(...expired.map((item) => item.id));
+    for (const item of expired) for (const url of [item.media_url, item.media_preview_url]) if (url?.startsWith("/chat-media/")) fs.rm(path.join(chatMediaDir, path.basename(url)), { force: true }, () => {});
+  }
   res.status(201).json({ id: result.lastInsertRowid });
 });
 app.get("/api/chat/status", requireAuth, (req, res) => {

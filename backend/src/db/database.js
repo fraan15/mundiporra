@@ -224,6 +224,13 @@ export function initDatabase() {
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       reply_to_id INTEGER REFERENCES chat_messages(id) ON DELETE SET NULL,
       message TEXT NOT NULL,
+      media_type TEXT CHECK(media_type IN ('gif','sticker','image')),
+      media_provider TEXT,
+      media_id TEXT,
+      media_url TEXT,
+      media_preview_url TEXT,
+      media_width INTEGER,
+      media_height INTEGER,
       created_at TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS chat_reads (
@@ -304,6 +311,19 @@ export function initDatabase() {
   };
   for (const [name, definition] of Object.entries(commentMediaColumns)) {
     if (!commentColumns.has(name)) db.exec(`ALTER TABLE match_comments ADD COLUMN ${name} ${definition}`);
+  }
+  const chatColumns = new Set(db.prepare("PRAGMA table_info(chat_messages)").all().map((column) => column.name));
+  const chatMediaColumns = {
+    media_type: "TEXT CHECK(media_type IN ('gif','sticker','image'))",
+    media_provider: "TEXT",
+    media_id: "TEXT",
+    media_url: "TEXT",
+    media_preview_url: "TEXT",
+    media_width: "INTEGER",
+    media_height: "INTEGER"
+  };
+  for (const [name, definition] of Object.entries(chatMediaColumns)) {
+    if (!chatColumns.has(name)) db.exec(`ALTER TABLE chat_messages ADD COLUMN ${name} ${definition}`);
   }
   db.exec(`
     DELETE FROM reactions
