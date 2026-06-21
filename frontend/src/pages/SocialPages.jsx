@@ -77,6 +77,7 @@ function MatchSimulationOverlay({ match, players, user, onClose }) {
   const [simulationError, setSimulationError] = useState("");
   const scoringCodes = [Number(score.g1) > 0 && match.team1_team?.fifa_code, Number(score.g2) > 0 && match.team2_team?.fifa_code].filter(Boolean);
   const availableScorers = players.filter(player => scoringCodes.includes(player.team_fifa_code));
+  const adjustScore = (field, delta) => setScore(current => ({ ...current, [field]: String(Math.max(0, Number(current[field] || 0) + delta)) }));
   useEffect(() => {
     setScorerIds(ids => ids.filter(id => availableScorers.some(player => player.id === id)));
   }, [score.g1, score.g2, players.length]);
@@ -95,12 +96,12 @@ function MatchSimulationOverlay({ match, players, user, onClose }) {
       <header className="movement-head"><div><span><Calculator size={13}/> SIMULACIÓN PRIVADA</span><h2 id="simulation-title">Cálculo del resultado</h2></div><button onClick={onClose} aria-label="Cerrar cálculo"><X size={21}/></button></header>
       <div className="movement-scroll">
         <p className="simulation-disclaimer">Vista informativa. Nada de lo que introduzcas aquí se guarda.</p>
-        <div className="simulation-score-editor">
-          <label><Flag team={match.team1}/><span>{match.team1}</span><input type="number" min="0" inputMode="numeric" value={score.g1} onChange={event => setScore(current => ({ ...current, g1: event.target.value }))}/></label>
+        <div className="detail-score-picker horizontal simulation-score-editor">
+          <HorizontalScoreControl team={match.team1} value={score.g1} onChange={value => setScore(current => ({ ...current, g1: value }))} onAdjust={delta => adjustScore("g1", delta)}/>
           <b>–</b>
-          <label><Flag team={match.team2}/><span>{match.team2}</span><input type="number" min="0" inputMode="numeric" value={score.g2} onChange={event => setScore(current => ({ ...current, g2: event.target.value }))}/></label>
+          <HorizontalScoreControl team={match.team2} value={score.g2} onChange={value => setScore(current => ({ ...current, g2: value }))} onAdjust={delta => adjustScore("g2", delta)}/>
         </div>
-        {Boolean(Number(match.scorer_enabled)) && Number(score.g1) + Number(score.g2) > 0 && <div className="simulation-scorers"><small>Goleadores que marcarían</small><div>{availableScorers.map(player => <button type="button" className={scorerIds.includes(player.id) ? "selected" : ""} key={player.id} onClick={() => setScorerIds(ids => ids.includes(player.id) ? ids.filter(id => id !== player.id) : [...ids, player.id])}>{scorerIds.includes(player.id) && <Check size={12}/>} {player.name}</button>)}</div></div>}
+        {Boolean(Number(match.scorer_enabled)) && Number(score.g1) + Number(score.g2) > 0 && <div className="simulation-scorers scorer-pick"><strong>Goleadores que marcarían</strong><ScorerPicker players={availableScorers.filter(player => !scorerIds.includes(player.id))} value={null} onChange={playerId => playerId && setScorerIds(ids => [...ids, playerId])} buttonLabel="Añadir goleador" matchLabel={`${match.team1} - ${match.team2}`}/><div className="selected-scorers">{scorerIds.map(playerId => { const player = players.find(row => row.id === playerId); return player && <button type="button" key={playerId} onClick={() => setScorerIds(ids => ids.filter(id => id !== playerId))}>{player.name} ×</button>; })}</div></div>}
         {simulationError && <div className="alert error">{simulationError}</div>}
         {simulation && <>
           <div className="movement-points simulation-points"><div className={Number(points?.total_points) > 0 ? "has-points" : ""}><small>Sumarías</small><strong>+{points?.total_points || 0}</strong><span>puntos</span></div><div className="movement-reasons"><small>¿Qué acertarías?</small>{[["Ganador", points?.winner_points], ["Resultado exacto", points?.exact_result_points], ["Goleador", points?.scorer_points]].map(([label, value]) => <span className={Number(value) > 0 ? "earned" : ""} key={label}>{Number(value) > 0 ? <Check size={13}/> : <X size={13}/>}<b>{label}</b><em>+{value || 0}</em></span>)}</div></div>
