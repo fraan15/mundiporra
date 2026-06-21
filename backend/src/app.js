@@ -207,10 +207,10 @@ const reactionSummary = (targetType, targetId, userId) => {
 };
 const reactionTarget = (req, targetType, targetId) => {
   if (targetType === "prediction") return db.prepare(`
-    SELECT p.id,p.user_id target_user_id,m.* FROM predictions p JOIN matches m ON m.id=p.match_id WHERE p.id=?
+    SELECT p.id,p.user_id target_user_id,m.id target_match_id,m.* FROM predictions p JOIN matches m ON m.id=p.match_id WHERE p.id=?
   `).get(targetId);
   if (targetType === "match_comment") return db.prepare(`
-    SELECT c.id,c.user_id target_user_id,m.* FROM match_comments c JOIN matches m ON m.id=c.match_id WHERE c.id=?
+    SELECT c.id,c.user_id target_user_id,m.id target_match_id,m.* FROM match_comments c JOIN matches m ON m.id=c.match_id WHERE c.id=?
   `).get(targetId);
   return null;
 };
@@ -1057,13 +1057,25 @@ app.post("/api/reactions/toggle", requireAuth, requireWritableUser, (req, res) =
   }
   const existing = db.prepare("SELECT id,emoji FROM reactions WHERE user_id=? AND target_type=? AND target_id=?")
     .get(req.user.id, targetType, targetId);
+  let insertedReactionId = null;
   db.transaction(() => {
     if (existing) db.prepare("DELETE FROM reactions WHERE id=?").run(existing.id);
     if (!existing || existing.emoji !== emoji) {
-      db.prepare("INSERT INTO reactions(user_id,target_type,target_id,emoji,created_at) VALUES(?,?,?,?,?)")
-        .run(req.user.id, targetType, targetId, emoji, now());
+      insertedReactionId = db.prepare("INSERT INTO reactions(user_id,target_type,target_id,emoji,created_at) VALUES(?,?,?,?,?)")
+        .run(req.user.id, targetType, targetId, emoji, now()).lastInsertRowid;
     }
   })();
+  if (insertedReactionId) createNotification({
+    userId: validation.target.target_user_id,
+    type: "reaction",
+    title: `${emoji} Nueva reacción`,
+    message: `${req.user.display_name || req.user.username} ha reaccionado a tu ${targetType === "prediction" ? "pronóstico" : "comentario"}.`,
+    entityType: targetType,
+    entityId: targetId,
+    link: `/match/${validation.target.target_match_id}`,
+    eventKey: `reaction:${insertedReactionId}`,
+    sendPush: false
+  });
   res.json({ target_key: `${targetType}:${targetId}`, reactions: reactionSummary(targetType, targetId, req.user.id) });
 });
 app.post("/api/matches/:id/comments", requireAuth, requireWritableUser, (req, res) => {

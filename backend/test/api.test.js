@@ -128,6 +128,15 @@ test("las reacciones validan visibilidad, revelado, emojis, conteos y toggle", a
   assert.equal(added.body.reactions["😂"].count, 1);
   assert.equal(added.body.reactions["😂"].reacted, true);
   assert.equal(added.body.reactions["😂"].users[0].username, "administrador");
+  const reactionNotifications = await user.get("/api/notifications");
+  const reactionNotification = reactionNotifications.body.notifications.find((item) => item.event_key === `reaction:${
+    db.prepare("SELECT id FROM reactions WHERE user_id=? AND target_type='prediction' AND target_id=?").get(
+      db.prepare("SELECT id FROM users WHERE username='administrador'").get().id, prediction.body.id
+    ).id
+  }`);
+  assert.equal(reactionNotification.type, "reaction");
+  assert.match(reactionNotification.message, /administrador ha reaccionado a tu pronóstico/);
+  assert.equal(reactionNotification.link, `/match/${openMatch.body.id}`);
   const listed = await admin.get(`/api/reactions?target_type=prediction&target_ids=${prediction.body.id}`);
   assert.equal(listed.body.reactions[`prediction:${prediction.body.id}`]["😂"].count, 1);
   assert.equal(listed.body.reactions[`prediction:${prediction.body.id}`]["😂"].reacted, true);
