@@ -203,7 +203,19 @@ function MovementSummaryPanel({ enabled = true }) {
   const [index,setIndex]=useState(0);
   const touchStart=useRef(null);
   const rankingRef=useRef(null);
-  useEffect(()=>{if(!summaries.length)return;const previous=document.body.style.overflow;document.body.style.overflow="hidden";return()=>{document.body.style.overflow=previous}},[summaries.length]);
+  useEffect(()=>{
+    if(!summaries.length)return;
+    const scrollY=window.scrollY;
+    const bodyStyles={overflow:document.body.style.overflow,position:document.body.style.position,top:document.body.style.top,width:document.body.style.width};
+    const htmlOverflow=document.documentElement.style.overflow;
+    document.documentElement.style.overflow="hidden";
+    Object.assign(document.body.style,{overflow:"hidden",position:"fixed",top:`-${scrollY}px`,width:"100%"});
+    return()=>{
+      document.documentElement.style.overflow=htmlOverflow;
+      Object.assign(document.body.style,bodyStyles);
+      window.scrollTo(0,scrollY);
+    };
+  },[summaries.length]);
   useEffect(()=>{
     const frame=requestAnimationFrame(()=>{
       const mine=rankingRef.current?.querySelector(".me");
