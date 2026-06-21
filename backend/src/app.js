@@ -97,6 +97,21 @@ app.use("/api", (req, _res, next) => {
 });
 
 const avatarUrl = (user) => user?.avatar_filename ? `/avatars/${user.avatar_filename}` : null;
+const removeChatMediaFiles = (token) => {
+  if (!/^chat-\d+-\d+-[a-z0-9]+$/.test(token)) return;
+  for (const suffix of [".webp", "-thumb.webp"]) fs.rm(path.join(chatMediaDir, `${token}${suffix}`), { force: true }, () => {});
+};
+const cleanAbandonedChatMedia = async () => {
+  const referenced = new Set(db.prepare("SELECT media_id FROM chat_messages WHERE media_provider='local' AND media_id IS NOT NULL").all().map((item) => item.media_id));
+  const cutoff = Date.now() - 60 * 60 * 1000;
+  for (const entry of await fs.promises.readdir(chatMediaDir, { withFileTypes: true })) {
+    if (!entry.isFile() || !entry.name.endsWith(".webp")) continue;
+    const token = entry.name.replace(/-thumb\.webp$|\.webp$/, "");
+    if (referenced.has(token)) continue;
+    const stat = await fs.promises.stat(path.join(chatMediaDir, entry.name));
+    if (stat.mtimeMs < cutoff) await fs.promises.rm(path.join(chatMediaDir, entry.name), { force: true });
+  }
+};
 const safeUser = (user) => user && ({ id: user.id, username: user.username, display_name: user.display_name || user.username, role: user.role, active: user.active, is_read_only: Boolean(user.is_read_only), personal_phrase: user.personal_phrase || "", avatar_url: avatarUrl(user), created_at: user.created_at });
 const giphySearchLimit = Math.max(1, Number(process.env.GIPHY_SEARCHES_PER_USER_HOUR || 10));
 const giphySearchWindows = new Map();
@@ -779,6 +794,7 @@ app.put(
   express.raw({ type: "*/*", limit: "5mb" }),
   async (req, res, next) => {
     try {
+      await cleanAbandonedChatMedia();
       const contentType = String(req.get("content-type") || "").split(";")[0].toLowerCase();
       const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
       if (!allowedTypes.has(contentType)) {
@@ -827,6 +843,14 @@ app.put(
     }
   }
 );
+
+app.delete("/api/chat/image/:token", requireAuth, requireWritableUser, (req, res) => {
+  const token = String(req.params.token || "");
+  if (!token.startsWith(`chat-${req.user.id}-`) || !/^chat-\d+-\d+-[a-z0-9]+$/.test(token)) return res.status(400).json({ error: "Imagen no válida." });
+  if (db.prepare("SELECT id FROM chat_messages WHERE media_provider='local' AND media_id=?").get(token)) return res.status(409).json({ error: "La imagen ya pertenece a un mensaje." });
+  removeChatMediaFiles(token);
+  res.json({ ok: true });
+});
 app.delete("/api/profile/avatar", requireAuth, requireWritableUser, (req, res) => {
   const current = db.prepare("SELECT avatar_filename FROM users WHERE id=?").get(req.user.id);
   db.prepare("UPDATE users SET avatar_filename=NULL,updated_at=? WHERE id=?").run(now(), req.user.id);
@@ -972,7 +996,8 @@ app.put(
 app.get("/api/chat", requireAuth, (_req, res) => {
   const messages = db.prepare(`
     SELECT c.id,c.message,c.created_at,c.reply_to_id,c.media_type,c.media_provider,c.media_id,c.media_url,c.media_preview_url,c.media_width,c.media_height,u.id user_id,COALESCE(NULLIF(u.display_name,''),u.username) username,u.avatar_filename,
-      parent.message reply_message,COALESCE(NULLIF(parent_user.display_name,''),parent_user.username) reply_username
+      parent.message reply_message,parent.media_type reply_media_type,parent.media_preview_url reply_media_preview_url,parent.media_url reply_media_url,
+      COALESCE(NULLIF(parent_user.display_name,''),parent_user.username) reply_username
     FROM chat_messages c
     JOIN users u ON u.id=c.user_id
     LEFT JOIN chat_messages parent ON parent.id=c.reply_to_id
@@ -994,11 +1019,19 @@ app.post("/api/chat", requireAuth, requireWritableUser, (req, res) => {
   }
   const result = db.prepare(`INSERT INTO chat_messages(user_id,reply_to_id,message,media_type,media_provider,media_id,media_url,media_preview_url,media_width,media_height,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)`)
     .run(req.user.id, replyToId, message, mediaType, mediaType === "image" ? "local" : mediaType ? "giphy" : null, mediaType ? String(media.id).slice(0, 100) : null, mediaType ? media.url : null, mediaType ? (media.preview_url || media.url) : null, mediaType ? Math.max(1, Math.min(2000, Number(media.width) || 480)) : null, mediaType ? Math.max(1, Math.min(2000, Number(media.height) || 360)) : null, now());
-  const expired = db.prepare("SELECT id,media_url,media_preview_url FROM chat_messages ORDER BY created_at DESC,id DESC LIMIT -1 OFFSET 25").all();
+  const expired = db.prepare(`
+    WITH retained AS (
+      SELECT id,reply_to_id FROM chat_messages ORDER BY created_at DESC,id DESC LIMIT 25
+    )
+    SELECT id,media_url,media_preview_url FROM chat_messages
+    WHERE id NOT IN (SELECT id FROM retained)
+      AND id NOT IN (SELECT reply_to_id FROM retained WHERE reply_to_id IS NOT NULL)
+  `).all();
   if (expired.length) {
     db.prepare(`DELETE FROM chat_messages WHERE id IN (${expired.map(() => "?").join(",")})`).run(...expired.map((item) => item.id));
     for (const item of expired) for (const url of [item.media_url, item.media_preview_url]) if (url?.startsWith("/chat-media/")) fs.rm(path.join(chatMediaDir, path.basename(url)), { force: true }, () => {});
   }
+  void cleanAbandonedChatMedia().catch(() => {});
   res.status(201).json({ id: result.lastInsertRowid });
 });
 app.get("/api/chat/status", requireAuth, (req, res) => {
