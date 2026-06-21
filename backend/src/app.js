@@ -993,8 +993,9 @@ app.put(
   }
 );
 
-app.get("/api/chat", requireAuth, (_req, res) => {
-  const messages = db.prepare(`
+app.get("/api/chat", requireAuth, (req, res) => {
+  const aroundId = Math.max(0, Number(req.query.around) || 0);
+  const selectMessages = (where, order, limit) => db.prepare(`
     SELECT c.id,c.message,c.created_at,c.reply_to_id,c.media_type,c.media_provider,c.media_id,c.media_url,c.media_preview_url,c.media_width,c.media_height,u.id user_id,COALESCE(NULLIF(u.display_name,''),u.username) username,u.avatar_filename,
       parent.message reply_message,parent.media_type reply_media_type,parent.media_preview_url reply_media_preview_url,parent.media_url reply_media_url,
       COALESCE(NULLIF(parent_user.display_name,''),parent_user.username) reply_username
@@ -1002,9 +1003,16 @@ app.get("/api/chat", requireAuth, (_req, res) => {
     JOIN users u ON u.id=c.user_id
     LEFT JOIN chat_messages parent ON parent.id=c.reply_to_id
     LEFT JOIN users parent_user ON parent_user.id=parent.user_id
-    ORDER BY c.created_at DESC,c.id DESC LIMIT 25
-  `).all();
-  res.json(messages.reverse().map((message) => ({ ...message, avatar_url: avatarUrl(message) })));
+    ${where} ORDER BY c.id ${order} LIMIT ${limit}
+  `).all(aroundId);
+  let messages;
+  if (aroundId) {
+    if (!db.prepare("SELECT id FROM chat_messages WHERE id=?").get(aroundId)) return res.status(404).json({ error: "El mensaje original ya no está disponible." });
+    messages = [...selectMessages("WHERE c.id<=?", "DESC", 13).reverse(), ...selectMessages("WHERE c.id>?", "ASC", 12)];
+  } else {
+    messages = selectMessages("WHERE ?>=0", "DESC", 25).reverse();
+  }
+  res.json(messages.map((message) => ({ ...message, avatar_url: avatarUrl(message) })));
 });
 app.post("/api/chat", requireAuth, requireWritableUser, (req, res) => {
   const message = String(req.body.message || "").trim().slice(0, 500);
@@ -1013,7 +1021,7 @@ app.post("/api/chat", requireAuth, requireWritableUser, (req, res) => {
   const replyToId = req.body.reply_to_id ? Number(req.body.reply_to_id) : null;
   if (!message && !mediaType) return res.status(400).json({ error: "Escribe un mensaje o selecciona un archivo." });
   if (["gif", "sticker"].includes(mediaType) && (!media.id || !validGiphyUrl(media.url))) return res.status(400).json({ error: "El GIF o sticker no es válido." });
-  if (mediaType === "image" && (media.provider !== "local" || !/^\/chat-media\/chat-[\w.-]+\.webp$/.test(media.url || "") || !/^\/chat-media\/chat-[\w.-]+-thumb\.webp$/.test(media.preview_url || ""))) return res.status(400).json({ error: "La imagen no es válida." });
+  if (mediaType === "image" && (media.provider !== "local" || !String(media.id || "").startsWith(`chat-${req.user.id}-`) || !/^\/chat-media\/chat-[\w.-]+\.webp$/.test(media.url || "") || !/^\/chat-media\/chat-[\w.-]+-thumb\.webp$/.test(media.preview_url || "") || !fs.existsSync(path.join(chatMediaDir, path.basename(media.url))))) return res.status(400).json({ error: "La imagen no es válida." });
   if (replyToId && !db.prepare("SELECT id FROM chat_messages WHERE id=?").get(replyToId)) {
     return res.status(400).json({ error: "El mensaje al que respondes ya no existe." });
   }
