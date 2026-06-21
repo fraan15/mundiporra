@@ -940,6 +940,16 @@ test("el administrador puede eliminar un resultado y reabrir el partido", async 
   assert.equal(reset.exact_result_points, 0);
   assert.equal(reset.total_points, 0);
   assert.equal(reset.locked, 0);
+
+  const republished = await admin.post(`/api/matches/${created.body.id}/finish`).send({
+    result_team1: 2,
+    result_team2: 1
+  });
+  assert.equal(republished.status, 200);
+  assert.equal(republished.body.status, "finished");
+  const movementSummaries = await user.get("/api/movement-summaries/pending");
+  assert.equal(movementSummaries.status, 200);
+  assert.equal(movementSummaries.body.summaries.filter((item) => item.match.id === created.body.id).length, 1);
 });
 
 test("al reabrir se puede elegir cierre automático o apertura manual", async () => {

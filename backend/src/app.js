@@ -1160,6 +1160,7 @@ app.delete("/api/matches/:id/result", requireAdmin, (req, res) => {
       WHERE match_id=?
     `).run(locked, stamp, before.id);
     db.prepare("DELETE FROM match_scorers WHERE match_id=?").run(before.id);
+    db.prepare("DELETE FROM movement_summaries WHERE match_id=? AND seen_at IS NULL").run(before.id);
   })();
 
   saveRankingSnapshot();
@@ -1215,6 +1216,9 @@ app.post("/api/matches/:id/finish", requireAdmin, (req, res) => {
   const resultNotificationEventKey = before.status === "finished"
     ? `result-edit:${before.id}:${crypto.randomUUID()}`
     : `result:${before.id}:${g1}-${g2}`;
+  // A result can be deleted and later published again with the same score.
+  // Its movement summary is a new event even when notification deduplication keeps the same key.
+  const movementEventKey = `movement:${before.id}:${crypto.randomUUID()}`;
   const actualScorers = playerScorerIds.length ? db.prepare(`
     SELECT p.name FROM players p WHERE p.id IN (${playerScorerIds.map(() => "?").join(",")}) ORDER BY p.name
   `).all(...playerScorerIds).map((row) => row.name) : [];
@@ -1233,11 +1237,11 @@ app.post("/api/matches/:id/finish", requireAdmin, (req, res) => {
   db.transaction(() => leaderboardAfter.forEach((row, index) => {
     const position = index + 1;
     const prediction = predictionByUser.get(row.id);
-    const context = leaderboardAfter.slice(Math.max(0, position - 3), position + 2).map((ranked, offset) => ({
+    const context = leaderboardAfter.map((ranked, offset) => ({
       id: ranked.id, username: ranked.username, points: ranked.total_points,
-      position: Math.max(0, position - 3) + offset + 1, is_me: ranked.id === row.id
+      position: offset + 1, is_me: ranked.id === row.id
     }));
-    insertMovement.run(resultNotificationEventKey, row.id, before.id, JSON.stringify({
+    insertMovement.run(movementEventKey, row.id, before.id, JSON.stringify({
       match: { id: before.id, date: before.match_date, time: before.match_time, team1: before.team1,
         team2: before.team2, result_team1: g1, result_team2: g2, is_star: Boolean(before.is_star), scorers: actualScorers },
       points: prediction ? Number(prediction.total_points) : 0,
