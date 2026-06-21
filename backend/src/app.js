@@ -998,15 +998,20 @@ app.put(
           heicConversionActive = false;
         }
       }
-      const source = sharp(imageBuffer, { failOn: "warning", limitInputPixels: 40_000_000 }).rotate();
+      const source = sharp(imageBuffer, { failOn: "warning", limitInputPixels: 60_000_000 }).rotate();
       const metadata = await source.metadata();
       if (!metadata.width || !metadata.height || (metadata.pages || 1) > 1) return res.status(400).json({ error: "La imagen no es válida o es animada." });
+      if (metadata.width * metadata.height > 60_000_000) return res.status(400).json({ error: "La imagen supera el máximo de 60 megapíxeles." });
       const token = `chat-${req.user.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const filename = `${token}.webp`, previewFilename = `${token}-thumb.webp`;
       const full = await source.clone().resize(1600, 1600, { fit: "inside", withoutEnlargement: true }).webp({ quality: 80 }).toFile(path.join(chatMediaDir, filename));
       await source.clone().resize(420, 420, { fit: "inside", withoutEnlargement: true }).webp({ quality: 72 }).toFile(path.join(chatMediaDir, previewFilename));
       res.json({ type: "image", provider: "local", id: token, url: `/chat-media/${filename}`, preview_url: `/chat-media/${previewFilename}`, width: full.width, height: full.height });
-    } catch (error) { next(error); }
+    } catch (error) {
+      if (error?.message?.includes("Input image exceeds pixel limit")) return res.status(400).json({ error: "La imagen supera el máximo de 60 megapíxeles." });
+      if (error?.name === "InputBufferError" || error?.message?.includes("unsupported image format")) return res.status(400).json({ error: "No se pudo leer la imagen. Puede estar dañada o usar una variante no compatible." });
+      next(error);
+    }
   }
 );
 
@@ -2168,7 +2173,7 @@ if (fs.existsSync(path.join(frontendDist, "index.html"))) {
 
 app.use((error, _req, res, _next) => {
   if (error?.type === "entity.too.large") {
-    return res.status(413).json({ error: "La imagen no puede superar los 5 MB." });
+    return res.status(413).json({ error: "La imagen del chat no puede superar los 12 MB y la foto de perfil no puede superar los 5 MB." });
   }
   console.error(error);
   res.status(500).json({ error: "Error interno del servidor." });
