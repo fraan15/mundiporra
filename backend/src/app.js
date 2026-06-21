@@ -1242,6 +1242,7 @@ app.post("/api/matches/:id/finish", requireAdmin, (req, res) => {
       const prediction = predictionByUser.get(row.id);
       const context = leaderboardAfter.map((ranked, offset) => ({
         id: ranked.id, username: ranked.username, points: ranked.total_points,
+        match_points: Number(predictionByUser.get(ranked.id)?.total_points || 0),
         position: offset + 1, movement: (beforePositions.get(ranked.id) || offset + 1) - (offset + 1),
         is_me: ranked.id === row.id
       }));

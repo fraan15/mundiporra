@@ -1407,3 +1407,4 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 
 .movement-score,.movement-score strong,.movement-score>span{font-family:Roboto,Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 .movement-head>button{flex:0 0 44px;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;display:grid;place-items:center;aspect-ratio:1;border-radius:50%}
+.movement-ranking>div>strong{display:flex;align-items:center;justify-content:flex-end;gap:7px;white-space:nowrap}.movement-ranking .movement-rank-earned{color:#21865d;font-size:10px;font-weight:900}[data-theme="dark"] .movement-ranking .movement-rank-earned{color:#8ed7b2}
