@@ -203,8 +203,16 @@ function MovementSummaryPanel({ enabled = true }) {
   const touchStart=useRef(null);
   useEffect(()=>{
     let active=true;
-    api("/movement-summaries/pending").then(data=>active&&setSummaries(data.summaries||[])).catch(()=>{});
-    return()=>{active=false};
+    const load=()=>api("/movement-summaries/pending").then(data=>{
+      if(!active)return;
+      setSummaries(current=>current.length?current:(data.summaries||[]));
+    }).catch(()=>{});
+    const stopPolling=startVisiblePolling(load,15000);
+    const onVisible=()=>{if(!document.hidden)load()};
+    window.addEventListener("focus",load);
+    window.addEventListener("pageshow",load);
+    document.addEventListener("visibilitychange",onVisible);
+    return()=>{active=false;stopPolling();window.removeEventListener("focus",load);window.removeEventListener("pageshow",load);document.removeEventListener("visibilitychange",onVisible)};
   },[]);
   const close=async()=>{
     const current=summaries;
