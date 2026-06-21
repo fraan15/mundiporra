@@ -7,6 +7,35 @@ import { startVisiblePolling } from "../utils/visiblePolling";
 
 const mentionParts = (text) => text.split(/(@[\p{L}\p{N}_.-]+)/gu).map((part, index) => part.startsWith("@") ? <mark key={index}>{part}</mark> : part);
 
+const optimizeImageForUpload = async (file) => {
+  let source, objectUrl;
+  try {
+    if (typeof createImageBitmap === "function") source = await createImageBitmap(file, { imageOrientation: "from-image" });
+    else throw new Error("createImageBitmap no disponible");
+  } catch {
+    objectUrl = URL.createObjectURL(file);
+    source = await new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = reject;
+      image.src = objectUrl;
+    });
+  }
+  try {
+    const width = source.width || source.naturalWidth, height = source.height || source.naturalHeight;
+    const scale = Math.min(1, 2400 / Math.max(width, height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(width * scale));
+    canvas.height = Math.max(1, Math.round(height * scale));
+    canvas.getContext("2d", { alpha: false }).drawImage(source, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise((resolve, reject) => canvas.toBlob((result) => result ? resolve(result) : reject(new Error("No se pudo convertir la imagen.")), "image/jpeg", 0.86));
+    return blob;
+  } finally {
+    source?.close?.();
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+  }
+};
+
 export function ChatPage() {
   const { user } = useAuth();
   const [messages, setMessages] = useState([]), [text, setText] = useState(""), [reply, setReply] = useState(null), [sending, setSending] = useState(false);
@@ -24,7 +53,25 @@ export function ChatPage() {
   const chooseMention = (item) => { setText((value) => value.replace(/(?:^|\s)@([^\s@]*)$/, (match) => `${match.startsWith(" ") ? " " : ""}@${item.display_name.replace(/\s+/g, "_")} `)); setMentions([]); };
   const discardMedia = async (item = media) => { if (item?.type === "image" && item?.id) await api(`/chat/image/${encodeURIComponent(item.id)}`, { method: "DELETE" }).catch(() => {}); if (item === media) setMedia(null); };
   const searchGiphy = async (event) => { event.preventDefault(); if (gifQuery.trim().length < 2) return; setGifLoading(true); setGifError(""); try { const result = await api(`/giphy/search?q=${encodeURIComponent(gifQuery.trim())}&type=${gifType}`); setGifItems(result.items); } catch (error) { setGifError(error.message); } finally { setGifLoading(false); } };
-  const uploadImage = async (event) => { const input = event.currentTarget, file = input.files?.[0]; if (!file) return; const extension = file.name.split(".").pop()?.toLowerCase(), inferredType = ({ jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", heic: "image/heic", heif: "image/heif" })[extension], allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif", "image/heic-sequence", "image/heif-sequence"], contentType = allowedTypes.includes(file.type?.toLowerCase()) ? file.type.toLowerCase() : inferredType; if (!contentType) { input.value = ""; alert("Este formato de imagen no es compatible."); return; } setSending(true); try { const uploadUrl = new URL("/api/chat/image", window.location.origin).href; const response = await fetch(uploadUrl, { method: "PUT", credentials: "include", headers: { "Content-Type": contentType }, body: file }); const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || "No se pudo procesar la imagen."); await discardMedia(media); setMedia(data); } catch (error) { alert(error.message || "No se pudo subir la imagen."); } finally { input.value = ""; setSending(false); } };
+  const uploadImage = async (event) => {
+    const input = event.currentTarget, file = input.files?.[0];
+    if (!file) return;
+    const extension = file.name.split(".").pop()?.toLowerCase(), inferredType = ({ jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", heic: "image/heic", heif: "image/heif" })[extension];
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif", "image/heic-sequence", "image/heif-sequence"], originalType = allowedTypes.includes(file.type?.toLowerCase()) ? file.type.toLowerCase() : inferredType;
+    if (!originalType) { input.value = ""; alert("Este formato de imagen no es compatible."); return; }
+    setSending(true);
+    try {
+      let uploadFile = file, contentType = originalType;
+      try { uploadFile = await optimizeImageForUpload(file); contentType = "image/jpeg"; } catch { /* El servidor conserva soporte HEIC como respaldo. */ }
+      const uploadUrl = new URL("/api/chat/image", window.location.origin).href;
+      const response = await fetch(uploadUrl, { method: "PUT", credentials: "include", headers: { "Content-Type": contentType }, body: uploadFile });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || `No se pudo procesar la imagen (HTTP ${response.status}).`);
+      await discardMedia(media);
+      setMedia(data);
+    } catch (error) { alert(error.message || "No se pudo subir la imagen."); }
+    finally { input.value = ""; setSending(false); }
+  };
   const submit = async (event) => { event.preventDefault(); if ((!text.trim() && !media) || sending) return; setSending(true); try { await api("/chat", { method: "POST", body: { message: text, reply_to_id: reply?.id || null, media } }); setText(""); setReply(null); setMedia(null); setGifOpen(false); await load(); requestAnimationFrame(() => endRef.current?.scrollIntoView({ behavior: "smooth" })); } finally { setSending(false); } };
   const startSwipe = (event, message) => { touch.current = { id: message.id, x: event.touches[0].clientX, y: event.touches[0].clientY, message, horizontal: null }; setSwipe({ id: message.id, offset: 0 }); };
   const moveSwipe = (event) => { if (!touch.current) return; const point = event.touches[0], dx = point.clientX - touch.current.x, dy = point.clientY - touch.current.y; if (touch.current.horizontal === null && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) touch.current.horizontal = dx > 0 && Math.abs(dx) > Math.abs(dy); if (!touch.current.horizontal) return; const distance = Math.max(0, dx), offset = 84 * (1 - Math.exp(-distance / 72)); setSwipe({ id: touch.current.id, offset }); };
