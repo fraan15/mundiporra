@@ -1254,6 +1254,26 @@ test("un comentario nuevo notifica a los demás y enlaza a los comentarios", asy
   assert.equal(authorNotifications.body.notifications.some((item) => item.event_key === `match-comment:${created.body.id}`), false);
 });
 
+test("un comentario admite un GIF válido de GIPHY y rechaza medios externos", async () => {
+  const agent = request.agent(app);
+  await agent.post("/api/auth/login").send({ username: "lucia", password: "lucia" }).expect(200);
+  const match = db.prepare("SELECT id FROM matches ORDER BY id LIMIT 1").get();
+  const media = {
+    type: "gif",
+    id: "test-gif",
+    url: "https://media.giphy.com/media/test/giphy.webp",
+    preview_url: "https://media.giphy.com/media/test/preview.webp",
+    width: 320,
+    height: 240
+  };
+  await agent.post(`/api/matches/${match.id}/comments`).send({ comment: "", media }).expect(201);
+  const comments = await agent.get(`/api/matches/${match.id}/comments`).expect(200);
+  assert.equal(comments.body[0].media_provider, "giphy");
+  assert.equal(comments.body[0].media_type, "gif");
+  assert.equal(comments.body[0].media_url, media.url);
+  await agent.post(`/api/matches/${match.id}/comments`).send({ comment: "", media: { ...media, url: "https://example.com/falso.gif" } }).expect(400);
+});
+
 test("consultar dashboard y perfiles no escribe instantáneas de clasificación", async () => {
   const agent = request.agent(app);
   await agent.post("/api/auth/login").send({ username: "lucia", password: "lucia" });

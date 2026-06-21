@@ -200,6 +200,13 @@ export function initDatabase() {
       match_id INTEGER NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       comment TEXT NOT NULL,
+      media_type TEXT CHECK(media_type IN ('gif','sticker')),
+      media_provider TEXT,
+      media_id TEXT,
+      media_url TEXT,
+      media_preview_url TEXT,
+      media_width INTEGER,
+      media_height INTEGER,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
@@ -284,6 +291,20 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_sessions_expire ON sessions(expire);
     CREATE INDEX IF NOT EXISTS idx_points_adjustments_user ON points_adjustments(user_id);
   `);
+
+  const commentColumns = new Set(db.prepare("PRAGMA table_info(match_comments)").all().map((column) => column.name));
+  const commentMediaColumns = {
+    media_type: "TEXT CHECK(media_type IN ('gif','sticker'))",
+    media_provider: "TEXT",
+    media_id: "TEXT",
+    media_url: "TEXT",
+    media_preview_url: "TEXT",
+    media_width: "INTEGER",
+    media_height: "INTEGER"
+  };
+  for (const [name, definition] of Object.entries(commentMediaColumns)) {
+    if (!commentColumns.has(name)) db.exec(`ALTER TABLE match_comments ADD COLUMN ${name} ${definition}`);
+  }
   db.exec(`
     DELETE FROM reactions
     WHERE id NOT IN (SELECT MAX(id) FROM reactions GROUP BY user_id,target_type,target_id);

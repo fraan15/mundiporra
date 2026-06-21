@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Edit3,
+  Film,
   Goal,
   Info,
   MessageCircle,
@@ -1937,7 +1938,16 @@ export function MatchDetailPage() {
     { user } = useAuth(),
     [data, setData] = useState(null),
     [comments, setComments] = useState([]),
+    [commentsPage, setCommentsPage] = useState(1),
     [text, setText] = useState(""),
+    [gifPickerOpen, setGifPickerOpen] = useState(false),
+    [gifQuery, setGifQuery] = useState(""),
+    [gifType, setGifType] = useState("gif"),
+    [gifItems, setGifItems] = useState([]),
+    [selectedGif, setSelectedGif] = useState(null),
+    [gifLoading, setGifLoading] = useState(false),
+    [gifError, setGifError] = useState(""),
+    [gifRemaining, setGifRemaining] = useState(null),
     [error, setError] = useState(""),
     [participantsOpen, setParticipantsOpen] = useState(false),
     [selectedTeam, setSelectedTeam] = useState(null),
@@ -1971,7 +1981,16 @@ export function MatchDetailPage() {
   };
   useEffect(() => {
     load();
+    setCommentsPage(1);
   }, [id]);
+  const commentsPerPage = 8,
+    totalCommentsPages = Math.max(
+      1,
+      Math.ceil(comments.length / commentsPerPage),
+    );
+  useEffect(() => {
+    setCommentsPage((page) => Math.min(page, totalCommentsPages));
+  }, [totalCommentsPages]);
   useEffect(() => {
     if (data)
       setResult({
@@ -2087,10 +2106,26 @@ export function MatchDetailPage() {
   const add = async () => {
     await api(`/matches/${id}/comments`, {
       method: "POST",
-      body: { comment: text },
+      body: { comment: text, media: selectedGif },
     });
     setText("");
+    setSelectedGif(null);
+    setGifPickerOpen(false);
     load();
+  };
+  const searchGiphy = async () => {
+    if (gifQuery.trim().length < 2) return;
+    setGifLoading(true);
+    setGifError("");
+    try {
+      const response = await api(`/giphy/search?q=${encodeURIComponent(gifQuery.trim())}&type=${gifType}`);
+      setGifItems(response.items);
+      setGifRemaining(response.remaining);
+    } catch (searchError) {
+      setGifError(searchError.message);
+    } finally {
+      setGifLoading(false);
+    }
   };
   const remove = async (cid) => {
     await api(`/comments/${cid}`, { method: "DELETE" });
@@ -2637,24 +2672,63 @@ export function MatchDetailPage() {
           <MessageCircle size={20} /> Comentarios
         </h2>
         {!user.is_read_only && (
-          <div className="comment-form">
-            <input
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              maxLength="500"
-              placeholder="Comparte tu lectura del partido…"
-            />
-            <button className="primary" disabled={!text.trim()} onClick={add}>
-              <Send size={16} />
-            </button>
+          <div className="comment-composer">
+            {selectedGif && (
+              <div className="selected-comment-gif">
+                <img src={selectedGif.preview_url || selectedGif.url} alt="GIF seleccionado" />
+                <button type="button" onClick={() => setSelectedGif(null)} aria-label="Quitar GIF"><X size={15} /></button>
+              </div>
+            )}
+            <div className="comment-form">
+              <input
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                maxLength="500"
+                placeholder="Comparte tu lectura del partido…"
+              />
+              <button type="button" className="gif-trigger" onClick={() => setGifPickerOpen((open) => !open)} aria-label="Añadir GIF o sticker">
+                <Film size={17} /> GIF
+              </button>
+              <button className="primary" disabled={!text.trim() && !selectedGif} onClick={add}>
+                <Send size={16} />
+              </button>
+            </div>
+            {gifPickerOpen && (
+              <div className="giphy-picker">
+                <div className="giphy-tabs">
+                  <button className={gifType === "gif" ? "active" : ""} onClick={() => setGifType("gif")}>GIF</button>
+                  <button className={gifType === "sticker" ? "active" : ""} onClick={() => setGifType("sticker")}>Stickers</button>
+                  <span>Powered by GIPHY</span>
+                </div>
+                <form onSubmit={(event) => { event.preventDefault(); searchGiphy(); }}>
+                  <input value={gifQuery} onChange={(event) => setGifQuery(event.target.value)} maxLength="50" placeholder={`Buscar ${gifType === "gif" ? "GIF" : "stickers"}…`} />
+                  <button className="primary" disabled={gifLoading || gifQuery.trim().length < 2}>{gifLoading ? "…" : "Buscar"}</button>
+                </form>
+                {gifError && <p className="giphy-error">{gifError}</p>}
+                {gifRemaining !== null && !gifError && <small>{gifRemaining} búsquedas disponibles esta hora</small>}
+                <div className="giphy-results">
+                  {gifItems.map((item) => (
+                    <button key={item.id} type="button" onClick={() => { setSelectedGif(item); setGifPickerOpen(false); }}>
+                      <img src={item.preview_url || item.url} alt={item.title || "Resultado de GIPHY"} loading="lazy" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
-        {comments.map((c) => (
+        {comments
+          .slice(
+            (commentsPage - 1) * commentsPerPage,
+            commentsPage * commentsPerPage,
+          )
+          .map((c) => (
           <article key={c.id}>
             <Avatar user={c} className="mini-avatar" />
             <ReactionBar targetType="match_comment" targetId={c.id} disabled={user.is_read_only} own={c.user_id === user.id} className="comment-reaction-target">
               <strong>{c.username}</strong>
-              <p>{c.comment}</p>
+              {c.comment && <p>{c.comment}</p>}
+              {c.media_url && <img className={`comment-media ${c.media_type || "gif"}`} src={c.media_url} alt={c.media_type === "sticker" ? "Sticker" : "GIF"} loading="lazy" />}
               <small>{new Date(c.created_at).toLocaleString("es-ES")}</small>
             </ReactionBar>
             {!user.is_read_only &&
@@ -2664,7 +2738,28 @@ export function MatchDetailPage() {
                 </button>
               )}
           </article>
-        ))}
+          ))}
+        {totalCommentsPages > 1 && (
+          <nav className="pagination" aria-label="Paginación de comentarios">
+            <button
+              type="button"
+              disabled={commentsPage === 1}
+              onClick={() => setCommentsPage((page) => page - 1)}
+            >
+              <ChevronLeft /> Anterior
+            </button>
+            <span>
+              Página {commentsPage} de {totalCommentsPages}
+            </span>
+            <button
+              type="button"
+              disabled={commentsPage === totalCommentsPages}
+              onClick={() => setCommentsPage((page) => page + 1)}
+            >
+              Siguiente <ChevronRight />
+            </button>
+          </nav>
+        )}
       </section>
     </div>
   );

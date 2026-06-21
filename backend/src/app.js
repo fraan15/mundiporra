@@ -95,6 +95,17 @@ app.use("/api", (req, _res, next) => {
 
 const avatarUrl = (user) => user?.avatar_filename ? `/avatars/${user.avatar_filename}` : null;
 const safeUser = (user) => user && ({ id: user.id, username: user.username, display_name: user.display_name || user.username, role: user.role, active: user.active, is_read_only: Boolean(user.is_read_only), personal_phrase: user.personal_phrase || "", avatar_url: avatarUrl(user), created_at: user.created_at });
+const giphySearchLimit = Math.max(1, Number(process.env.GIPHY_SEARCHES_PER_USER_HOUR || 10));
+const giphySearchWindows = new Map();
+const giphySearchCache = new Map();
+const GIPHY_WINDOW_MS = 60 * 60 * 1000;
+const GIPHY_CACHE_MS = 10 * 60 * 1000;
+const validGiphyUrl = (value) => {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && (url.hostname === "giphy.com" || url.hostname.endsWith(".giphy.com"));
+  } catch { return false; }
+};
 const parseIntField = (value) => Number.isInteger(Number(value)) && Number(value) >= 0 ? Number(value) : null;
 const MATCH_TIME_ZONE = "Europe/Madrid";
 const madridDateTimeToIso = (value) => {
@@ -1065,6 +1076,49 @@ app.get("/api/matches/:id/comments", requireAuth, (req, res) => {
   res.json(comments.map((comment) => ({ ...comment, avatar_url: avatarUrl(comment) })));
 });
 
+app.get("/api/giphy/search", requireAuth, requireWritableUser, async (req, res) => {
+  const apiKey = process.env.GIPHY_API_KEY;
+  if (!apiKey) return res.status(503).json({ error: "El buscador de GIF no está configurado." });
+  const query = String(req.query.q || "").trim().slice(0, 50);
+  const type = req.query.type === "sticker" ? "sticker" : "gif";
+  if (query.length < 2) return res.status(400).json({ error: "Escribe al menos 2 caracteres." });
+
+  const currentTime = Date.now();
+  const recent = (giphySearchWindows.get(req.user.id) || []).filter((stamp) => currentTime - stamp < GIPHY_WINDOW_MS);
+  if (recent.length >= giphySearchLimit) {
+    const retryAfter = Math.max(1, Math.ceil((GIPHY_WINDOW_MS - (currentTime - recent[0])) / 1000));
+    res.set("Retry-After", String(retryAfter));
+    return res.status(429).json({ error: `Has alcanzado el límite de ${giphySearchLimit} búsquedas por hora.`, retry_after: retryAfter, remaining: 0, limit: giphySearchLimit });
+  }
+  recent.push(currentTime);
+  giphySearchWindows.set(req.user.id, recent);
+
+  const cacheKey = `${type}:${query.toLocaleLowerCase("es")}`;
+  let items = giphySearchCache.get(cacheKey);
+  if (!items || currentTime - items.createdAt >= GIPHY_CACHE_MS) {
+    try {
+      const endpoint = type === "sticker" ? "stickers" : "gifs";
+      const params = new URLSearchParams({ api_key: apiKey, q: query, limit: "20", rating: "g", lang: "es", bundle: "messaging_non_clips" });
+      const response = await fetch(`https://api.giphy.com/v1/${endpoint}/search?${params}`, { signal: AbortSignal.timeout(6000) });
+      if (!response.ok) throw new Error(`GIPHY respondió ${response.status}`);
+      const payload = await response.json();
+      items = {
+        createdAt: currentTime,
+        data: (payload.data || []).map((item) => {
+          const display = item.images?.fixed_width || item.images?.downsized || item.images?.original;
+          const preview = item.images?.fixed_width_small || item.images?.fixed_width || display;
+          return { id: item.id, type, title: item.title || "", url: display?.webp || display?.url, preview_url: preview?.webp || preview?.url || display?.url, width: Number(display?.width) || null, height: Number(display?.height) || null };
+        }).filter((item) => validGiphyUrl(item.url))
+      };
+      giphySearchCache.set(cacheKey, items);
+    } catch (error) {
+      recent.pop();
+      return res.status(502).json({ error: "No se pudieron cargar los GIF de GIPHY." });
+    }
+  }
+  res.json({ items: items.data, remaining: Math.max(0, giphySearchLimit - recent.length), limit: giphySearchLimit, attribution: "Powered by GIPHY" });
+});
+
 app.get("/api/reactions", requireAuth, (req, res) => {
   const targetType = String(req.query.target_type || "");
   const targetIds = [...new Set(String(req.query.target_ids || "").split(",").map(Number).filter((id) => Number.isInteger(id) && id > 0))];
@@ -1117,10 +1171,16 @@ app.post("/api/reactions/toggle", requireAuth, requireWritableUser, (req, res) =
 });
 app.post("/api/matches/:id/comments", requireAuth, requireWritableUser, (req, res) => {
   const comment = String(req.body.comment || "").trim().slice(0, 500);
-  if (!comment) return res.status(400).json({ error: "Escribe un comentario." });
+  const media = req.body.media && typeof req.body.media === "object" ? req.body.media : null;
+  const mediaType = media?.type === "gif" || media?.type === "sticker" ? media.type : null;
+  if (!comment && !mediaType) return res.status(400).json({ error: "Escribe un comentario o selecciona un GIF." });
+  if (mediaType && (!media.id || !validGiphyUrl(media.url) || (media.preview_url && !validGiphyUrl(media.preview_url)))) {
+    return res.status(400).json({ error: "El GIF seleccionado no es válido." });
+  }
   const match = db.prepare("SELECT * FROM matches WHERE id=?").get(req.params.id);
   if (!match || !canAccessMatch(req, match)) return res.status(404).json({ error: "Partido no encontrado." });
-  const result = db.prepare("INSERT INTO match_comments(match_id,user_id,comment,created_at,updated_at) VALUES(?,?,?,?,?)").run(req.params.id, req.user.id, comment, now(), now());
+  const result = db.prepare(`INSERT INTO match_comments(match_id,user_id,comment,media_type,media_provider,media_id,media_url,media_preview_url,media_width,media_height,created_at,updated_at)
+    VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`).run(req.params.id, req.user.id, comment, mediaType, mediaType ? "giphy" : null, mediaType ? String(media.id).slice(0, 100) : null, mediaType ? media.url : null, mediaType ? (media.preview_url || media.url) : null, mediaType ? Math.max(1, Math.min(1200, Number(media.width) || 480)) : null, mediaType ? Math.max(1, Math.min(1200, Number(media.height) || 360)) : null, now(), now());
   notifyAllExcept(req.user.id, {
     type: "match_comment",
     title: "Nuevo comentario",
