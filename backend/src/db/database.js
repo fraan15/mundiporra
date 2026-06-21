@@ -165,7 +165,7 @@ export function initDatabase() {
     CREATE TABLE IF NOT EXISTS notifications (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      type TEXT NOT NULL CHECK(type IN ('match_available','match_reminder','match_closed','result_published','points_earned','top_three','points_adjustment','match_comment','reaction')),
+      type TEXT NOT NULL CHECK(type IN ('match_available','match_reminder','match_closed','result_published','points_earned','top_three','points_adjustment','match_comment','reaction','chat_reply','chat_mention')),
       title TEXT NOT NULL,
       message TEXT NOT NULL,
       entity_type TEXT,
@@ -375,13 +375,13 @@ export function initDatabase() {
       WHERE stadium_id IS NULL AND stadium!='' AND (SELECT COUNT(*) FROM stadiums WHERE stadiums.name=matches.stadium)=1;
   `);
   const notificationsSql = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='notifications'").get()?.sql || "";
-  if (!notificationsSql.includes("'match_comment'") || !notificationsSql.includes("'match_available'") || !notificationsSql.includes("'match_reminder'") || !notificationsSql.includes("'reaction'")) {
+  if (!notificationsSql.includes("'match_comment'") || !notificationsSql.includes("'match_available'") || !notificationsSql.includes("'match_reminder'") || !notificationsSql.includes("'reaction'") || !notificationsSql.includes("'chat_reply'") || !notificationsSql.includes("'chat_mention'")) {
     db.exec(`
       ALTER TABLE notifications RENAME TO notifications_legacy;
       CREATE TABLE notifications (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        type TEXT NOT NULL CHECK(type IN ('match_available','match_reminder','match_closed','result_published','points_earned','top_three','points_adjustment','match_comment','reaction')),
+        type TEXT NOT NULL CHECK(type IN ('match_available','match_reminder','match_closed','result_published','points_earned','top_three','points_adjustment','match_comment','reaction','chat_reply','chat_mention')),
         title TEXT NOT NULL,
         message TEXT NOT NULL,
         entity_type TEXT,

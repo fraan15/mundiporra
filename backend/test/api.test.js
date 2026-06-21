@@ -65,6 +65,25 @@ test("el chat devuelve solo los 25 mensajes más recientes", async () => {
   assert.equal(response.body.at(-1).message, "Mensaje de prueba 30");
 });
 
+test("respuestas y menciones del chat crean una sola notificación social por destinatario", async () => {
+  const admin = request.agent(app);
+  const user = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  await user.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
+
+  const original = await admin.post("/api/chat").send({ message: "Mensaje para responder" });
+  const reply = await user.post("/api/chat").send({ message: "@administrador te respondo", reply_to_id: original.body.id });
+  assert.equal(reply.status, 201);
+  const adminNotifications = (await admin.get("/api/notifications")).body.notifications.filter((item) => item.entity_id === reply.body.id && item.entity_type === "chat_message");
+  assert.equal(adminNotifications.length, 1);
+  assert.equal(adminNotifications[0].type, "chat_reply");
+  assert.equal(adminNotifications[0].link, `/chat?message=${reply.body.id}`);
+
+  const mention = await admin.post("/api/chat").send({ message: "Hola @lucia" });
+  const userNotification = (await user.get("/api/notifications")).body.notifications.find((item) => item.entity_id === mention.body.id && item.entity_type === "chat_message");
+  assert.equal(userNotification.type, "chat_mention");
+});
+
 test("el usuario hardcodeado de solo lectura puede leer pero no escribir", async () => {
   const admin = request.agent(app);
   await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });

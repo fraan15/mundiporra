@@ -1024,11 +1024,32 @@ app.post("/api/chat", requireAuth, requireWritableUser, (req, res) => {
   if (!message && !mediaType) return res.status(400).json({ error: "Escribe un mensaje o selecciona un archivo." });
   if (["gif", "sticker"].includes(mediaType) && (!media.id || !validGiphyUrl(media.url))) return res.status(400).json({ error: "El GIF o sticker no es válido." });
   if (mediaType === "image" && (media.provider !== "local" || !String(media.id || "").startsWith(`chat-${req.user.id}-`) || !/^\/chat-media\/chat-[\w.-]+\.webp$/.test(media.url || "") || !/^\/chat-media\/chat-[\w.-]+-thumb\.webp$/.test(media.preview_url || "") || !fs.existsSync(path.join(chatMediaDir, path.basename(media.url))))) return res.status(400).json({ error: "La imagen no es válida." });
-  if (replyToId && !db.prepare("SELECT id FROM chat_messages WHERE id=?").get(replyToId)) {
+  const repliedMessage = replyToId ? db.prepare("SELECT id,user_id FROM chat_messages WHERE id=?").get(replyToId) : null;
+  if (replyToId && !repliedMessage) {
     return res.status(400).json({ error: "El mensaje al que respondes ya no existe." });
   }
   const result = db.prepare(`INSERT INTO chat_messages(user_id,reply_to_id,message,media_type,media_provider,media_id,media_url,media_preview_url,media_width,media_height,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)`)
     .run(req.user.id, replyToId, message, mediaType, mediaType === "image" ? "local" : mediaType ? "giphy" : null, mediaType ? String(media.id).slice(0, 100) : null, mediaType ? media.url : null, mediaType ? (media.preview_url || media.url) : null, mediaType ? Math.max(1, Math.min(2000, Number(media.width) || 480)) : null, mediaType ? Math.max(1, Math.min(2000, Number(media.height) || 360)) : null, now());
+  const senderName = req.user.display_name || req.user.username;
+  const recipients = new Map();
+  if (repliedMessage && repliedMessage.user_id !== req.user.id) recipients.set(repliedMessage.user_id, "reply");
+  const mentionTokens = new Set([...message.matchAll(/@([\p{L}\p{N}_.-]+)/gu)].map((match) => match[1].toLocaleLowerCase("es")));
+  if (mentionTokens.size) {
+    for (const mentioned of db.prepare("SELECT id,username,COALESCE(NULLIF(display_name,''),username) display_name FROM users WHERE active=1 AND id<>?").all(req.user.id)) {
+      const aliases = [mentioned.username, mentioned.display_name.replace(/\s+/g, "_")].map((value) => value.toLocaleLowerCase("es"));
+      if (aliases.some((alias) => mentionTokens.has(alias)) && !recipients.has(mentioned.id)) recipients.set(mentioned.id, "mention");
+    }
+  }
+  for (const [userId, reason] of recipients) createNotification({
+    userId,
+    type: reason === "reply" ? "chat_reply" : "chat_mention",
+    title: reason === "reply" ? "Nueva respuesta en el chat" : "Te han mencionado en el chat",
+    message: reason === "reply" ? `${senderName} ha respondido a tu mensaje.` : `${senderName} te ha mencionado en un mensaje.`,
+    entityType: "chat_message",
+    entityId: result.lastInsertRowid,
+    link: `/chat?message=${result.lastInsertRowid}`,
+    eventKey: `chat-${reason}:${result.lastInsertRowid}:${userId}`
+  });
   const expired = db.prepare(`
     WITH retained AS (
       SELECT id,reply_to_id FROM chat_messages ORDER BY created_at DESC,id DESC LIMIT 25
