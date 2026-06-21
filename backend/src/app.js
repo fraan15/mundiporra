@@ -974,24 +974,19 @@ app.get("/api/chat/mentions", requireAuth, (req, res) => {
   res.json(users.map((item) => ({ ...item, avatar_url: avatarUrl(item) })));
 });
 
-app.put(
-  "/api/chat/image",
-  requireAuth,
-  requireWritableUser,
-  express.raw({ type: "*/*", limit: "12mb" }),
-  async (req, res, next) => {
+const chatImageChunks = new Map();
+const processChatImage = async (req, res, next, body, contentType) => {
     try {
-      const contentType = String(req.get("content-type") || "").split(";")[0].toLowerCase();
       const heic = new Set(["image/heic", "image/heif", "image/heic-sequence", "image/heif-sequence"]).has(contentType);
-      if ((!heic && !new Set(["image/jpeg", "image/png", "image/webp"]).has(contentType)) || !Buffer.isBuffer(req.body) || !req.body.length) {
+      if ((!heic && !new Set(["image/jpeg", "image/png", "image/webp"]).has(contentType)) || !Buffer.isBuffer(body) || !body.length) {
         return res.status(415).json({ error: "Selecciona una imagen JPEG, PNG, WebP, HEIC o HEIF válida." });
       }
       if (heic && heicConversionActive) return res.status(503).json({ error: "Se está procesando otra foto HEIC. Inténtalo de nuevo en unos segundos." });
-      let imageBuffer = req.body;
+      let imageBuffer = body;
       if (heic) {
         heicConversionActive = true;
         try {
-          imageBuffer = Buffer.from(await convertHeic({ buffer: req.body, format: "JPEG", quality: 0.88 }));
+          imageBuffer = Buffer.from(await convertHeic({ buffer: body, format: "JPEG", quality: 0.88 }));
         } catch {
           return res.status(400).json({ error: "No se pudo leer la foto HEIC/HEIF. Puede estar dañada o usar una variante no compatible." });
         } finally {
@@ -1012,6 +1007,34 @@ app.put(
       if (error?.name === "InputBufferError" || error?.message?.includes("unsupported image format")) return res.status(400).json({ error: "No se pudo leer la imagen. Puede estar dañada o usar una variante no compatible." });
       next(error);
     }
+};
+
+app.put(
+  "/api/chat/image",
+  requireAuth,
+  requireWritableUser,
+  express.raw({ type: "*/*", limit: "12mb" }),
+  (req, res, next) => processChatImage(req, res, next, req.body, String(req.get("content-type") || "").split(";")[0].toLowerCase())
+);
+
+app.put(
+  "/api/chat/image-chunk",
+  requireAuth,
+  requireWritableUser,
+  express.raw({ type: "*/*", limit: "800kb" }),
+  async (req, res, next) => {
+    const uploadId = String(req.get("x-upload-id") || ""), index = Number(req.get("x-chunk-index")), total = Number(req.get("x-chunk-total"));
+    const contentType = String(req.get("x-file-type") || "").toLowerCase(), key = `${req.user.id}:${uploadId}`;
+    if (!/^[a-z0-9-]{8,80}$/i.test(uploadId) || !Number.isInteger(index) || !Number.isInteger(total) || index < 0 || total < 1 || total > 24 || index >= total || !Buffer.isBuffer(req.body)) return res.status(400).json({ error: "Fragmento de imagen no válido." });
+    const current = chatImageChunks.get(key) || { chunks: [], size: 0, contentType, expires: Date.now() + 5 * 60 * 1000 };
+    if (index !== current.chunks.length || contentType !== current.contentType) { chatImageChunks.delete(key); return res.status(409).json({ error: "La subida se ha interrumpido. Vuelve a seleccionar la imagen." }); }
+    current.chunks.push(req.body); current.size += req.body.length;
+    if (current.size > 12 * 1024 * 1024) { chatImageChunks.delete(key); return res.status(413).json({ error: "La imagen no puede superar los 12 MB." }); }
+    chatImageChunks.set(key, current);
+    for (const [pendingKey, pending] of chatImageChunks) if (pending.expires < Date.now()) chatImageChunks.delete(pendingKey);
+    if (index < total - 1) return res.json({ received: index + 1 });
+    chatImageChunks.delete(key);
+    return processChatImage(req, res, next, Buffer.concat(current.chunks, current.size), contentType);
   }
 );
 

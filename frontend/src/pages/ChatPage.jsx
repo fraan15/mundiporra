@@ -47,6 +47,23 @@ const optimizeImageForUpload = async (file, allowHeicConversion = true) => {
   }
 };
 
+const sendChatImage = async (file, contentType) => {
+  const chunkSize = 600 * 1024;
+  if (file.size <= chunkSize) return fetch(new URL("/api/chat/image", window.location.origin).href, { method: "PUT", credentials: "include", headers: { "Content-Type": contentType }, body: file });
+  const uploadId = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const total = Math.ceil(file.size / chunkSize);
+  let response;
+  for (let index = 0; index < total; index += 1) {
+    response = await fetch(new URL("/api/chat/image-chunk", window.location.origin).href, {
+      method: "PUT", credentials: "include",
+      headers: { "Content-Type": "application/octet-stream", "X-Upload-Id": uploadId, "X-Chunk-Index": String(index), "X-Chunk-Total": String(total), "X-File-Type": contentType },
+      body: file.slice(index * chunkSize, Math.min(file.size, (index + 1) * chunkSize))
+    });
+    if (!response.ok) return response;
+  }
+  return response;
+};
+
 export function ChatPage() {
   const { user } = useAuth();
   const [messages, setMessages] = useState([]), [text, setText] = useState(""), [reply, setReply] = useState(null), [sending, setSending] = useState(false);
@@ -74,8 +91,7 @@ export function ChatPage() {
     try {
       let uploadFile = file, contentType = originalType;
       try { uploadFile = await optimizeImageForUpload(file); contentType = "image/jpeg"; } catch { /* El servidor conserva soporte HEIC como respaldo. */ }
-      const uploadUrl = new URL("/api/chat/image", window.location.origin).href;
-      const response = await fetch(uploadUrl, { method: "PUT", credentials: "include", headers: { "Content-Type": contentType }, body: uploadFile });
+      const response = await sendChatImage(uploadFile, contentType);
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || `No se pudo procesar la imagen (HTTP ${response.status}).`);
       await discardMedia(media);

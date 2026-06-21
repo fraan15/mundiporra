@@ -84,6 +84,19 @@ test("respuestas y menciones del chat crean una sola notificación social por de
   assert.equal(userNotification.type, "chat_mention");
 });
 
+test("el chat ensambla imágenes enviadas en fragmentos", async () => {
+  const agent = request.agent(app);
+  await agent.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  const image = await sharp({ create: { width: 120, height: 120, channels: 3, background: "#b31229" } }).jpeg().toBuffer();
+  const split = Math.ceil(image.length / 2), uploadId = `chunk-test-${Date.now()}`;
+  const headers = { "X-Upload-Id": uploadId, "X-Chunk-Total": "2", "X-File-Type": "image/jpeg", "Content-Type": "application/octet-stream" };
+  await agent.put("/api/chat/image-chunk").set({ ...headers, "X-Chunk-Index": "0" }).send(image.subarray(0, split)).expect(200);
+  const completed = await agent.put("/api/chat/image-chunk").set({ ...headers, "X-Chunk-Index": "1" }).send(image.subarray(split)).expect(200);
+  assert.equal(completed.body.type, "image");
+  assert.match(completed.body.url, /^\/chat-media\/chat-/);
+  await agent.delete(`/api/chat/image/${completed.body.id}`).expect(200);
+});
+
 test("el usuario hardcodeado de solo lectura puede leer pero no escribir", async () => {
   const admin = request.agent(app);
   await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
