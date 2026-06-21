@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { SmilePlus } from "lucide-react";
 import { api } from "../api/client";
 
 const FALLBACK_EMOJIS = ["😂", "🔥", "🤡", "👀", "😭", "👏"];
@@ -45,7 +46,9 @@ export function ReactionBar({ targetType, targetId, children, disabled = false, 
   };
   const startHold = (event) => {
     if (!canReact || event.button > 0) return;
+    if (event.pointerType === "touch") event.preventDefault();
     cancelHold();
+    setViewing("");
     timerRef.current = setTimeout(() => {
       setOpen(true);
       navigator.vibrate?.(25);
@@ -81,6 +84,14 @@ export function ReactionBar({ targetType, targetId, children, disabled = false, 
     onContextMenu={(event) => { if (canReact) { event.preventDefault(); cancelHold(); setOpen(true); } }}
   >
     {children}
+    {canReact && <button
+      type="button"
+      className="reaction-open-button"
+      aria-label="Añadir reacción"
+      onPointerDown={(event) => { event.stopPropagation(); cancelHold(); }}
+      onPointerUp={(event) => event.stopPropagation()}
+      onClick={(event) => { event.stopPropagation(); setViewing(""); setOpen((value) => !value); }}
+    ><SmilePlus size={18} /></button>}
     {open && <div className="reaction-picker" role="menu" aria-label="Elige una reacción">
       {emojis.map((emoji) => <button
         type="button"
