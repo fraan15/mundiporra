@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Search, Trash2, X } from "lucide-react";
 
 const positionOrder = ["DEL", "MED", "DEF", "POR"];
@@ -66,7 +67,7 @@ function ScorerPickerSheet({ players, value, matchLabel, onSelect, onClose }) {
           <span>Goleador del partido</span>
           <h2>{matchLabel}</h2>
         </div>
-        <button type="button" aria-label="Cerrar buscador" onClick={onClose}><X size={18}/></button>
+        <button type="button" className="scorer-picker-close" aria-label="Cerrar buscador" onClick={onClose}><span>Cerrar</span><X size={18}/></button>
       </header>
       <div className="scorer-search">
         <span className="scorer-search-icon"><Search size={17}/></span>
@@ -105,6 +106,6 @@ export function ScorerPicker({ players = [], value = null, onChange, onOpen, dis
       <span>{buttonLabel}</span>
     </button>}
     {selected && <button type="button" className="scorer-search-again" onClick={openPicker}><Search size={16}/>Buscar otro</button>}
-    {open && <ScorerPickerSheet players={players} value={value} matchLabel={matchLabel} onSelect={(player) => onChange(player?.id || null)} onClose={() => setOpen(false)}/>}
+    {open && createPortal(<ScorerPickerSheet players={players} value={value} matchLabel={matchLabel} onSelect={(player) => onChange(player?.id || null)} onClose={() => setOpen(false)}/>, document.body)}
   </div>;
 }
