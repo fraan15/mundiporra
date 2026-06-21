@@ -2,7 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   ArrowLeft,
+  ArrowRight,
+  ArrowDown,
+  ArrowUp,
   BarChart3,
+  Calculator,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -65,6 +69,48 @@ const consumePointsReturn = () => {
   if (returning) sessionStorage.removeItem("returnToPointsDetail");
   return returning;
 };
+
+function MatchSimulationOverlay({ match, players, user, onClose }) {
+  const [score, setScore] = useState({ g1: "0", g2: "0" });
+  const [scorerIds, setScorerIds] = useState([]);
+  const [simulation, setSimulation] = useState(null);
+  const [simulationError, setSimulationError] = useState("");
+  const scoringCodes = [Number(score.g1) > 0 && match.team1_team?.fifa_code, Number(score.g2) > 0 && match.team2_team?.fifa_code].filter(Boolean);
+  const availableScorers = players.filter(player => scoringCodes.includes(player.team_fifa_code));
+  useEffect(() => {
+    setScorerIds(ids => ids.filter(id => availableScorers.some(player => player.id === id)));
+  }, [score.g1, score.g2, players.length]);
+  useEffect(() => {
+    if (score.g1 === "" || score.g2 === "") return;
+    const timer = setTimeout(() => {
+      setSimulationError("");
+      api(`/matches/${match.id}/simulation`, { method: "POST", body: { result_team1: Number(score.g1), result_team2: Number(score.g2), scorer_ids: scorerIds } })
+        .then(setSimulation).catch(error => setSimulationError(error.message));
+    }, 180);
+    return () => clearTimeout(timer);
+  }, [match.id, score.g1, score.g2, scorerIds.join(",")]);
+  const mine = simulation?.mine, points = simulation?.points;
+  return <div className="movement-overlay simulation-overlay" role="dialog" aria-modal="true" aria-labelledby="simulation-title">
+    <section className="movement-card simulation-card">
+      <header className="movement-head"><div><span><Calculator size={13}/> SIMULACIÓN PRIVADA</span><h2 id="simulation-title">Cálculo del resultado</h2></div><button onClick={onClose} aria-label="Cerrar cálculo"><X size={21}/></button></header>
+      <div className="movement-scroll">
+        <p className="simulation-disclaimer">Vista informativa. Nada de lo que introduzcas aquí se guarda.</p>
+        <div className="simulation-score-editor">
+          <label><Flag team={match.team1}/><span>{match.team1}</span><input type="number" min="0" inputMode="numeric" value={score.g1} onChange={event => setScore(current => ({ ...current, g1: event.target.value }))}/></label>
+          <b>–</b>
+          <label><Flag team={match.team2}/><span>{match.team2}</span><input type="number" min="0" inputMode="numeric" value={score.g2} onChange={event => setScore(current => ({ ...current, g2: event.target.value }))}/></label>
+        </div>
+        {Boolean(Number(match.scorer_enabled)) && Number(score.g1) + Number(score.g2) > 0 && <div className="simulation-scorers"><small>Goleadores que marcarían</small><div>{availableScorers.map(player => <button type="button" className={scorerIds.includes(player.id) ? "selected" : ""} key={player.id} onClick={() => setScorerIds(ids => ids.includes(player.id) ? ids.filter(id => id !== player.id) : [...ids, player.id])}>{scorerIds.includes(player.id) && <Check size={12}/>} {player.name}</button>)}</div></div>}
+        {simulationError && <div className="alert error">{simulationError}</div>}
+        {simulation && <>
+          <div className="movement-points simulation-points"><div className={Number(points?.total_points) > 0 ? "has-points" : ""}><small>Sumarías</small><strong>+{points?.total_points || 0}</strong><span>puntos</span></div><div className="movement-reasons"><small>¿Qué acertarías?</small>{[["Ganador", points?.winner_points], ["Resultado exacto", points?.exact_result_points], ["Goleador", points?.scorer_points]].map(([label, value]) => <span className={Number(value) > 0 ? "earned" : ""} key={label}>{Number(value) > 0 ? <Check size={13}/> : <X size={13}/>}<b>{label}</b><em>+{value || 0}</em></span>)}</div></div>
+          {mine && <div className="movement-ranking-head"><div><small>Tu posición quedaría</small><strong>#{mine.position}</strong></div><span className={mine.movement > 0 ? "up" : mine.movement < 0 ? "down" : "same"}>{mine.movement > 0 ? <ArrowUp/> : mine.movement < 0 ? <ArrowDown/> : <ArrowRight/>}<b>{mine.movement === 0 ? "Sin cambios" : `${Math.abs(mine.movement)} ${Math.abs(mine.movement) === 1 ? "puesto" : "puestos"}`}</b></span></div>}
+          <div className="movement-ranking">{simulation.ranking.map(row => <div className={row.id === user.id ? "me" : ""} key={row.id}><b>#{row.position}<i className={row.movement > 0 ? "up" : row.movement < 0 ? "down" : "same"}>{row.movement > 0 ? <ArrowUp/> : row.movement < 0 ? <ArrowDown/> : <span>=</span>}</i></b><span>{row.username}{row.id === user.id && <small>Tú</small>}</span><strong>{row.match_points > 0 && <small className="movement-rank-earned">+{row.match_points}</small>}{row.points} pts</strong></div>)}</div>
+        </>}
+      </div>
+    </section>
+  </div>;
+}
 
 export function ProfilePage() {
   const { user: authUser, setUser } = useAuth();
@@ -1907,7 +1953,8 @@ export function MatchDetailPage() {
     }),
     [players, setPlayers] = useState([]),
     [savingPick, setSavingPick] = useState(false),
-    [pickMessage, setPickMessage] = useState("");
+    [pickMessage, setPickMessage] = useState(""),
+    [simulationOpen, setSimulationOpen] = useState(false);
   const hydratedPickMatchId = useRef(null);
   const load = () => {
     setError("");
@@ -2140,6 +2187,7 @@ export function MatchDetailPage() {
           onClose={() => setComparing(false)}
         />
       )}
+      {simulationOpen && <MatchSimulationOverlay match={data.match} players={players} user={user} onClose={() => setSimulationOpen(false)}/>}
       <button
         className="back-btn"
         onClick={() => navigate(backTarget, { replace: true })}
@@ -2328,7 +2376,7 @@ export function MatchDetailPage() {
         <section
           className={`content-card detail-prediction ${!m.betting_open ? "detail-prediction-locked" : ""}`}
         >
-          <h2>{user.is_read_only ? "Vista de espectador" : "Mi pronóstico"}</h2>
+          <div className="detail-prediction-heading"><h2>{user.is_read_only ? "Vista de espectador" : "Mi pronóstico"}</h2>{m.status === "closed" && Boolean(m.in_play) && <button type="button" className="simulation-trigger" onClick={() => setSimulationOpen(true)}><Calculator size={17}/><span>Simular</span></button>}</div>
           {m.betting_open && !user.is_read_only ? (
             <>
               <div className="detail-winner-picks">
