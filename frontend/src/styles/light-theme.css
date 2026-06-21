@@ -1404,3 +1404,6 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 
 /* El modal captura el desplazamiento; el documento de fondo permanece inmóvil. */
 .movement-overlay{overscroll-behavior:none;touch-action:none}.movement-card{overscroll-behavior:contain;touch-action:pan-y}.movement-scroll,.movement-ranking{overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch}
+
+.movement-score,.movement-score strong,.movement-score>span{font-family:Roboto,Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.movement-head>button{flex:0 0 44px;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;display:grid;place-items:center;aspect-ratio:1;border-radius:50%}
