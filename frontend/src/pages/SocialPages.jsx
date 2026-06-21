@@ -1940,6 +1940,7 @@ export function MatchDetailPage() {
     [comments, setComments] = useState([]),
     [commentsPage, setCommentsPage] = useState(1),
     [text, setText] = useState(""),
+    [commentMentions, setCommentMentions] = useState([]),
     [gifPickerOpen, setGifPickerOpen] = useState(false),
     [gifQuery, setGifQuery] = useState(""),
     [gifType, setGifType] = useState("gif"),
@@ -1983,6 +1984,16 @@ export function MatchDetailPage() {
     load();
     setCommentsPage(1);
   }, [id]);
+  useEffect(() => {
+    const query = text.match(/(?:^|\s)@([^\s@]{2,})$/)?.[1];
+    if (!query) { setCommentMentions([]); return; }
+    const timer = setTimeout(() => api(`/chat/mentions?q=${encodeURIComponent(query)}`).then(setCommentMentions).catch(() => setCommentMentions([])), 180);
+    return () => clearTimeout(timer);
+  }, [text]);
+  const chooseCommentMention = (item) => {
+    setText((value) => value.replace(/(?:^|\s)@([^\s@]*)$/, (match) => `${match.startsWith(" ") ? " " : ""}@${item.display_name.replace(/\s+/g, "_")} `));
+    setCommentMentions([]);
+  };
   const commentsPerPage = 8,
     totalCommentsPages = Math.max(
       1,
@@ -2693,6 +2704,7 @@ export function MatchDetailPage() {
                 <Send size={16} />
               </button>
             </div>
+            {commentMentions.length > 0 && <div className="comment-mentions chat-mentions">{commentMentions.map((item) => <button type="button" key={item.id} onClick={() => chooseCommentMention(item)}><Avatar user={{ ...item, username: item.display_name }} /><span><strong>{item.display_name}</strong><small>@{item.username}</small></span></button>)}</div>}
             {gifPickerOpen && (
               <div className="giphy-picker">
                 <div className="giphy-tabs">
@@ -2727,7 +2739,7 @@ export function MatchDetailPage() {
             <Avatar user={c} className="mini-avatar" />
             <ReactionBar targetType="match_comment" targetId={c.id} disabled={user.is_read_only} own={c.user_id === user.id} className="comment-reaction-target">
               <strong>{c.username}</strong>
-              {c.comment && <p>{c.comment}</p>}
+              {c.comment && <p>{c.comment.split(/(@[\p{L}\p{N}_.-]+)/gu).map((part, index) => part.startsWith("@") ? <mark key={index}>{part}</mark> : part)}</p>}
               {c.media_url && <img className={`comment-media ${c.media_type || "gif"}`} src={c.media_url} alt={c.media_type === "sticker" ? "Sticker" : "GIF"} loading="lazy" />}
               <small>{new Date(c.created_at).toLocaleString("es-ES")}</small>
             </ReactionBar>

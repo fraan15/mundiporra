@@ -1313,6 +1313,25 @@ app.post("/api/matches/:id/comments", requireAuth, requireWritableUser, (req, re
   if (!match || !canAccessMatch(req, match)) return res.status(404).json({ error: "Partido no encontrado." });
   const result = db.prepare(`INSERT INTO match_comments(match_id,user_id,comment,media_type,media_provider,media_id,media_url,media_preview_url,media_width,media_height,created_at,updated_at)
     VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`).run(req.params.id, req.user.id, comment, mediaType, mediaType ? "giphy" : null, mediaType ? String(media.id).slice(0, 100) : null, mediaType ? media.url : null, mediaType ? (media.preview_url || media.url) : null, mediaType ? Math.max(1, Math.min(1200, Number(media.width) || 480)) : null, mediaType ? Math.max(1, Math.min(1200, Number(media.height) || 360)) : null, now(), now());
+  const mentionedUserIds = new Set();
+  const mentionTokens = new Set([...comment.matchAll(/@([\p{L}\p{N}_.-]+)/gu)].map((match) => match[1].toLocaleLowerCase("es")));
+  if (mentionTokens.size) {
+    for (const mentioned of db.prepare("SELECT id,username,COALESCE(NULLIF(display_name,''),username) display_name FROM users WHERE active=1 AND id<>?").all(req.user.id)) {
+      const aliases = [mentioned.username, mentioned.display_name.replace(/\s+/g, "_")].map((value) => value.toLocaleLowerCase("es"));
+      if (!aliases.some((alias) => mentionTokens.has(alias))) continue;
+      mentionedUserIds.add(mentioned.id);
+      createNotification({
+        userId: mentioned.id,
+        type: "match_mention",
+        title: `Te han mencionado en ${match.team1} - ${match.team2}`,
+        message: `${req.user.display_name || req.user.username} te ha mencionado en un comentario.`,
+        entityType: "match_comment",
+        entityId: result.lastInsertRowid,
+        link: `/match/${match.id}#comentarios`,
+        eventKey: `match-mention:${result.lastInsertRowid}:${mentioned.id}`
+      });
+    }
+  }
   notifyAllExcept(req.user.id, {
     type: "match_comment",
     title: "Nuevo comentario",
@@ -1321,7 +1340,7 @@ app.post("/api/matches/:id/comments", requireAuth, requireWritableUser, (req, re
     entityId: result.lastInsertRowid,
     link: `/match/${match.id}#comentarios`,
     eventKey: `match-comment:${result.lastInsertRowid}`
-  });
+  }, mentionedUserIds);
   res.status(201).json({ id: result.lastInsertRowid });
 });
 app.put("/api/comments/:id", requireAuth, requireWritableUser, (req, res) => {

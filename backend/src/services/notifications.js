@@ -75,8 +75,9 @@ export function notifyAll(payload) {
   db.transaction(() => users.forEach(({ id }) => createNotification({ ...payload, userId: id })))();
 }
 
-export function notifyAllExcept(excludedUserId, payload) {
-  const users = db.prepare("SELECT id FROM users WHERE active=1 AND id<>?").all(excludedUserId);
+export function notifyAllExcept(excludedUserId, payload, additionalExcludedUserIds = new Set()) {
+  const users = db.prepare("SELECT id FROM users WHERE active=1 AND id<>?").all(excludedUserId)
+    .filter(({ id }) => !additionalExcludedUserIds.has(id));
   db.transaction(() => users.forEach(({ id }) => createNotification({ ...payload, userId: id })))();
 }
 

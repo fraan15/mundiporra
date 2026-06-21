@@ -1273,6 +1273,19 @@ test("un comentario nuevo notifica a los demás y enlaza a los comentarios", asy
   assert.equal(authorNotifications.body.notifications.some((item) => item.event_key === `match-comment:${created.body.id}`), false);
 });
 
+test("una mención en un comentario crea un único aviso específico del partido", async () => {
+  const author = request.agent(app), mentioned = request.agent(app);
+  await author.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  await mentioned.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
+  const match = db.prepare("SELECT id,team1,team2 FROM matches ORDER BY id LIMIT 1").get();
+  const created = await author.post(`/api/matches/${match.id}/comments`).send({ comment: "Hola @lucia, mira este partido" }).expect(201);
+  const notifications = (await mentioned.get("/api/notifications")).body.notifications.filter((item) => item.entity_type === "match_comment" && item.entity_id === created.body.id);
+  assert.equal(notifications.length, 1);
+  assert.equal(notifications[0].type, "match_mention");
+  assert.equal(notifications[0].title, `Te han mencionado en ${match.team1} - ${match.team2}`);
+  assert.equal(notifications[0].link, `/match/${match.id}#comentarios`);
+});
+
 test("un comentario admite un GIF válido de GIPHY y rechaza medios externos", async () => {
   const agent = request.agent(app);
   await agent.post("/api/auth/login").send({ username: "lucia", password: "lucia" }).expect(200);
