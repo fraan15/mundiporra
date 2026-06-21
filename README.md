@@ -49,6 +49,7 @@ Copia `.env.example` como `.env` y ajusta:
 - `ALLOWED_ORIGINS`: lista de orígenes permitidos separada por comas.
 - `COOKIE_SECURE=true`: obliga a enviar la cookie solo mediante HTTPS.
 - `DB_PATH`: ruta opcional de SQLite.
+- `CHAT_MEDIA_DIR`: carpeta persistente para las imágenes comprimidas y miniaturas del chat. Al eliminar el mensaje correspondiente también se eliminan ambos archivos.
 - `SEED_DEMO_DATA`: crea usuarios de demostración únicamente cuando vale `true`.
 - `VAPID_SUBJECT`, `VAPID_PUBLIC_KEY` y `VAPID_PRIVATE_KEY`: identidad y claves para Web Push. Se generan una sola vez con `npx web-push generate-vapid-keys` dentro de `backend`.
 

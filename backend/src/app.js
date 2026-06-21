@@ -18,7 +18,9 @@ initDatabase();
 const here = path.dirname(fileURLToPath(import.meta.url));
 const frontendDist = path.resolve(here, "../../frontend/dist");
 const avatarsDir = path.resolve(here, "../data/avatars");
-const chatMediaDir = path.resolve(here, "../data/chat-media");
+const chatMediaDir = process.env.CHAT_MEDIA_DIR
+  ? path.resolve(process.env.CHAT_MEDIA_DIR)
+  : path.resolve(here, "../data/chat-media");
 fs.mkdirSync(avatarsDir, { recursive: true });
 fs.mkdirSync(chatMediaDir, { recursive: true });
 
