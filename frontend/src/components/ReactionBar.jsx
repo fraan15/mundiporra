@@ -78,6 +78,8 @@ export function ReactionBar({ targetType, targetId, children, disabled = false, 
     }
   };
   const visible = emojis.filter((emoji) => reactions[emoji]?.count > 0);
+  const hasMoreEmojis = visible.length > 1;
+  const displayedEmojis = hasMoreEmojis ? visible.slice(-1) : visible;
 
   return <div
     ref={rootRef}
@@ -117,7 +119,9 @@ export function ReactionBar({ targetType, targetId, children, disabled = false, 
         disabled={pending}
         onClick={() => { setOpen(false); setViewing((current) => !current); }}
         aria-label="Ver quién ha reaccionado"
-      >{visible.map((emoji) => <span key={emoji}>{emoji}</span>)}</button>
+      >{displayedEmojis.map((emoji) => <span key={emoji}>{emoji}</span>)}
+        {hasMoreEmojis && <small>+{visible.length - 1}</small>}
+      </button>
     </div>}
     {error && <small className="reaction-error" role="status">{error}</small>}
   </div>;
