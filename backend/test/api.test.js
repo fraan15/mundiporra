@@ -774,6 +774,10 @@ test("recalcula con fiabilidad al editar resultado, goleadores y Partido Estrell
   );
   assert.equal(sameScoreNotification.title, "Resultado publicado - modificacion - (administrador)");
   assert.match(sameScoreNotification.message, new RegExp(`${team1.name} 2 - 1 ${team2.name}`));
+  const pendingMovements = (await user.get("/api/movement-summaries/pending")).body.summaries
+    .filter((item) => item.match.id === created.body.id);
+  assert.equal(pendingMovements.length, 1);
+  assert.deepEqual([pendingMovements[0].match.result_team1, pendingMovements[0].match.result_team2], [2, 1]);
 
   const recalculatedMatch = await admin.post(`/api/admin/recalculate/${created.body.id}`);
   assert.equal(recalculatedMatch.status, 200);

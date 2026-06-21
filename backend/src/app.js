@@ -1234,23 +1234,27 @@ app.post("/api/matches/:id/finish", requireAdmin, (req, res) => {
     INSERT INTO movement_summaries(event_key,user_id,match_id,payload,created_at)
     VALUES(?,?,?,?,?)
   `);
-  db.transaction(() => leaderboardAfter.forEach((row, index) => {
-    const position = index + 1;
-    const prediction = predictionByUser.get(row.id);
-    const context = leaderboardAfter.map((ranked, offset) => ({
-      id: ranked.id, username: ranked.username, points: ranked.total_points,
-      position: offset + 1, movement: (beforePositions.get(ranked.id) || offset + 1) - (offset + 1),
-      is_me: ranked.id === row.id
-    }));
-    insertMovement.run(movementEventKey, row.id, before.id, JSON.stringify({
-      match: { id: before.id, date: before.match_date, time: before.match_time, team1: before.team1,
-        team2: before.team2, result_team1: g1, result_team2: g2, is_star: Boolean(before.is_star), scorers: actualScorers },
-      points: prediction ? Number(prediction.total_points) : 0,
-      prediction: prediction ? { ...prediction, scoring_multiplier: Number(prediction.scoring_multiplier || 1) } : null,
-      ranking: { position, previous_position: beforePositions.get(row.id) || position,
-        movement: (beforePositions.get(row.id) || position) - position, total_points: row.total_points, context }
-    }), now());
-  }))();
+  db.transaction(() => {
+    // Repeated corrections collapse into one pending card: users see only the latest result.
+    db.prepare("DELETE FROM movement_summaries WHERE match_id=? AND seen_at IS NULL").run(before.id);
+    leaderboardAfter.forEach((row, index) => {
+      const position = index + 1;
+      const prediction = predictionByUser.get(row.id);
+      const context = leaderboardAfter.map((ranked, offset) => ({
+        id: ranked.id, username: ranked.username, points: ranked.total_points,
+        position: offset + 1, movement: (beforePositions.get(ranked.id) || offset + 1) - (offset + 1),
+        is_me: ranked.id === row.id
+      }));
+      insertMovement.run(movementEventKey, row.id, before.id, JSON.stringify({
+        match: { id: before.id, date: before.match_date, time: before.match_time, team1: before.team1,
+          team2: before.team2, result_team1: g1, result_team2: g2, is_star: Boolean(before.is_star), scorers: actualScorers },
+        points: prediction ? Number(prediction.total_points) : 0,
+        prediction: prediction ? { ...prediction, scoring_multiplier: Number(prediction.scoring_multiplier || 1) } : null,
+        ranking: { position, previous_position: beforePositions.get(row.id) || position,
+          movement: (beforePositions.get(row.id) || position) - position, total_points: row.total_points, context }
+      }), now());
+    });
+  })();
   notifyAll({
     type: "result_published",
     title: resultNotificationTitle,
