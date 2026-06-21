@@ -43,7 +43,10 @@ export default defineConfig({
           }
         ]
       },
-      injectManifest: { globPatterns: ["**/*.{js,css,html,png,svg,ico,webp}"] }
+      injectManifest: {
+        globPatterns: ["**/*.{js,css,html,png,svg,ico,webp}"],
+        globIgnores: ["**/heic2any-*.js"]
+      }
     })
   ],
   server: {

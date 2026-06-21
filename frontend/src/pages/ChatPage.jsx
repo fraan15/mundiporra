@@ -7,19 +7,30 @@ import { startVisiblePolling } from "../utils/visiblePolling";
 
 const mentionParts = (text) => text.split(/(@[\p{L}\p{N}_.-]+)/gu).map((part, index) => part.startsWith("@") ? <mark key={index}>{part}</mark> : part);
 
-const optimizeImageForUpload = async (file) => {
+const optimizeImageForUpload = async (file, allowHeicConversion = true) => {
   let source, objectUrl;
   try {
     if (typeof createImageBitmap === "function") source = await createImageBitmap(file, { imageOrientation: "from-image" });
     else throw new Error("createImageBitmap no disponible");
   } catch {
     objectUrl = URL.createObjectURL(file);
-    source = await new Promise((resolve, reject) => {
-      const image = new Image();
-      image.onload = () => resolve(image);
-      image.onerror = reject;
-      image.src = objectUrl;
-    });
+    try {
+      source = await new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = objectUrl;
+      });
+    } catch (error) {
+      URL.revokeObjectURL(objectUrl);
+      objectUrl = null;
+      const heic = /\.(heic|heif)$/i.test(file.name || "") || /image\/hei[cf]/i.test(file.type || "");
+      if (!allowHeicConversion || !heic) throw error;
+      const { default: convertHeic } = await import("heic2any");
+      const converted = await convertHeic({ blob: file, toType: "image/jpeg", quality: 0.86 });
+      const jpeg = Array.isArray(converted) ? converted[0] : converted;
+      return optimizeImageForUpload(jpeg, false);
+    }
   }
   try {
     const width = source.width || source.naturalWidth, height = source.height || source.naturalHeight;
