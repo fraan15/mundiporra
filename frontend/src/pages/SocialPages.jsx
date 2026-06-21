@@ -2482,7 +2482,11 @@ export function MatchDetailPage() {
           >
             {data.revealed ? (
               data.participants.map((p) => (
-                <article
+                <ReactionBar
+                  targetType="prediction"
+                  targetId={p.prediction_id}
+                  disabled={user.is_read_only || !p.participating}
+                  own={p.id === user.id}
                   className={`participant-card ${p.participating ? "" : "participant-card-empty"}`}
                   key={p.id}
                 >
@@ -2505,7 +2509,7 @@ export function MatchDetailPage() {
                       <small>No registró pronóstico</small>
                     </div>
                   ) : (
-                    <ReactionBar targetType="prediction" targetId={p.prediction_id} disabled={user.is_read_only} own={p.id === user.id} className="participant-card-body">
+                    <div className="participant-card-body">
                       <div className="participant-result">
                         <small>RESULTADO</small>
                         <b>
@@ -2523,9 +2527,9 @@ export function MatchDetailPage() {
                           </strong>
                         </span>
                       </div>
-                    </ReactionBar>
+                    </div>
                   )}
-                </article>
+                </ReactionBar>
               ))
             ) : data.participants?.length ? (
               data.participants.map((p) => (
