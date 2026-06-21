@@ -456,11 +456,11 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 
 /* Reacciones compactas, superpuestas al estilo de una app de mensajería. */
 .participant-cards .participant-card{overflow:visible}
-.reaction-counts{position:absolute;z-index:5;right:10px;bottom:-15px;margin:0}
-.reaction-counts button{display:flex;width:auto;min-width:36px;height:30px;padding:3px 8px;border-color:rgba(80,55,60,.14);background:var(--panel);box-shadow:0 4px 12px rgba(55,35,40,.14)}
-.reaction-counts button span{margin-left:-4px;font-size:17px;line-height:1}
+.reaction-counts{position:absolute;z-index:5;right:8px;bottom:8px;margin:0}
+.reaction-counts button{display:flex;width:auto;min-width:27px;height:24px;padding:2px 6px;border-color:rgba(80,55,60,.14);background:var(--panel);box-shadow:0 4px 12px rgba(55,35,40,.14)}
+.reaction-counts button span{margin-left:-3px;font-size:14px;line-height:1}
 .reaction-counts button span:first-child{margin-left:0}
-.reaction-users{left:auto;right:0;top:calc(100% + 22px);min-width:210px;max-height:none;overflow:visible}
+.reaction-users{left:auto;right:0;top:calc(100% + 6px);min-width:210px;max-height:none;overflow:visible}
 .reaction-users header{justify-content:space-between}
 .reaction-users header strong{font-size:13px}
 .reaction-users header small{display:grid;place-items:center;min-width:23px;height:23px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:10px;font-weight:900}
@@ -470,8 +470,8 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 .reaction-users-emoji{font-size:20px;text-align:center}
 .reaction-users section>div{display:grid;gap:6px}
 .reaction-users section>div>span{display:flex;align-items:center;gap:8px}
-.comment-reaction-target{padding-bottom:8px}
-.revealed-prediction-row{padding-bottom:17px!important}
+.comment-reaction-target{padding-bottom:24px}
+.revealed-prediction-row{padding-bottom:10px!important}
 .reaction-counts button,.reaction-counts button.active{border-color:rgba(185,75,85,.16);background:rgba(255,255,255,.62);box-shadow:0 3px 10px rgba(55,35,40,.08);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
 [data-theme="dark"] .reaction-counts button,[data-theme="dark"] .reaction-counts button.active{border-color:rgba(174,204,240,.16);background:rgba(16,36,58,.62);box-shadow:0 3px 10px rgba(0,0,0,.18)}
 .reaction-users:before{content:"";position:absolute;z-index:2;right:17px;bottom:100%;border:9px solid transparent;border-bottom-color:var(--panel);filter:drop-shadow(0 -1px 0 rgba(80,55,60,.12))}
