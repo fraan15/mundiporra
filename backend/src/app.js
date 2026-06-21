@@ -186,6 +186,36 @@ const matchStartsAt = (match) => new Date(normalizeMatchInstant(`${match.match_d
 const matchPublishesAt = (match) => new Date(matchStartsAt(match).getTime() - 24 * 60 * 60 * 1000);
 const isMatchPublished = (match, current = new Date()) => Boolean(match.force_published) || current >= matchPublishesAt(match);
 const canAccessMatch = (req, match) => req.user.role === "admin" || isMatchPublished(match);
+const ALLOWED_REACTION_EMOJIS = ["😂", "🔥", "🤡", "👀", "😭", "👏"];
+const REACTION_TARGET_TYPES = new Set(["prediction", "match_comment"]);
+const emptyReactionSummary = () => Object.fromEntries(ALLOWED_REACTION_EMOJIS.map((emoji) => [emoji, { count: 0, reacted: false }]));
+const reactionSummary = (targetType, targetId, userId) => {
+  const summary = emptyReactionSummary();
+  db.prepare(`
+    SELECT emoji,COUNT(*) count,MAX(CASE WHEN user_id=? THEN 1 ELSE 0 END) reacted
+    FROM reactions WHERE target_type=? AND target_id=? GROUP BY emoji
+  `).all(userId, targetType, targetId).forEach((row) => {
+    if (summary[row.emoji]) summary[row.emoji] = { count: Number(row.count), reacted: Boolean(row.reacted) };
+  });
+  return summary;
+};
+const reactionTarget = (req, targetType, targetId) => {
+  if (targetType === "prediction") return db.prepare(`
+    SELECT p.id,m.* FROM predictions p JOIN matches m ON m.id=p.match_id WHERE p.id=?
+  `).get(targetId);
+  if (targetType === "match_comment") return db.prepare(`
+    SELECT c.id,m.* FROM match_comments c JOIN matches m ON m.id=c.match_id WHERE c.id=?
+  `).get(targetId);
+  return null;
+};
+const validateReactionTarget = (req, targetType, targetId) => {
+  const target = reactionTarget(req, targetType, targetId);
+  if (!target || !canAccessMatch(req, target)) return { status: 404, error: "Objetivo no encontrado." };
+  if (targetType === "prediction" && target.status === "open" && !isExpired(target)) {
+    return { status: 403, error: "Las apuestas todavía no se han revelado." };
+  }
+  return { target };
+};
 const isMatchInPlay = (match, current = new Date()) => {
   if (match.status === "finished") return false;
   if (match.match_date !== dateInTimeZone(current)) return false;
@@ -953,7 +983,7 @@ app.get("/api/matches/:id/detail", requireAuth, (req, res) => {
   const participants = open ? (req.user.role === "admin" ? participantStatusRows() : []) : db.prepare(`
     SELECT u.id,COALESCE(NULLIF(u.display_name,''),u.username) username,u.avatar_filename,
       CASE WHEN p.id IS NULL THEN 0 ELSE 1 END participating,
-      p.predicted_winner,p.predicted_team1_goals,p.predicted_team2_goals,p.predicted_scorer_id,
+      p.id prediction_id,p.predicted_winner,p.predicted_team1_goals,p.predicted_team2_goals,p.predicted_scorer_id,
       player.name predicted_scorer_name,p.scorer_points,p.total_points
     FROM users u
     LEFT JOIN predictions p ON p.user_id=u.id AND p.match_id=?
@@ -990,6 +1020,38 @@ app.get("/api/matches/:id/comments", requireAuth, (req, res) => {
     WHERE c.match_id=? ORDER BY c.created_at DESC
   `).all(req.params.id);
   res.json(comments.map((comment) => ({ ...comment, avatar_url: avatarUrl(comment) })));
+});
+
+app.get("/api/reactions", requireAuth, (req, res) => {
+  const targetType = String(req.query.target_type || "");
+  const targetIds = [...new Set(String(req.query.target_ids || "").split(",").map(Number).filter((id) => Number.isInteger(id) && id > 0))];
+  if (!REACTION_TARGET_TYPES.has(targetType) || !targetIds.length || targetIds.length > 100) {
+    return res.status(400).json({ error: "Objetivos de reacción no válidos." });
+  }
+  const reactions = {};
+  for (const targetId of targetIds) {
+    const validation = validateReactionTarget(req, targetType, targetId);
+    if (validation.error) return res.status(validation.status).json({ error: validation.error });
+    reactions[`${targetType}:${targetId}`] = reactionSummary(targetType, targetId, req.user.id);
+  }
+  res.json({ reactions, allowed_emojis: ALLOWED_REACTION_EMOJIS });
+});
+
+app.post("/api/reactions/toggle", requireAuth, requireWritableUser, (req, res) => {
+  const targetType = String(req.body.target_type || "");
+  const targetId = Number(req.body.target_id);
+  const emoji = String(req.body.emoji || "");
+  if (!REACTION_TARGET_TYPES.has(targetType)) return res.status(400).json({ error: "Tipo de objetivo no válido." });
+  if (!Number.isInteger(targetId) || targetId <= 0) return res.status(400).json({ error: "Objetivo no válido." });
+  if (!ALLOWED_REACTION_EMOJIS.includes(emoji)) return res.status(400).json({ error: "Emoji no permitido." });
+  const validation = validateReactionTarget(req, targetType, targetId);
+  if (validation.error) return res.status(validation.status).json({ error: validation.error });
+  const existing = db.prepare("SELECT id FROM reactions WHERE user_id=? AND target_type=? AND target_id=? AND emoji=?")
+    .get(req.user.id, targetType, targetId, emoji);
+  if (existing) db.prepare("DELETE FROM reactions WHERE id=?").run(existing.id);
+  else db.prepare("INSERT INTO reactions(user_id,target_type,target_id,emoji,created_at) VALUES(?,?,?,?,?)")
+    .run(req.user.id, targetType, targetId, emoji, now());
+  res.json({ target_key: `${targetType}:${targetId}`, reactions: reactionSummary(targetType, targetId, req.user.id) });
 });
 app.post("/api/matches/:id/comments", requireAuth, requireWritableUser, (req, res) => {
   const comment = String(req.body.comment || "").trim().slice(0, 500);

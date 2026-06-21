@@ -103,6 +103,49 @@ test("el usuario hardcodeado de solo lectura puede leer pero no escribir", async
   assert.equal((await agent.post("/api/chat").send({ message: "Hola" })).status, 403);
 });
 
+test("las reacciones validan visibilidad, revelado, emojis, conteos y toggle", async () => {
+  const admin = request.agent(app);
+  const user = request.agent(app);
+  const spectator = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  await user.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
+  await spectator.post("/api/auth/login").send({ username: "espectador", password: "mundial2026" });
+
+  const openMatch = await admin.post("/api/matches").send({
+    match_date: "2098-07-01", match_time: "20:00", team1: "Reacción A", team2: "Reacción B", force_published: true
+  });
+  const prediction = await user.post("/api/predictions").send({
+    match_id: openMatch.body.id, predicted_winner: "draw", predicted_team1_goals: 0, predicted_team2_goals: 0
+  });
+  assert.equal(prediction.status, 201);
+  assert.equal((await user.post("/api/reactions/toggle").send({ target_type: "prediction", target_id: prediction.body.id, emoji: "❤️" })).status, 400);
+  assert.equal((await user.post("/api/reactions/toggle").send({ target_type: "prediction", target_id: prediction.body.id, emoji: "😂" })).status, 403);
+
+  await admin.patch(`/api/matches/${openMatch.body.id}/status`).send({ status: "closed" });
+  const added = await user.post("/api/reactions/toggle").send({ target_type: "prediction", target_id: prediction.body.id, emoji: "😂" });
+  assert.equal(added.status, 200);
+  assert.deepEqual(added.body.reactions["😂"], { count: 1, reacted: true });
+  const listed = await user.get(`/api/reactions?target_type=prediction&target_ids=${prediction.body.id}`);
+  assert.deepEqual(listed.body.reactions[`prediction:${prediction.body.id}`]["😂"], { count: 1, reacted: true });
+  const removed = await user.post("/api/reactions/toggle").send({ target_type: "prediction", target_id: prediction.body.id, emoji: "😂" });
+  assert.deepEqual(removed.body.reactions["😂"], { count: 0, reacted: false });
+  assert.equal((await spectator.post("/api/reactions/toggle").send({ target_type: "prediction", target_id: prediction.body.id, emoji: "🔥" })).status, 403);
+
+  const comment = await user.post(`/api/matches/${openMatch.body.id}/comments`).send({ comment: "Comentario reaccionable" });
+  assert.equal(comment.status, 201);
+  const commentToggle = await user.post("/api/reactions/toggle").send({ target_type: "match_comment", target_id: comment.body.id, emoji: "👏" });
+  assert.equal(commentToggle.status, 200);
+  assert.deepEqual(commentToggle.body.reactions["👏"], { count: 1, reacted: true });
+
+  const hiddenMatch = await admin.post("/api/matches").send({
+    match_date: "2099-07-01", match_time: "20:00", team1: "Oculto A", team2: "Oculto B"
+  });
+  const stamp = new Date().toISOString();
+  const hiddenComment = db.prepare("INSERT INTO match_comments(match_id,user_id,comment,created_at,updated_at) VALUES(?,?,?,?,?)")
+    .run(hiddenMatch.body.id, db.prepare("SELECT id FROM users WHERE username='lucia'").get().id, "Oculto", stamp, stamp);
+  assert.equal((await user.post("/api/reactions/toggle").send({ target_type: "match_comment", target_id: hiddenComment.lastInsertRowid, emoji: "👀" })).status, 404);
+});
+
 test("interpreta las horas de los partidos en Europe/Madrid", async () => {
   const admin = request.agent(app);
   await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });

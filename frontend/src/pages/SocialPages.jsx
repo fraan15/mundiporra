@@ -31,6 +31,7 @@ import { StarMatchTitle } from "../components/StarMatchTitle";
 import { ActivityAvatar, Avatar } from "../components/Avatar";
 import { ScorerPicker } from "../components/ScorerPicker";
 import { AvatarCropper } from "../components/AvatarCropper";
+import { ReactionBar } from "../components/ReactionBar";
 
 const StatCards = ({ s, onPointsInfo }) => (
   <div className="stat-cards">
@@ -2522,6 +2523,7 @@ export function MatchDetailPage() {
                           </strong>
                         </span>
                       </div>
+                      <ReactionBar targetType="prediction" targetId={p.prediction_id} compact disabled={user.is_read_only} />
                     </div>
                   )}
                 </article>
@@ -2602,6 +2604,7 @@ export function MatchDetailPage() {
               <strong>{c.username}</strong>
               <p>{c.comment}</p>
               <small>{new Date(c.created_at).toLocaleString("es-ES")}</small>
+              <ReactionBar targetType="match_comment" targetId={c.id} compact disabled={user.is_read_only} />
             </div>
             {!user.is_read_only &&
               (c.user_id === user.id || user.role === "admin") && (
