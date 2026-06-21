@@ -6,6 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
+import convertHeic from "heic-convert";
 import { db, initDatabase, logAction, now, settings } from "./db/database.js";
 import { READ_ONLY_USER, hydrateUser, requireAdmin, requireAuth, requireWritableUser } from "./middleware/auth.js";
 import { autoCloseExpired, calculateWinner, effectiveCloseAt, isExpired, recalculateAll, recalculateMatch } from "./services/matches.js";
@@ -23,6 +24,7 @@ const chatMediaDir = process.env.CHAT_MEDIA_DIR
   : path.resolve(here, "../data/chat-media");
 fs.mkdirSync(avatarsDir, { recursive: true });
 fs.mkdirSync(chatMediaDir, { recursive: true });
+let heicConversionActive = false;
 
 class SQLiteSessionStore extends session.Store {
   get(sid, callback) {
@@ -976,14 +978,27 @@ app.put(
   "/api/chat/image",
   requireAuth,
   requireWritableUser,
-  express.raw({ type: "*/*", limit: "8mb" }),
+  express.raw({ type: "*/*", limit: "12mb" }),
   async (req, res, next) => {
     try {
       const contentType = String(req.get("content-type") || "").split(";")[0].toLowerCase();
-      if (!new Set(["image/jpeg", "image/png", "image/webp"]).has(contentType) || !Buffer.isBuffer(req.body) || !req.body.length) {
-        return res.status(415).json({ error: "Selecciona una imagen JPEG, PNG o WebP válida." });
+      const heic = new Set(["image/heic", "image/heif", "image/heic-sequence", "image/heif-sequence"]).has(contentType);
+      if ((!heic && !new Set(["image/jpeg", "image/png", "image/webp"]).has(contentType)) || !Buffer.isBuffer(req.body) || !req.body.length) {
+        return res.status(415).json({ error: "Selecciona una imagen JPEG, PNG, WebP, HEIC o HEIF válida." });
       }
-      const source = sharp(req.body, { failOn: "warning", limitInputPixels: 40_000_000 }).rotate();
+      if (heic && heicConversionActive) return res.status(503).json({ error: "Se está procesando otra foto HEIC. Inténtalo de nuevo en unos segundos." });
+      let imageBuffer = req.body;
+      if (heic) {
+        heicConversionActive = true;
+        try {
+          imageBuffer = Buffer.from(await convertHeic({ buffer: req.body, format: "JPEG", quality: 0.88 }));
+        } catch {
+          return res.status(400).json({ error: "No se pudo leer la foto HEIC/HEIF. Puede estar dañada o usar una variante no compatible." });
+        } finally {
+          heicConversionActive = false;
+        }
+      }
+      const source = sharp(imageBuffer, { failOn: "warning", limitInputPixels: 40_000_000 }).rotate();
       const metadata = await source.metadata();
       if (!metadata.width || !metadata.height || (metadata.pages || 1) > 1) return res.status(400).json({ error: "La imagen no es válida o es animada." });
       const token = `chat-${req.user.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
