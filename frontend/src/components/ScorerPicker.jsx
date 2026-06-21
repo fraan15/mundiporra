@@ -67,7 +67,7 @@ function ScorerPickerSheet({ players, value, matchLabel, onSelect, onClose }) {
           <span>Goleador del partido</span>
           <h2>{matchLabel}</h2>
         </div>
-        <button type="button" className="scorer-picker-close" aria-label="Cerrar buscador" onClick={onClose}><span>Cerrar</span><X size={18}/></button>
+        <button type="button" className="scorer-picker-close" aria-label="Cerrar buscador" title="Cerrar" onClick={onClose}><X size={18}/></button>
       </header>
       <div className="scorer-search">
         <span className="scorer-search-icon"><Search size={17}/></span>
