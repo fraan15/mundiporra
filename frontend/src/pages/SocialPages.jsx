@@ -2505,7 +2505,7 @@ export function MatchDetailPage() {
                       <small>No registró pronóstico</small>
                     </div>
                   ) : (
-                    <div className="participant-card-body">
+                    <ReactionBar targetType="prediction" targetId={p.prediction_id} disabled={user.is_read_only} own={p.id === user.id} className="participant-card-body">
                       <div className="participant-result">
                         <small>RESULTADO</small>
                         <b>
@@ -2523,8 +2523,7 @@ export function MatchDetailPage() {
                           </strong>
                         </span>
                       </div>
-                      <ReactionBar targetType="prediction" targetId={p.prediction_id} compact disabled={user.is_read_only} />
-                    </div>
+                    </ReactionBar>
                   )}
                 </article>
               ))
@@ -2600,12 +2599,11 @@ export function MatchDetailPage() {
         {comments.map((c) => (
           <article key={c.id}>
             <Avatar user={c} className="mini-avatar" />
-            <div>
+            <ReactionBar targetType="match_comment" targetId={c.id} disabled={user.is_read_only} own={c.user_id === user.id} className="comment-reaction-target">
               <strong>{c.username}</strong>
               <p>{c.comment}</p>
               <small>{new Date(c.created_at).toLocaleString("es-ES")}</small>
-              <ReactionBar targetType="match_comment" targetId={c.id} compact disabled={user.is_read_only} />
-            </div>
+            </ReactionBar>
             {!user.is_read_only &&
               (c.user_id === user.id || user.role === "admin") && (
                 <button onClick={() => remove(c.id)}>

@@ -284,6 +284,12 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_sessions_expire ON sessions(expire);
     CREATE INDEX IF NOT EXISTS idx_points_adjustments_user ON points_adjustments(user_id);
   `);
+  db.exec(`
+    DELETE FROM reactions
+    WHERE id NOT IN (SELECT MAX(id) FROM reactions GROUP BY user_id,target_type,target_id);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_reactions_one_per_target
+      ON reactions(user_id,target_type,target_id);
+  `);
   const userColumns = db.prepare("PRAGMA table_info(users)").all().map((column) => column.name);
   if (!userColumns.includes("personal_phrase")) db.exec("ALTER TABLE users ADD COLUMN personal_phrase TEXT NOT NULL DEFAULT ''");
   if (!userColumns.includes("avatar_filename")) db.exec("ALTER TABLE users ADD COLUMN avatar_filename TEXT");

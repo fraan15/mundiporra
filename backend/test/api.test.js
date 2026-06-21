@@ -122,20 +122,34 @@ test("las reacciones validan visibilidad, revelado, emojis, conteos y toggle", a
   assert.equal((await user.post("/api/reactions/toggle").send({ target_type: "prediction", target_id: prediction.body.id, emoji: "😂" })).status, 403);
 
   await admin.patch(`/api/matches/${openMatch.body.id}/status`).send({ status: "closed" });
-  const added = await user.post("/api/reactions/toggle").send({ target_type: "prediction", target_id: prediction.body.id, emoji: "😂" });
+  assert.equal((await user.post("/api/reactions/toggle").send({ target_type: "prediction", target_id: prediction.body.id, emoji: "😂" })).status, 403);
+  const added = await admin.post("/api/reactions/toggle").send({ target_type: "prediction", target_id: prediction.body.id, emoji: "😂" });
   assert.equal(added.status, 200);
-  assert.deepEqual(added.body.reactions["😂"], { count: 1, reacted: true });
-  const listed = await user.get(`/api/reactions?target_type=prediction&target_ids=${prediction.body.id}`);
-  assert.deepEqual(listed.body.reactions[`prediction:${prediction.body.id}`]["😂"], { count: 1, reacted: true });
-  const removed = await user.post("/api/reactions/toggle").send({ target_type: "prediction", target_id: prediction.body.id, emoji: "😂" });
-  assert.deepEqual(removed.body.reactions["😂"], { count: 0, reacted: false });
+  assert.equal(added.body.reactions["😂"].count, 1);
+  assert.equal(added.body.reactions["😂"].reacted, true);
+  assert.equal(added.body.reactions["😂"].users[0].username, "administrador");
+  const listed = await admin.get(`/api/reactions?target_type=prediction&target_ids=${prediction.body.id}`);
+  assert.equal(listed.body.reactions[`prediction:${prediction.body.id}`]["😂"].count, 1);
+  assert.equal(listed.body.reactions[`prediction:${prediction.body.id}`]["😂"].reacted, true);
+  const changed = await admin.post("/api/reactions/toggle").send({ target_type: "prediction", target_id: prediction.body.id, emoji: "🔥" });
+  assert.equal(changed.body.reactions["😂"].count, 0);
+  assert.equal(changed.body.reactions["🔥"].count, 1);
+  assert.equal(changed.body.reactions["🔥"].reacted, true);
+  assert.equal(db.prepare("SELECT COUNT(*) count FROM reactions WHERE user_id=? AND target_type='prediction' AND target_id=?").get(
+    db.prepare("SELECT id FROM users WHERE username='administrador'").get().id, prediction.body.id
+  ).count, 1);
+  await admin.post("/api/reactions/toggle").send({ target_type: "prediction", target_id: prediction.body.id, emoji: "😂" });
+  const removed = await admin.post("/api/reactions/toggle").send({ target_type: "prediction", target_id: prediction.body.id, emoji: "😂" });
+  assert.equal(removed.body.reactions["😂"].count, 0);
+  assert.equal(removed.body.reactions["😂"].reacted, false);
   assert.equal((await spectator.post("/api/reactions/toggle").send({ target_type: "prediction", target_id: prediction.body.id, emoji: "🔥" })).status, 403);
 
   const comment = await user.post(`/api/matches/${openMatch.body.id}/comments`).send({ comment: "Comentario reaccionable" });
   assert.equal(comment.status, 201);
-  const commentToggle = await user.post("/api/reactions/toggle").send({ target_type: "match_comment", target_id: comment.body.id, emoji: "👏" });
+  const commentToggle = await admin.post("/api/reactions/toggle").send({ target_type: "match_comment", target_id: comment.body.id, emoji: "👏" });
   assert.equal(commentToggle.status, 200);
-  assert.deepEqual(commentToggle.body.reactions["👏"], { count: 1, reacted: true });
+  assert.equal(commentToggle.body.reactions["👏"].count, 1);
+  assert.equal(commentToggle.body.reactions["👏"].reacted, true);
 
   const hiddenMatch = await admin.post("/api/matches").send({
     match_date: "2099-07-01", match_time: "20:00", team1: "Oculto A", team2: "Oculto B"

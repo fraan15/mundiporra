@@ -192,19 +192,25 @@ const emptyReactionSummary = () => Object.fromEntries(ALLOWED_REACTION_EMOJIS.ma
 const reactionSummary = (targetType, targetId, userId) => {
   const summary = emptyReactionSummary();
   db.prepare(`
-    SELECT emoji,COUNT(*) count,MAX(CASE WHEN user_id=? THEN 1 ELSE 0 END) reacted
-    FROM reactions WHERE target_type=? AND target_id=? GROUP BY emoji
-  `).all(userId, targetType, targetId).forEach((row) => {
-    if (summary[row.emoji]) summary[row.emoji] = { count: Number(row.count), reacted: Boolean(row.reacted) };
+    SELECT r.emoji,r.user_id,COALESCE(NULLIF(u.display_name,''),u.username) username,u.avatar_filename
+    FROM reactions r JOIN users u ON u.id=r.user_id
+    WHERE r.target_type=? AND r.target_id=? ORDER BY r.created_at,u.username
+  `).all(targetType, targetId).forEach((row) => {
+    if (!summary[row.emoji]) return;
+    summary[row.emoji].count += 1;
+    summary[row.emoji].reacted ||= row.user_id === userId;
+    summary[row.emoji].users ||= [];
+    summary[row.emoji].users.push({ id: row.user_id, username: row.username, avatar_url: avatarUrl(row) });
   });
+  Object.values(summary).forEach((reaction) => { reaction.users ||= []; });
   return summary;
 };
 const reactionTarget = (req, targetType, targetId) => {
   if (targetType === "prediction") return db.prepare(`
-    SELECT p.id,m.* FROM predictions p JOIN matches m ON m.id=p.match_id WHERE p.id=?
+    SELECT p.id,p.user_id target_user_id,m.* FROM predictions p JOIN matches m ON m.id=p.match_id WHERE p.id=?
   `).get(targetId);
   if (targetType === "match_comment") return db.prepare(`
-    SELECT c.id,m.* FROM match_comments c JOIN matches m ON m.id=c.match_id WHERE c.id=?
+    SELECT c.id,c.user_id target_user_id,m.* FROM match_comments c JOIN matches m ON m.id=c.match_id WHERE c.id=?
   `).get(targetId);
   return null;
 };
@@ -1046,11 +1052,18 @@ app.post("/api/reactions/toggle", requireAuth, requireWritableUser, (req, res) =
   if (!ALLOWED_REACTION_EMOJIS.includes(emoji)) return res.status(400).json({ error: "Emoji no permitido." });
   const validation = validateReactionTarget(req, targetType, targetId);
   if (validation.error) return res.status(validation.status).json({ error: validation.error });
-  const existing = db.prepare("SELECT id FROM reactions WHERE user_id=? AND target_type=? AND target_id=? AND emoji=?")
-    .get(req.user.id, targetType, targetId, emoji);
-  if (existing) db.prepare("DELETE FROM reactions WHERE id=?").run(existing.id);
-  else db.prepare("INSERT INTO reactions(user_id,target_type,target_id,emoji,created_at) VALUES(?,?,?,?,?)")
-    .run(req.user.id, targetType, targetId, emoji, now());
+  if (validation.target.target_user_id === req.user.id) {
+    return res.status(403).json({ error: "No puedes reaccionar a tu propio contenido." });
+  }
+  const existing = db.prepare("SELECT id,emoji FROM reactions WHERE user_id=? AND target_type=? AND target_id=?")
+    .get(req.user.id, targetType, targetId);
+  db.transaction(() => {
+    if (existing) db.prepare("DELETE FROM reactions WHERE id=?").run(existing.id);
+    if (!existing || existing.emoji !== emoji) {
+      db.prepare("INSERT INTO reactions(user_id,target_type,target_id,emoji,created_at) VALUES(?,?,?,?,?)")
+        .run(req.user.id, targetType, targetId, emoji, now());
+    }
+  })();
   res.json({ target_key: `${targetType}:${targetId}`, reactions: reactionSummary(targetType, targetId, req.user.id) });
 });
 app.post("/api/matches/:id/comments", requireAuth, requireWritableUser, (req, res) => {
@@ -1407,7 +1420,7 @@ app.get("/api/predictions/match/:matchId", requireAuth, (req, res) => {
     return res.json({ revealed: false, count, participants: [] });
   }
   const predictions = db.prepare(`
-    SELECT p.id,COALESCE(NULLIF(u.display_name,''),u.username) username,p.predicted_winner,p.predicted_team1_goals,p.predicted_team2_goals,
+    SELECT p.id,p.user_id,COALESCE(NULLIF(u.display_name,''),u.username) username,p.predicted_winner,p.predicted_team1_goals,p.predicted_team2_goals,
       p.winner_points,p.exact_result_points,p.scorer_points,p.total_points,p.predicted_scorer_id,
       player.name predicted_scorer_name,player.position predicted_scorer_position
     FROM predictions p JOIN users u ON u.id=p.user_id LEFT JOIN players player ON player.id=p.predicted_scorer_id
