@@ -11,6 +11,7 @@ import { MatchesPage } from "./pages/MatchesPage";
 import { ActivityPage, MatchDetailPage, ProfilePage, PublicProfilePage } from "./pages/SocialPages";
 import { ChatPage } from "./pages/ChatPage";
 import { Avatar } from "./components/Avatar";
+import { Flag } from "./components/SportsUI";
 import { PushSettingsPage } from "./components/PushSettings";
 import { startVisiblePolling } from "./utils/visiblePolling";
 
@@ -206,7 +207,7 @@ function MovementSummaryPanel({ enabled = true }) {
   useEffect(()=>{
     const frame=requestAnimationFrame(()=>{
       const mine=rankingRef.current?.querySelector(".me");
-      if(mine)rankingRef.current.scrollTop=mine.offsetTop-rankingRef.current.clientHeight/2+mine.clientHeight/2;
+      if(mine)rankingRef.current.scrollTop=mine.offsetTop-rankingRef.current.offsetTop-rankingRef.current.clientHeight/2+mine.clientHeight/2;
     });
     return()=>cancelAnimationFrame(frame);
   },[index,summaries.length]);
@@ -242,12 +243,12 @@ function MovementSummaryPanel({ enabled = true }) {
       <header className="movement-head"><div><span><Sparkles size={13}/> TU JORNADA</span><h2 id="movement-title">Resumen movimientos</h2></div><button onClick={close} aria-label="Cerrar resumen"><X size={21}/></button></header>
       <div className="movement-scroll">
         <div className="movement-match-meta"><time>{new Date(`${item.match.date}T12:00:00`).toLocaleDateString("es-ES",{weekday:"long",day:"numeric",month:"long"})} · {item.match.time}</time>{item.match.is_star&&<b>PARTIDO ESTRELLA ×2</b>}</div>
-        <div className="movement-score"><span>{item.match.team1}</span><strong>{item.match.result_team1}<i>–</i>{item.match.result_team2}</strong><span>{item.match.team2}</span></div>
+        <div className="movement-score"><span><Flag team={item.match.team1}/>{item.match.team1}</span><strong>{item.match.result_team1}<i>–</i>{item.match.result_team2}</strong><span><Flag team={item.match.team2}/>{item.match.team2}</span></div>
         <div className="movement-scorers"><Goal size={15}/><span>Goleadores</span><strong>{item.match.scorers.length?item.match.scorers.join(", "):"Sin goleadores"}</strong></div>
-        <div className="movement-my-pick"><small>Tu pronóstico</small>{prediction?<><strong>{prediction.predicted_team1_goals} – {prediction.predicted_team2_goals}</strong><span><Goal size={14}/>{prediction.predicted_scorer_name||"Sin goleador elegido"}</span></>:<p>No realizaste una apuesta para este partido.</p>}</div>
+        <div className="movement-my-pick"><small>Tu pronóstico</small>{prediction?<><strong><Flag team={item.match.team1}/>{prediction.predicted_team1_goals} – {prediction.predicted_team2_goals}<Flag team={item.match.team2}/></strong><span><Goal size={14}/>{prediction.predicted_scorer_name||"Sin goleador elegido"}</span></>:<p>No realizaste una apuesta para este partido.</p>}</div>
         <div className="movement-points"><div className={Number(item.points)>0?"has-points":""}><small>Has sumado</small><strong>+{item.points}</strong><span>puntos</span></div><div className="movement-reasons"><small>¿Por qué?</small>{prediction?<>{reasons.map(reason=><span className={Number(reason.points)>0?"earned":""} key={reason.label}>{Number(reason.points)>0?<Check size={13}/>:<X size={13}/>}<b>{reason.label}</b><em>+{reason.points||0}</em></span>)}{Number(prediction.scoring_multiplier)>1&&<span className="earned"><Sparkles size={13}/><b>Multiplicador estrella</b><em>×{prediction.scoring_multiplier}</em></span>}</>:<p>No registraste pronóstico para este partido.</p>}</div></div>
         <div className="movement-ranking-head"><div><small>Tu posición ahora</small><strong>#{item.ranking.position}</strong></div><span className={movement>0?"up":movement<0?"down":"same"}>{movement>0?<ArrowUp/>:movement<0?<ArrowDown/>:<ArrowRight/>}<b>{movement===0?"Sin cambios":`${Math.abs(movement)} ${Math.abs(movement)===1?"puesto":"puestos"}`}</b></span></div>
-        <div className="movement-ranking" ref={rankingRef}>{item.ranking.context.map(row=><div className={row.is_me?"me":""} key={row.id}><b>#{row.position}</b><span>{row.username}{row.is_me&&<small>Tú</small>}</span><strong>{row.points} pts</strong></div>)}</div>
+        <div className="movement-ranking" ref={rankingRef}>{item.ranking.context.map(row=>{const rankMovement=Number(row.movement||0);return <div className={row.is_me?"me":""} key={row.id}><b>#{row.position}<i className={rankMovement>0?"up":rankMovement<0?"down":"same"}>{rankMovement>0?<ArrowUp/>:rankMovement<0?<ArrowDown/>:<span>=</span>}</i></b><span>{row.username}{row.is_me&&<small>Tú</small>}</span><strong>{row.points} pts</strong></div>})}</div>
       </div>
       {summaries.length>1&&<footer className="movement-pagination"><button disabled={index===0} onClick={()=>go(-1)} aria-label="Partido anterior"><ChevronLeft size={19}/></button><div>{summaries.map((_,dot)=><button key={dot} className={dot===index?"active":""} onClick={()=>setIndex(dot)} aria-label={`Ver resumen ${dot+1}`}/>)}</div><span>{index+1} de {summaries.length}</span><button disabled={index===summaries.length-1} onClick={()=>go(1)} aria-label="Partido siguiente"><ChevronRight size={19}/></button></footer>}
     </section>
