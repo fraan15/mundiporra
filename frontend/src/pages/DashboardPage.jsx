@@ -14,14 +14,16 @@ const addDays = (date, days) => {
   value.setDate(value.getDate() + days);
   return value;
 };
-const dayTitle = (date, index) => {
-  if (index === 0) return "Hoy";
-  if (index === 1) return "Mañana";
+const dayTitle = (date, offset) => {
+  if (offset === -1) return "Ayer";
+  if (offset === 0) return "Hoy";
+  if (offset === 1) return "Mañana";
   return date.toLocaleDateString("es-ES", { weekday: "long", day: "numeric" });
 };
 const hasResult = (match) => match.result_team1 !== null && match.result_team2 !== null;
 const isCalendarMatchVisible = (match, todayKey) => {
   if (!match.published) return false;
+  if (match.in_play) return true;
   if (match.betting_open) return true;
   return match.match_date === todayKey;
 };
@@ -51,12 +53,12 @@ function DashboardCalendar({ matches, onOpenMatch, restoreScrollTop, user, curre
   const today = new Date(currentTime);
   const todayKey = dateKey(today);
   const calendarMatches = matches.filter(match => isCalendarMatchVisible(match, todayKey));
-  const days = Array.from({ length: 4 }, (_, index) => {
-    const date = addDays(today, index), key = dateKey(date);
+  const days = [-1, 0, 1, 2, 3].map(offset => {
+    const date = addDays(today, offset), key = dateKey(date);
     return {
       key,
-      title: dayTitle(date, index),
-      matches: calendarMatches.filter(match => match.match_date === key).sort((a, b) => a.match_time.localeCompare(b.match_time))
+      title: dayTitle(date, offset),
+      matches: calendarMatches.filter(match => match.match_date === key && (offset !== -1 || match.in_play)).sort((a, b) => a.match_time.localeCompare(b.match_time))
     };
   });
   const daysWithMatches = days.filter(day => day.matches.length);
