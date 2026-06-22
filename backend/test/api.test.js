@@ -882,11 +882,10 @@ test("recalcula con fiabilidad al editar resultado, goleadores y Partido Estrell
     scorer_ids: [scorer2.id]
   });
   assert.equal(sameScoreEdit.status, 200);
-  const sameScoreNotification = (await user.get("/api/notifications")).body.notifications.find((item) =>
+  const sameScoreNotifications = (await user.get("/api/notifications")).body.notifications.filter((item) =>
     item.type === "result_published" && item.entity_id === created.body.id && item.event_key?.startsWith(`result-edit:${created.body.id}:`) && item.message.includes(`${team1.name} 2 - 1 ${team2.name}`)
   );
-  assert.equal(sameScoreNotification.title, "Resultado publicado - modificacion - (administrador)");
-  assert.match(sameScoreNotification.message, new RegExp(`${team1.name} 2 - 1 ${team2.name}`));
+  assert.equal(sameScoreNotifications.length, 1);
   const pendingMovements = (await user.get("/api/movement-summaries/pending")).body.summaries
     .filter((item) => item.match.id === created.body.id);
   assert.equal(pendingMovements.length, 1);

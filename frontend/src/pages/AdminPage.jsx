@@ -842,6 +842,7 @@ function MatchReferencePanel({ data, onSelect }) {
 
 function AdminResultEditor({ match, onCancel, onSaved }) {
   const editorRef = useRef(null);
+  const savingRef = useRef(false);
   const [score, setScore] = useState({
       g1: match.result_team1 ?? "",
       g2: match.result_team2 ?? "",
@@ -850,7 +851,8 @@ function AdminResultEditor({ match, onCancel, onSaved }) {
     [scorerIds, setScorerIds] = useState(
       (match.actual_scorers || []).map((player) => player.id),
     ),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    [saving, setSaving] = useState(false);
   useEffect(() => {
     editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     editorRef.current?.focus({ preventScroll: true });
@@ -893,6 +895,9 @@ function AdminResultEditor({ match, onCancel, onSaved }) {
       [field]: String(Math.max(0, Number(current[field] || 0) + delta)),
     }));
   const save = async () => {
+    if (savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
     setError("");
     try {
       await api(`/matches/${match.id}/finish`, {
@@ -906,6 +911,8 @@ function AdminResultEditor({ match, onCancel, onSaved }) {
       onSaved();
     } catch (err) {
       setError(err.message);
+      savingRef.current = false;
+      setSaving(false);
     }
   };
   return (
@@ -995,10 +1002,10 @@ function AdminResultEditor({ match, onCancel, onSaved }) {
         </div>
       )}
       {error && <div className="alert error">{error}</div>}
-      <button className="primary" type="button" onClick={save}>
-        Guardar resultado
+      <button className="primary" type="button" onClick={save} disabled={saving}>
+        {saving ? "Guardando…" : "Guardar resultado"}
       </button>
-      <button className="secondary" type="button" onClick={onCancel}>
+      <button className="secondary" type="button" onClick={onCancel} disabled={saving}>
         Cancelar
       </button>
     </section>

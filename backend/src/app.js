@@ -1602,6 +1602,14 @@ app.post("/api/matches/:id/finish", requireAdmin, (req, res) => {
   }
   const winner = calculateWinner(g1, g2);
   if (req.body.winner && req.body.winner !== winner) return res.status(400).json({ error: "El ganador no coincide con el marcador." });
+  if (before.status === "finished" && before.result_team1 === g1 && before.result_team2 === g2) {
+    const storedScorerIds = db.prepare("SELECT player_id FROM match_scorers WHERE match_id=? ORDER BY player_id")
+      .all(before.id).map((row) => row.player_id);
+    const submittedScorerIds = [...playerScorerIds].sort((a, b) => a - b);
+    if (storedScorerIds.length === submittedScorerIds.length && storedScorerIds.every((id, index) => id === submittedScorerIds[index])) {
+      return res.json(serializeMatch(before));
+    }
+  }
   const leaderboardBefore = leaderboardRows();
   db.transaction(() => {
     db.prepare("UPDATE matches SET status='finished',result_team1=?,result_team2=?,winner=?,updated_at=? WHERE id=?")
