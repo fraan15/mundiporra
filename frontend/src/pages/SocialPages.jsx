@@ -1943,6 +1943,7 @@ export function MatchDetailPage() {
     [commentsPage, setCommentsPage] = useState(1),
     [text, setText] = useState(""),
     [commentMentions, setCommentMentions] = useState([]),
+    [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false),
     [gifPickerOpen, setGifPickerOpen] = useState(false),
     [gifQuery, setGifQuery] = useState(""),
     [gifType, setGifType] = useState("gif"),
@@ -2726,20 +2727,27 @@ export function MatchDetailPage() {
               </div>
             )}
             <div className="comment-form">
+              <div className="comment-attachment-control">
+                <button type="button" className={`comment-add-trigger ${attachmentMenuOpen ? "active" : ""}`} onClick={() => setAttachmentMenuOpen((open) => !open)} aria-label="Añadir contenido" aria-expanded={attachmentMenuOpen}>
+                  <Plus size={22} />
+                </button>
+                {attachmentMenuOpen && <div className="comment-attachment-menu">
+                  <button type="button" onClick={() => { setAttachmentMenuOpen(false); commentFileRef.current?.click(); }} disabled={imageUploading}>
+                    <ImagePlus size={17} /><span>{imageUploading ? "Subiendo…" : "Foto"}</span>
+                  </button>
+                  <button type="button" onClick={() => { setAttachmentMenuOpen(false); setGifPickerOpen(true); }}>
+                    <Film size={17} /><span>GIF / sticker</span>
+                  </button>
+                </div>}
+              </div>
               <input
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 maxLength="500"
                 placeholder="Comparte tu lectura del partido…"
               />
-              <button type="button" className="comment-image-trigger" onClick={() => commentFileRef.current?.click()} disabled={imageUploading} aria-label="Añadir foto desde el dispositivo">
-                <ImagePlus size={18} /><span>{imageUploading ? "Subiendo…" : "Foto"}</span>
-              </button>
               <input ref={commentFileRef} type="file" accept={IMAGE_ACCEPT} hidden onChange={uploadCommentImage} />
-              <button type="button" className="gif-trigger" onClick={() => setGifPickerOpen((open) => !open)} aria-label="Añadir GIF o sticker">
-                <Film size={17} /> GIF
-              </button>
-              <button className="primary" disabled={imageUploading || (!text.trim() && !selectedGif && !selectedImage)} onClick={add}>
+              <button className="primary comment-send-button" disabled={imageUploading || (!text.trim() && !selectedGif && !selectedImage)} onClick={add} aria-label="Enviar comentario">
                 <Send size={16} />
               </button>
             </div>

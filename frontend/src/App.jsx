@@ -18,9 +18,26 @@ import { startVisiblePolling } from "./utils/visiblePolling";
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
 
+function InitialLoadingScreen() {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setVisible(true), 180);
+    return () => window.clearTimeout(timer);
+  }, []);
+  if (!visible) return null;
+  return <div className="initial-loading" role="status" aria-live="polite" aria-label="Cargando MundiPorra">
+    <div className="initial-loading-glow" />
+    <div className="initial-loading-content">
+      <div className="initial-loading-mark"><img src="/images/mundial_2026.png" alt="" /></div>
+      <div className="initial-loading-copy"><span>Loading…</span><strong>MundiPorra</strong></div>
+      <div className="initial-loading-progress"><i /></div>
+    </div>
+  </div>;
+}
+
 function ProtectedRoute() {
   const { user, loading } = useAuth();
-  if (loading) return <div className="page-loader"><span /></div>;
+  if (loading) return <InitialLoadingScreen />;
   return user ? <Outlet /> : <Navigate to="/login" replace />;
 }
 function AdminRoute() {
