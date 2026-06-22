@@ -29,7 +29,7 @@ export const leaderboardRows = () => db.prepare(`
     WHERE match_id=(SELECT id FROM latest_finished_match)
   ) last_match ON last_match.user_id=u.id
   WHERE u.active=1 AND u.role='user'
-  GROUP BY u.id ORDER BY total_points DESC,exact_hits DESC,winner_hits DESC,u.username
+  GROUP BY u.id ORDER BY total_points DESC,exact_hits DESC,winner_hits DESC,scorer_hits DESC,u.id
 `).all();
 
 export function saveRankingSnapshot(date = new Date().toISOString().slice(0, 10)) {

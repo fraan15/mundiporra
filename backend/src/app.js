@@ -519,16 +519,26 @@ const userStats = (userId) => {
     `).all();
     const totals = new Map(leaderboard.map((item) => [item.id, 0]));
     const thresholdWinners = new Map();
-    for (const prediction of pointRows) {
-      const total = (totals.get(prediction.user_id) || 0) + Number(prediction.total_points || 0);
-      totals.set(prediction.user_id, total);
+    for (let index = 0; index < pointRows.length;) {
+      const matchId = pointRows[index].match_id;
+      const matchRows = [];
+      while (index < pointRows.length && pointRows[index].match_id === matchId) matchRows.push(pointRows[index++]);
+
+      for (const prediction of matchRows) {
+        totals.set(prediction.user_id,
+          (totals.get(prediction.user_id) || 0) + Number(prediction.total_points || 0));
+      }
       for (let threshold = 100; threshold <= 800; threshold += 100) {
-        if (total >= threshold && !thresholdWinners.has(threshold)) thresholdWinners.set(threshold, prediction.user_id);
+        if (thresholdWinners.has(threshold)) continue;
+        const winners = matchRows
+          .filter((prediction) => (totals.get(prediction.user_id) || 0) >= threshold)
+          .map((prediction) => prediction.user_id);
+        if (winners.length) thresholdWinners.set(threshold, winners);
       }
     }
-    for (const [threshold, winnerId] of thresholdWinners) add(winnerId, {
+    for (const [threshold, winnerIds] of thresholdWinners) winnerIds.forEach((winnerId) => add(winnerId, {
       icon: "🏁", name: `Primero en ${threshold} puntos`, kind: "record"
-    });
+    }));
 
     const dailyRecords = db.prepare(`
       SELECT p.user_id,m.match_date,SUM(p.total_points) points
@@ -1214,8 +1224,8 @@ app.post("/api/matches/:id/simulation", requireAuth, (req, res) => {
   const before = leaderboardRows(), previousPositions = new Map(before.map((row, index) => [row.id, index + 1]));
   const ranking = before.map(row => {
     const points = simulated.get(row.id) || { winner_points: 0, exact_result_points: 0, scorer_points: 0, total_points: 0 };
-    return { ...row, simulated: points, total_points: Number(row.total_points) + points.total_points, exact_hits: Number(row.exact_hits) + (points.exact_result_points > 0 ? 1 : 0), winner_hits: Number(row.winner_hits) + (points.winner_points > 0 ? 1 : 0) };
-  }).sort((a, b) => b.total_points - a.total_points || b.exact_hits - a.exact_hits || b.winner_hits - a.winner_hits || a.username.localeCompare(b.username, "es"))
+    return { ...row, simulated: points, total_points: Number(row.total_points) + points.total_points, exact_hits: Number(row.exact_hits) + (points.exact_result_points > 0 ? 1 : 0), winner_hits: Number(row.winner_hits) + (points.winner_points > 0 ? 1 : 0), scorer_hits: Number(row.scorer_hits) + (points.scorer_points > 0 ? 1 : 0) };
+  }).sort((a, b) => b.total_points - a.total_points || b.exact_hits - a.exact_hits || b.winner_hits - a.winner_hits || b.scorer_hits - a.scorer_hits || a.id - b.id)
     .map((row, index) => ({ id: row.id, username: row.username, points: row.total_points, match_points: row.simulated.total_points, position: index + 1, movement: previousPositions.get(row.id) - (index + 1), is_me: row.id === req.user.id }));
   const mine = ranking.find(row => row.id === req.user.id);
   res.json({ result_team1: g1, result_team2: g2, winner: winnerValue, multiplier, points: simulated.get(req.user.id) || null, ranking, mine });
@@ -1840,11 +1850,12 @@ app.get("/api/leaderboard/daily", requireAuth, (_req, res) => {
     SELECT u.id,COALESCE(NULLIF(u.display_name,''),u.username) username,u.personal_phrase,
       COALESCE(SUM(p.total_points),0) total_points,
       COALESCE(SUM(CASE WHEN p.winner_points>0 THEN 1 ELSE 0 END),0) winner_hits,
-      COALESCE(SUM(CASE WHEN p.exact_result_points>0 THEN 1 ELSE 0 END),0) exact_hits
+      COALESCE(SUM(CASE WHEN p.exact_result_points>0 THEN 1 ELSE 0 END),0) exact_hits,
+      COALESCE(SUM(CASE WHEN p.scorer_points>0 THEN 1 ELSE 0 END),0) scorer_hits
     FROM users u LEFT JOIN predictions p ON p.user_id=u.id
       AND p.match_id IN (SELECT id FROM matches WHERE match_date=? AND status='finished')
     WHERE u.active=1 AND u.role='user'
-    GROUP BY u.id ORDER BY total_points DESC,exact_hits DESC,winner_hits DESC,u.username
+    GROUP BY u.id ORDER BY total_points DESC,exact_hits DESC,winner_hits DESC,scorer_hits DESC,u.id
   `).all(latestDate);
   res.json({ date: latestDate || null, rows });
 });
@@ -1884,11 +1895,12 @@ app.get("/api/history/day/:date/summary", requireAuth, (req, res) => {
   res.json(db.prepare(`
     SELECT COALESCE(NULLIF(u.display_name,''),u.username) username,COALESCE(SUM(p.total_points),0) points,
       COALESCE(SUM(CASE WHEN p.winner_points>0 THEN 1 ELSE 0 END),0) winner_hits,
-      COALESCE(SUM(CASE WHEN p.exact_result_points>0 THEN 1 ELSE 0 END),0) exact_hits
+      COALESCE(SUM(CASE WHEN p.exact_result_points>0 THEN 1 ELSE 0 END),0) exact_hits,
+      COALESCE(SUM(CASE WHEN p.scorer_points>0 THEN 1 ELSE 0 END),0) scorer_hits
     FROM users u LEFT JOIN predictions p ON p.user_id=u.id
       AND p.match_id IN (SELECT id FROM matches WHERE match_date=?)
     WHERE u.active=1 AND u.role='user'
-    GROUP BY u.id ORDER BY points DESC,u.username
+    GROUP BY u.id ORDER BY points DESC,exact_hits DESC,winner_hits DESC,scorer_hits DESC,u.id
   `).all(req.params.date));
 });
 
