@@ -2758,6 +2758,7 @@ export function MatchDetailPage() {
                   <button className={gifType === "gif" ? "active" : ""} onClick={() => setGifType("gif")}>GIF</button>
                   <button className={gifType === "sticker" ? "active" : ""} onClick={() => setGifType("sticker")}>Stickers</button>
                   <span>Powered by GIPHY</span>
+                  <button type="button" className="giphy-close" onClick={() => setGifPickerOpen(false)} aria-label="Cerrar selector de GIF y stickers"><X size={18} /></button>
                 </div>
                 <form onSubmit={(event) => { event.preventDefault(); searchGiphy(); }}>
                   <input value={gifQuery} onChange={(event) => setGifQuery(event.target.value)} maxLength="50" placeholder={`Buscar ${gifType === "gif" ? "GIF" : "stickers"}…`} />
