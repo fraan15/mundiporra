@@ -70,9 +70,14 @@ test("solo el autor o un administrador pueden borrar un mensaje del chat", async
   await author.post("/api/auth/login").send({ username: "lucia", password: "lucia" }).expect(200);
   await other.post("/api/auth/login").send({ username: "espectador", password: "mundial2026" }).expect(200);
   const created = await author.post("/api/chat").send({ message: "Mensaje que se puede borrar" }).expect(201);
+  const reply = await author.post("/api/chat").send({ message: "Respuesta que permanece", reply_to_id: created.body.id }).expect(201);
   await other.delete(`/api/chat/${created.body.id}`).expect(403);
   await author.delete(`/api/chat/${created.body.id}`).expect(200);
   assert.equal(db.prepare("SELECT id FROM chat_messages WHERE id=?").get(created.body.id), undefined);
+  const retainedReply = db.prepare("SELECT reply_to_id,reply_deleted FROM chat_messages WHERE id=?").get(reply.body.id);
+  assert.equal(retainedReply.reply_to_id, null);
+  assert.equal(retainedReply.reply_deleted, 1);
+  assert.equal((await author.get("/api/chat")).body.find(item => item.id === reply.body.id).reply_deleted, 1);
 });
 
 test("respuestas y menciones del chat crean una sola notificación social por destinatario", async () => {

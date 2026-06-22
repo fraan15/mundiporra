@@ -223,6 +223,7 @@ export function initDatabase() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       reply_to_id INTEGER REFERENCES chat_messages(id) ON DELETE SET NULL,
+      reply_deleted INTEGER NOT NULL DEFAULT 0 CHECK(reply_deleted IN (0,1)),
       message TEXT NOT NULL,
       media_type TEXT CHECK(media_type IN ('gif','sticker','image')),
       media_provider TEXT,
@@ -332,6 +333,7 @@ export function initDatabase() {
   `);
   const chatColumns = new Set(db.prepare("PRAGMA table_info(chat_messages)").all().map((column) => column.name));
   const chatMediaColumns = {
+    reply_deleted: "INTEGER NOT NULL DEFAULT 0 CHECK(reply_deleted IN (0,1))",
     media_type: "TEXT CHECK(media_type IN ('gif','sticker','image'))",
     media_provider: "TEXT",
     media_id: "TEXT",

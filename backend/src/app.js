@@ -1075,7 +1075,7 @@ app.delete("/api/comments/image/:token", requireAuth, requireWritableUser, (req,
 app.get("/api/chat", requireAuth, (req, res) => {
   const aroundId = Math.max(0, Number(req.query.around) || 0);
   const selectMessages = (where, order, limit) => db.prepare(`
-    SELECT c.id,c.message,c.created_at,c.reply_to_id,c.media_type,c.media_provider,c.media_id,c.media_url,c.media_preview_url,c.media_width,c.media_height,u.id user_id,COALESCE(NULLIF(u.display_name,''),u.username) username,u.avatar_filename,
+    SELECT c.id,c.message,c.created_at,c.reply_to_id,c.reply_deleted,c.media_type,c.media_provider,c.media_id,c.media_url,c.media_preview_url,c.media_width,c.media_height,u.id user_id,COALESCE(NULLIF(u.display_name,''),u.username) username,u.avatar_filename,
       parent.message reply_message,parent.media_type reply_media_type,parent.media_preview_url reply_media_preview_url,parent.media_url reply_media_url,
       COALESCE(NULLIF(parent_user.display_name,''),parent_user.username) reply_username
     FROM chat_messages c
@@ -1145,7 +1145,10 @@ app.post("/api/chat", requireAuth, requireWritableUser, (req, res) => {
 app.delete("/api/chat/:id", requireAuth, requireWritableUser, (req, res) => {
   const row = db.prepare("SELECT * FROM chat_messages WHERE id=?").get(req.params.id);
   if (!row || (row.user_id !== req.user.id && req.user.role !== "admin")) return res.status(403).json({ error: "No puedes eliminar este mensaje." });
-  db.prepare("DELETE FROM chat_messages WHERE id=?").run(row.id);
+  db.transaction(() => {
+    db.prepare("UPDATE chat_messages SET reply_deleted=1,reply_to_id=NULL WHERE reply_to_id=?").run(row.id);
+    db.prepare("DELETE FROM chat_messages WHERE id=?").run(row.id);
+  })();
   if (row.media_provider === "local" && row.media_id) removeChatMediaFiles(row.media_id);
   res.json({ ok: true });
 });
