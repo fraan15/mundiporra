@@ -2169,6 +2169,7 @@ export function MatchDetailPage() {
     }
   };
   const remove = async (cid) => {
+    if (!window.confirm("¿Estás seguro de que deseas borrar el mensaje?")) return;
     await api(`/comments/${cid}`, { method: "DELETE" });
     load();
   };

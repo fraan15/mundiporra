@@ -65,6 +65,16 @@ test("el chat devuelve solo los 25 mensajes más recientes", async () => {
   assert.equal(response.body.at(-1).message, "Mensaje de prueba 30");
 });
 
+test("solo el autor o un administrador pueden borrar un mensaje del chat", async () => {
+  const author = request.agent(app), other = request.agent(app);
+  await author.post("/api/auth/login").send({ username: "lucia", password: "lucia" }).expect(200);
+  await other.post("/api/auth/login").send({ username: "espectador", password: "mundial2026" }).expect(200);
+  const created = await author.post("/api/chat").send({ message: "Mensaje que se puede borrar" }).expect(201);
+  await other.delete(`/api/chat/${created.body.id}`).expect(403);
+  await author.delete(`/api/chat/${created.body.id}`).expect(200);
+  assert.equal(db.prepare("SELECT id FROM chat_messages WHERE id=?").get(created.body.id), undefined);
+});
+
 test("respuestas y menciones del chat crean una sola notificación social por destinatario", async () => {
   const admin = request.agent(app);
   const user = request.agent(app);

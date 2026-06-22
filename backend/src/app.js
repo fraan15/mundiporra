@@ -1142,6 +1142,13 @@ app.post("/api/chat", requireAuth, requireWritableUser, (req, res) => {
   void cleanAbandonedChatMedia().catch(() => {});
   res.status(201).json({ id: result.lastInsertRowid });
 });
+app.delete("/api/chat/:id", requireAuth, requireWritableUser, (req, res) => {
+  const row = db.prepare("SELECT * FROM chat_messages WHERE id=?").get(req.params.id);
+  if (!row || (row.user_id !== req.user.id && req.user.role !== "admin")) return res.status(403).json({ error: "No puedes eliminar este mensaje." });
+  db.prepare("DELETE FROM chat_messages WHERE id=?").run(row.id);
+  if (row.media_provider === "local" && row.media_id) removeChatMediaFiles(row.media_id);
+  res.json({ ok: true });
+});
 app.get("/api/chat/status", requireAuth, (req, res) => {
   const lastRead = db.prepare("SELECT last_read_message_id FROM chat_reads WHERE user_id=?").get(req.user.id)?.last_read_message_id || 0;
   const unread = db.prepare("SELECT COUNT(*) count FROM chat_messages WHERE id>? AND user_id!=?").get(lastRead, req.user.id).count;
