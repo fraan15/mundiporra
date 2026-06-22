@@ -417,7 +417,11 @@ function AdminMatches() {
     load();
   };
   const remove = async (m) => {
-    if (window.confirm(`¿Eliminar ${m.team1} - ${m.team2}?`)) {
+    if (
+      window.confirm(
+        `⚠️ ELIMINACIÓN CRÍTICA E IRREVERSIBLE\n\n¿Eliminar definitivamente ${m.team1} - ${m.team2}?\n\nSe perderán el resultado, todas las apuestas, los puntos obtenidos, los goleadores, los comentarios y los resúmenes vinculados al partido. Esta acción no se puede deshacer.`,
+      )
+    ) {
       await api(`/matches/${m.id}`, { method: "DELETE" });
       load();
     }
