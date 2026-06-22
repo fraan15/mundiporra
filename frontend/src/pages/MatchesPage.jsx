@@ -31,8 +31,8 @@ export function MatchesPage() {
 
   const today=dateKey(new Date());
   const pending=user.is_read_only?[]:matches.filter(match=>match.betting_open&&!match.prediction_id);
-  const todayMatches=matches.filter(match=>match.match_date===today);
-  const upcoming=matches.filter(match=>match.match_date>today&&!hasResult(match));
+  const todayMatches=matches.filter(match=>match.match_date===today||match.in_play);
+  const upcoming=matches.filter(match=>match.match_date>today&&!match.in_play&&!hasResult(match));
   const historical=matches.filter(hasResult).sort((a,b)=>`${b.match_date}${b.match_time}`.localeCompare(`${a.match_date}${a.match_time}`));
   const teams=useMemo(()=>{
     const values=new Map();
@@ -53,11 +53,12 @@ export function MatchesPage() {
   const grouped=useMemo(()=>{
     const groups=new Map();
     [...visible].sort((a,b)=>view==="history"?`${b.match_date}${b.match_time}`.localeCompare(`${a.match_date}${a.match_time}`):`${a.match_date}${a.match_time}`.localeCompare(`${b.match_date}${b.match_time}`)).forEach(match=>{
-      if(!groups.has(match.match_date))groups.set(match.match_date,[]);
-      groups.get(match.match_date).push(match);
+      const groupDate=view==="today"&&match.in_play?today:match.match_date;
+      if(!groups.has(groupDate))groups.set(groupDate,[]);
+      groups.get(groupDate).push(match);
     });
     return [...groups.entries()];
-  },[visible,view]);
+  },[visible,view,today]);
   const selectView=id=>{setView(id);if(id==="history"&&!historyDate)setHistoryDate(daysAgoKey(3));window.history.replaceState(null,"",id==="pending"?"#upcoming":window.location.pathname)};
   const openMatch=id=>{sessionStorage.setItem("matchesPageReturn",JSON.stringify({view,selectedTeamId,historyDate,scrollY:window.scrollY}));navigate(`/match/${id}`,{state:{fromMatchesPage:true}})};
 

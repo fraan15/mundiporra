@@ -257,10 +257,8 @@ const validateReactionTarget = (req, targetType, targetId) => {
 };
 const isMatchInPlay = (match, current = new Date()) => {
   if (match.status === "finished") return false;
-  if (match.match_date !== dateInTimeZone(current)) return false;
   const startedAt = matchStartsAt(match);
-  const elapsed = current - startedAt;
-  return elapsed >= 0 && elapsed < 24 * 60 * 60 * 1000;
+  return current >= startedAt;
 };
 const rowsById = (table, ids, columns = "*") => {
   const uniqueIds = [...new Set(ids.filter(Boolean).map(Number))];
