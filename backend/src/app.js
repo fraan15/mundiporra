@@ -102,11 +102,11 @@ app.use("/api", (req, _res, next) => {
 
 const avatarUrl = (user) => user?.avatar_filename ? `/avatars/${user.avatar_filename}` : null;
 const removeChatMediaFiles = (token) => {
-  if (!/^chat-\d+-\d+-[a-z0-9]+$/.test(token)) return;
+  if (!/^(chat|comment)-\d+-\d+-[a-z0-9]+$/.test(token)) return;
   for (const suffix of [".webp", "-thumb.webp"]) fs.rm(path.join(chatMediaDir, `${token}${suffix}`), { force: true }, () => {});
 };
 const cleanAbandonedChatMedia = async () => {
-  const referenced = new Set(db.prepare("SELECT media_id FROM chat_messages WHERE media_provider='local' AND media_id IS NOT NULL").all().map((item) => item.media_id));
+  const referenced = new Set([...db.prepare("SELECT media_id FROM chat_messages WHERE media_provider='local' AND media_id IS NOT NULL").all(), ...db.prepare("SELECT media_id FROM match_comments WHERE media_provider='local' AND media_id IS NOT NULL").all()].map((item) => item.media_id));
   const cutoff = Date.now() - 60 * 60 * 1000;
   for (const entry of await fs.promises.readdir(chatMediaDir, { withFileTypes: true })) {
     if (!entry.isFile() || !entry.name.endsWith(".webp")) continue;
@@ -985,7 +985,7 @@ app.get("/api/chat/mentions", requireAuth, (req, res) => {
 });
 
 const chatImageChunks = new Map();
-const processChatImage = async (req, res, next, body, contentType) => {
+const processChatImage = async (req, res, next, body, contentType, scope = "chat") => {
     try {
       const heic = new Set(["image/heic", "image/heif", "image/heic-sequence", "image/heif-sequence"]).has(contentType);
       if ((!heic && !new Set(["image/jpeg", "image/png", "image/webp"]).has(contentType)) || !Buffer.isBuffer(body) || !body.length) {
@@ -1007,7 +1007,7 @@ const processChatImage = async (req, res, next, body, contentType) => {
       const metadata = await source.metadata();
       if (!metadata.width || !metadata.height || (metadata.pages || 1) > 1) return res.status(400).json({ error: "La imagen no es válida o es animada." });
       if (metadata.width * metadata.height > 60_000_000) return res.status(400).json({ error: "La imagen supera el máximo de 60 megapíxeles." });
-      const token = `chat-${req.user.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const token = `${scope}-${req.user.id}-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
       const filename = `${token}.webp`, previewFilename = `${token}-thumb.webp`;
       const full = await source.clone().resize(1600, 1600, { fit: "inside", withoutEnlargement: true }).webp({ quality: 80 }).toFile(path.join(chatMediaDir, filename));
       await source.clone().resize(420, 420, { fit: "inside", withoutEnlargement: true }).webp({ quality: 72 }).toFile(path.join(chatMediaDir, previewFilename));
@@ -1047,6 +1047,30 @@ app.put(
     return processChatImage(req, res, next, Buffer.concat(current.chunks, current.size), contentType);
   }
 );
+
+app.put("/api/comments/image", requireAuth, requireWritableUser, express.raw({ type: "*/*", limit: "12mb" }),
+  (req, res, next) => processChatImage(req, res, next, req.body, String(req.get("content-type") || "").split(";")[0].toLowerCase(), "comment"));
+
+app.put("/api/comments/image-chunk", requireAuth, requireWritableUser, express.raw({ type: "*/*", limit: "800kb" }), async (req, res, next) => {
+  const uploadId = String(req.get("x-upload-id") || ""), index = Number(req.get("x-chunk-index")), total = Number(req.get("x-chunk-total"));
+  const contentType = String(req.get("x-file-type") || "").toLowerCase(), key = `comment:${req.user.id}:${uploadId}`;
+  if (!/^[a-z0-9-]{8,80}$/i.test(uploadId) || !Number.isInteger(index) || !Number.isInteger(total) || index < 0 || total < 1 || total > 24 || index >= total || !Buffer.isBuffer(req.body)) return res.status(400).json({ error: "Fragmento de imagen no válido." });
+  const current = chatImageChunks.get(key) || { chunks: [], size: 0, contentType, expires: Date.now() + 5 * 60 * 1000 };
+  if (index !== current.chunks.length || contentType !== current.contentType) { chatImageChunks.delete(key); return res.status(409).json({ error: "La subida se ha interrumpido. Vuelve a seleccionar la imagen." }); }
+  current.chunks.push(req.body); current.size += req.body.length;
+  if (current.size > 12 * 1024 * 1024) { chatImageChunks.delete(key); return res.status(413).json({ error: "La imagen no puede superar los 12 MB." }); }
+  chatImageChunks.set(key, current);
+  if (index < total - 1) return res.json({ received: index + 1 });
+  chatImageChunks.delete(key);
+  return processChatImage(req, res, next, Buffer.concat(current.chunks, current.size), contentType, "comment");
+});
+
+app.delete("/api/comments/image/:token", requireAuth, requireWritableUser, (req, res) => {
+  const token = String(req.params.token || "");
+  if (!token.startsWith(`comment-${req.user.id}-`) || !/^comment-\d+-\d+-[a-f0-9]+$/.test(token)) return res.status(400).json({ error: "Imagen no válida." });
+  if (db.prepare("SELECT id FROM match_comments WHERE media_provider='local' AND media_id=?").get(token)) return res.status(409).json({ error: "La imagen ya pertenece a un comentario." });
+  removeChatMediaFiles(token); res.json({ ok: true });
+});
 
 app.get("/api/chat", requireAuth, (req, res) => {
   const aroundId = Math.max(0, Number(req.query.around) || 0);
@@ -1337,15 +1361,16 @@ app.post("/api/reactions/toggle", requireAuth, requireWritableUser, (req, res) =
 app.post("/api/matches/:id/comments", requireAuth, requireWritableUser, (req, res) => {
   const comment = String(req.body.comment || "").trim().slice(0, 500);
   const media = req.body.media && typeof req.body.media === "object" ? req.body.media : null;
-  const mediaType = media?.type === "gif" || media?.type === "sticker" ? media.type : null;
-  if (!comment && !mediaType) return res.status(400).json({ error: "Escribe un comentario o selecciona un GIF." });
-  if (mediaType && (!media.id || !validGiphyUrl(media.url) || (media.preview_url && !validGiphyUrl(media.preview_url)))) {
+  const mediaType = ["gif", "sticker", "image"].includes(media?.type) ? media.type : null;
+  if (!comment && !mediaType) return res.status(400).json({ error: "Escribe un comentario o selecciona un archivo." });
+  if (["gif", "sticker"].includes(mediaType) && (!media.id || !validGiphyUrl(media.url) || (media.preview_url && !validGiphyUrl(media.preview_url)))) {
     return res.status(400).json({ error: "El GIF seleccionado no es válido." });
   }
+  if (mediaType === "image" && (media.provider !== "local" || !String(media.id || "").startsWith(`comment-${req.user.id}-`) || !/^\/chat-media\/comment-[\w.-]+\.webp$/.test(media.url || "") || !/^\/chat-media\/comment-[\w.-]+-thumb\.webp$/.test(media.preview_url || "") || !fs.existsSync(path.join(chatMediaDir, path.basename(media.url))))) return res.status(400).json({ error: "La imagen no es válida." });
   const match = db.prepare("SELECT * FROM matches WHERE id=?").get(req.params.id);
   if (!match || !canAccessMatch(req, match)) return res.status(404).json({ error: "Partido no encontrado." });
   const result = db.prepare(`INSERT INTO match_comments(match_id,user_id,comment,media_type,media_provider,media_id,media_url,media_preview_url,media_width,media_height,created_at,updated_at)
-    VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`).run(req.params.id, req.user.id, comment, mediaType, mediaType ? "giphy" : null, mediaType ? String(media.id).slice(0, 100) : null, mediaType ? media.url : null, mediaType ? (media.preview_url || media.url) : null, mediaType ? Math.max(1, Math.min(1200, Number(media.width) || 480)) : null, mediaType ? Math.max(1, Math.min(1200, Number(media.height) || 360)) : null, now(), now());
+    VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`).run(req.params.id, req.user.id, comment, mediaType, mediaType === "image" ? "local" : mediaType ? "giphy" : null, mediaType ? String(media.id).slice(0, 100) : null, mediaType ? media.url : null, mediaType ? (media.preview_url || media.url) : null, mediaType ? Math.max(1, Math.min(2000, Number(media.width) || 480)) : null, mediaType ? Math.max(1, Math.min(2000, Number(media.height) || 360)) : null, now(), now());
   const mentionedUserIds = new Set();
   const mentionTokens = new Set([...comment.matchAll(/@([\p{L}\p{N}_.-]+)/gu)].map((match) => match[1].toLocaleLowerCase("es")));
   if (mentionTokens.size) {
@@ -1385,7 +1410,9 @@ app.put("/api/comments/:id", requireAuth, requireWritableUser, (req, res) => {
 app.delete("/api/comments/:id", requireAuth, requireWritableUser, (req, res) => {
   const row = db.prepare("SELECT * FROM match_comments WHERE id=?").get(req.params.id);
   if (!row || (row.user_id !== req.user.id && req.user.role !== "admin")) return res.status(403).json({ error: "No puedes eliminar este comentario." });
-  db.prepare("DELETE FROM match_comments WHERE id=?").run(row.id); res.json({ ok: true });
+  db.prepare("DELETE FROM match_comments WHERE id=?").run(row.id);
+  if (row.media_provider === "local" && row.media_id) removeChatMediaFiles(row.media_id);
+  res.json({ ok: true });
 });
 
 app.post("/api/matches", requireAdmin, (req, res) => {

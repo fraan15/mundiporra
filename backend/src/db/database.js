@@ -200,7 +200,7 @@ export function initDatabase() {
       match_id INTEGER NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       comment TEXT NOT NULL,
-      media_type TEXT CHECK(media_type IN ('gif','sticker')),
+      media_type TEXT CHECK(media_type IN ('gif','sticker','image')),
       media_provider TEXT,
       media_id TEXT,
       media_url TEXT,
@@ -301,7 +301,7 @@ export function initDatabase() {
 
   const commentColumns = new Set(db.prepare("PRAGMA table_info(match_comments)").all().map((column) => column.name));
   const commentMediaColumns = {
-    media_type: "TEXT CHECK(media_type IN ('gif','sticker'))",
+    media_type: "TEXT CHECK(media_type IN ('gif','sticker','image'))",
     media_provider: "TEXT",
     media_id: "TEXT",
     media_url: "TEXT",
@@ -312,6 +312,24 @@ export function initDatabase() {
   for (const [name, definition] of Object.entries(commentMediaColumns)) {
     if (!commentColumns.has(name)) db.exec(`ALTER TABLE match_comments ADD COLUMN ${name} ${definition}`);
   }
+  const commentsSql = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='match_comments'").get()?.sql || "";
+  if (!commentsSql.includes("'image'")) db.exec(`
+    PRAGMA foreign_keys=OFF;
+    ALTER TABLE match_comments RENAME TO match_comments_legacy;
+    CREATE TABLE match_comments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      match_id INTEGER NOT NULL REFERENCES matches(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      comment TEXT NOT NULL,
+      media_type TEXT CHECK(media_type IN ('gif','sticker','image')),
+      media_provider TEXT, media_id TEXT, media_url TEXT, media_preview_url TEXT,
+      media_width INTEGER, media_height INTEGER, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
+    INSERT INTO match_comments SELECT id,match_id,user_id,comment,media_type,media_provider,media_id,media_url,media_preview_url,media_width,media_height,created_at,updated_at FROM match_comments_legacy;
+    DROP TABLE match_comments_legacy;
+    CREATE INDEX IF NOT EXISTS idx_comments_match ON match_comments(match_id, created_at);
+    PRAGMA foreign_keys=ON;
+  `);
   const chatColumns = new Set(db.prepare("PRAGMA table_info(chat_messages)").all().map((column) => column.name));
   const chatMediaColumns = {
     media_type: "TEXT CHECK(media_type IN ('gif','sticker','image'))",

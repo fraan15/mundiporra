@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Edit3,
   Film,
+  ImagePlus,
   Goal,
   Info,
   MessageCircle,
@@ -37,6 +38,7 @@ import { ActivityAvatar, Avatar } from "../components/Avatar";
 import { ScorerPicker } from "../components/ScorerPicker";
 import { AvatarCropper } from "../components/AvatarCropper";
 import { ReactionBar } from "../components/ReactionBar";
+import { IMAGE_ACCEPT, inferImageType, optimizeImageForUpload, sendImage } from "../utils/imageUpload";
 
 const StatCards = ({ s, onPointsInfo }) => (
   <div className="stat-cards">
@@ -1946,6 +1948,9 @@ export function MatchDetailPage() {
     [gifType, setGifType] = useState("gif"),
     [gifItems, setGifItems] = useState([]),
     [selectedGif, setSelectedGif] = useState(null),
+    [selectedImage, setSelectedImage] = useState(null),
+    [imageUploading, setImageUploading] = useState(false),
+    [imageViewer, setImageViewer] = useState(null),
     [gifLoading, setGifLoading] = useState(false),
     [gifError, setGifError] = useState(""),
     [gifRemaining, setGifRemaining] = useState(null),
@@ -1967,7 +1972,29 @@ export function MatchDetailPage() {
     [savingPick, setSavingPick] = useState(false),
     [pickMessage, setPickMessage] = useState(""),
     [simulationOpen, setSimulationOpen] = useState(false);
-  const hydratedPickMatchId = useRef(null);
+  const hydratedPickMatchId = useRef(null), commentFileRef = useRef(null), selectedImageRef = useRef(null);
+  useEffect(() => { selectedImageRef.current = selectedImage; }, [selectedImage]);
+  const discardCommentImage = async (image = selectedImageRef.current) => {
+    if (image?.id) await api(`/comments/image/${encodeURIComponent(image.id)}`, { method: "DELETE" }).catch(() => {});
+    if (image === selectedImageRef.current) { selectedImageRef.current = null; setSelectedImage(null); }
+  };
+  useEffect(() => () => { const image = selectedImageRef.current; if (image?.id) fetch(new URL(`/api/comments/image/${encodeURIComponent(image.id)}`, window.location.origin), { method: "DELETE", credentials: "include", keepalive: true }).catch(() => {}); }, []);
+  const uploadCommentImage = async (event) => {
+    const input = event.currentTarget, file = input.files?.[0];
+    if (!file) return;
+    const originalType = inferImageType(file);
+    if (!originalType) { input.value = ""; alert("Este formato de imagen no es compatible."); return; }
+    setImageUploading(true);
+    try {
+      let uploadFile = file, contentType = originalType;
+      try { uploadFile = await optimizeImageForUpload(file); contentType = "image/jpeg"; } catch { /* El servidor procesa HEIC/HEIF como respaldo para iPhone. */ }
+      const response = await sendImage(uploadFile, contentType, "comments"), image = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(image.error || `No se pudo procesar la imagen (HTTP ${response.status}).`);
+      await discardCommentImage();
+      setSelectedGif(null); selectedImageRef.current = image; setSelectedImage(image);
+    } catch (uploadError) { alert(uploadError.message || "No se pudo subir la imagen."); }
+    finally { input.value = ""; setImageUploading(false); }
+  };
   const load = () => {
     setError("");
     return Promise.all([
@@ -2117,10 +2144,12 @@ export function MatchDetailPage() {
   const add = async () => {
     await api(`/matches/${id}/comments`, {
       method: "POST",
-      body: { comment: text, media: selectedGif },
+      body: { comment: text, media: selectedImage || selectedGif },
     });
     setText("");
     setSelectedGif(null);
+    selectedImageRef.current = null;
+    setSelectedImage(null);
     setGifPickerOpen(false);
     load();
   };
@@ -2690,6 +2719,12 @@ export function MatchDetailPage() {
                 <button type="button" onClick={() => setSelectedGif(null)} aria-label="Quitar GIF"><X size={15} /></button>
               </div>
             )}
+            {selectedImage && (
+              <div className="selected-comment-gif selected-comment-image">
+                <img src={selectedImage.preview_url || selectedImage.url} alt="Foto seleccionada" />
+                <button type="button" onClick={() => discardCommentImage()} aria-label="Quitar foto"><X size={15} /></button>
+              </div>
+            )}
             <div className="comment-form">
               <input
                 value={text}
@@ -2697,10 +2732,14 @@ export function MatchDetailPage() {
                 maxLength="500"
                 placeholder="Comparte tu lectura del partido…"
               />
+              <button type="button" className="comment-image-trigger" onClick={() => commentFileRef.current?.click()} disabled={imageUploading} aria-label="Añadir foto desde el dispositivo">
+                <ImagePlus size={18} /><span>{imageUploading ? "Subiendo…" : "Foto"}</span>
+              </button>
+              <input ref={commentFileRef} type="file" accept={IMAGE_ACCEPT} hidden onChange={uploadCommentImage} />
               <button type="button" className="gif-trigger" onClick={() => setGifPickerOpen((open) => !open)} aria-label="Añadir GIF o sticker">
                 <Film size={17} /> GIF
               </button>
-              <button className="primary" disabled={!text.trim() && !selectedGif} onClick={add}>
+              <button className="primary" disabled={imageUploading || (!text.trim() && !selectedGif && !selectedImage)} onClick={add}>
                 <Send size={16} />
               </button>
             </div>
@@ -2720,7 +2759,7 @@ export function MatchDetailPage() {
                 {gifRemaining !== null && !gifError && <small>{gifRemaining} búsquedas disponibles esta hora</small>}
                 <div className="giphy-results">
                   {gifItems.map((item) => (
-                    <button key={item.id} type="button" onClick={() => { setSelectedGif(item); setGifPickerOpen(false); }}>
+                    <button key={item.id} type="button" onClick={() => { discardCommentImage(); setSelectedGif(item); setGifPickerOpen(false); }}>
                       <img src={item.preview_url || item.url} alt={item.title || "Resultado de GIPHY"} loading="lazy" />
                     </button>
                   ))}
@@ -2740,7 +2779,7 @@ export function MatchDetailPage() {
             <ReactionBar targetType="match_comment" targetId={c.id} disabled={user.is_read_only} own={c.user_id === user.id} className="comment-reaction-target">
               <strong>{c.username}</strong>
               {c.comment && <p>{c.comment.split(/(@[\p{L}\p{N}_.-]+)/gu).map((part, index) => part.startsWith("@") ? <mark key={index}>{part}</mark> : part)}</p>}
-              {c.media_url && <img className={`comment-media ${c.media_type || "gif"}`} src={c.media_url} alt={c.media_type === "sticker" ? "Sticker" : "GIF"} loading="lazy" />}
+              {c.media_url && (c.media_type === "image" ? <button type="button" className="comment-media-button" onClick={() => setImageViewer(c.media_url)} aria-label="Ampliar foto"><img className="comment-media image" src={c.media_preview_url || c.media_url} alt="Foto del comentario" loading="lazy" /></button> : <img className={`comment-media ${c.media_type || "gif"}`} src={c.media_url} alt={c.media_type === "sticker" ? "Sticker" : "GIF"} loading="lazy" />)}
               <small>{new Date(c.created_at).toLocaleString("es-ES")}</small>
             </ReactionBar>
             {!user.is_read_only &&
@@ -2772,6 +2811,7 @@ export function MatchDetailPage() {
             </button>
           </nav>
         )}
+        {imageViewer && <div className="chat-image-viewer" role="dialog" aria-modal="true" onClick={() => setImageViewer(null)}><button type="button" aria-label="Cerrar"><X /></button><img src={imageViewer} alt="Foto ampliada" /></div>}
       </section>
     </div>
   );

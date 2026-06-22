@@ -1319,6 +1319,34 @@ test("un comentario admite un GIF válido de GIPHY y rechaza medios externos", a
   await agent.post(`/api/matches/${match.id}/comments`).send({ comment: "", media: { ...media, url: "https://example.com/falso.gif" } }).expect(400);
 });
 
+test("una foto de comentario se comprime, normaliza y elimina con el comentario", async () => {
+  const agent = request.agent(app);
+  const login = await agent.post("/api/auth/login").send({ username: "lucia", password: "lucia" }).expect(200);
+  const match = db.prepare("SELECT id FROM matches ORDER BY id LIMIT 1").get();
+  const jpeg = await sharp({ create: { width: 1800, height: 1200, channels: 3, background: "#c33" } }).jpeg({ quality: 95 }).toBuffer();
+  const upload = await agent.put("/api/comments/image").set("Content-Type", "image/jpeg").send(jpeg).expect(200);
+  assert.match(upload.body.id, new RegExp(`^comment-${login.body.user.id}-\\d+-[a-f0-9]+$`));
+  assert.match(upload.body.url, /\.webp$/);
+  assert.ok(upload.body.width <= 1600 && upload.body.height <= 1600);
+  await request(app).get(upload.body.url).expect(200).expect("Content-Type", /image\/webp/);
+
+  const created = await agent.post(`/api/matches/${match.id}/comments`).send({ comment: "Foto", media: upload.body }).expect(201);
+  assert.equal(db.prepare("SELECT media_type FROM match_comments WHERE id=?").get(created.body.id).media_type, "image");
+  await agent.delete(`/api/comments/${created.body.id}`).expect(200);
+  await new Promise(resolve => setTimeout(resolve, 30));
+  assert.notEqual((await request(app).get(upload.body.url)).status, 200);
+});
+
+test("una foto descartada antes de comentar se elimina", async () => {
+  const agent = request.agent(app);
+  await agent.post("/api/auth/login").send({ username: "lucia", password: "lucia" }).expect(200);
+  const jpeg = await sharp({ create: { width: 300, height: 200, channels: 3, background: "#369" } }).jpeg().toBuffer();
+  const upload = await agent.put("/api/comments/image").set("Content-Type", "image/jpeg").send(jpeg).expect(200);
+  await agent.delete(`/api/comments/image/${upload.body.id}`).expect(200);
+  await new Promise(resolve => setTimeout(resolve, 30));
+  assert.notEqual((await request(app).get(upload.body.url)).status, 200);
+});
+
 test("consultar dashboard y perfiles no escribe instantáneas de clasificación", async () => {
   const agent = request.agent(app);
   await agent.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
