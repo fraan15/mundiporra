@@ -69,6 +69,47 @@ export function remindMissingPredictions(referenceDate = new Date()) {
   return count;
 }
 
+const madridDateParts = (date) => Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Europe/Madrid",
+  year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit",
+  hourCycle: "h23"
+}).formatToParts(date).map(({ type, value }) => [type, value]));
+
+export function remindNextNightMissingPredictions(referenceDate = new Date()) {
+  const current = madridDateParts(referenceDate);
+  if (current.hour !== "22") return 0;
+  const nextDay = new Date(Date.UTC(Number(current.year), Number(current.month) - 1, Number(current.day) + 1));
+  const matchDate = nextDay.toISOString().slice(0, 10);
+  const matches = db.prepare(`
+    SELECT * FROM matches
+    WHERE status='open' AND match_date=? AND match_time>='00:00' AND match_time<'07:00'
+      AND COALESCE(close_reason,'')!='manual'
+    ORDER BY match_time,id
+  `).all(matchDate);
+  if (!matches.length) return 0;
+
+  const users = db.prepare("SELECT id FROM users WHERE active=1 AND role='user'").all();
+  const hasPrediction = db.prepare("SELECT 1 FROM predictions WHERE user_id=? AND match_id=?");
+  let count = 0;
+  for (const user of users) {
+    const pending = matches.filter((match) => !hasPrediction.get(user.id, match.id));
+    if (!pending.length) continue;
+    const matchWord = pending.length === 1 ? "partido de madrugada pendiente" : "partidos de madrugada pendientes";
+    const created = createNotification({
+      userId: user.id,
+      type: "match_reminder",
+      title: "Apuestas de esta madrugada",
+      message: `Tienes ${pending.length} ${matchWord} de apostar.`,
+      entityType: "match",
+      entityId: pending.length === 1 ? pending[0].id : null,
+      link: pending.length === 1 ? `/match/${pending[0].id}` : "/partidos",
+      eventKey: `night-match-reminder:${matchDate}:${user.id}`
+    });
+    if (created) count += 1;
+  }
+  return count;
+}
+
 export function autoCloseExpired() {
   const config = settings();
   if (config.auto_close_enabled !== "1") return 0;

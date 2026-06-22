@@ -4,6 +4,7 @@ import request from "supertest";
 import sharp from "sharp";
 import { app } from "../src/app.js";
 import { db } from "../src/db/database.js";
+import { remindNextNightMissingPredictions } from "../src/services/matches.js";
 
 test("sirve el frontend compilado desde la ruta raíz", async () => {
   const response = await request(app).get("/");
@@ -978,6 +979,26 @@ test("los partidos se publican 24 horas antes salvo publicación forzada", async
   const published = await admin.put(`/api/matches/${created.body.id}`).send({ ...payload, force_published: true });
   assert.equal(published.body.published, true);
   assert.equal((await user.get("/api/matches")).body.some((match) => match.id === created.body.id), true);
+});
+
+test("avisa individualmente a las 22:00 de apuestas pendientes de madrugada sin duplicar", async () => {
+  const admin = request.agent(app);
+  const user = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  await user.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
+  const matchDate = "2099-07-02";
+  const first = await admin.post("/api/matches").send({ match_date: matchDate, match_time: "01:30", team1: "Nocturno uno", team2: "Nocturno dos", force_published: true });
+  const second = await admin.post("/api/matches").send({ match_date: matchDate, match_time: "06:45", team1: "Nocturno tres", team2: "Nocturno cuatro", force_published: true });
+  await user.post("/api/predictions").send({ match_id: first.body.id, predicted_winner: "draw", predicted_team1_goals: 1, predicted_team2_goals: 1 }).expect(201);
+
+  const atTenInMadrid = new Date("2099-07-01T20:15:00.000Z");
+  assert.equal(remindNextNightMissingPredictions(atTenInMadrid) > 0, true);
+  assert.equal(remindNextNightMissingPredictions(atTenInMadrid), 0);
+  const userId = db.prepare("SELECT id FROM users WHERE username='lucia'").get().id;
+  const notification = db.prepare("SELECT * FROM notifications WHERE event_key=?").get(`night-match-reminder:${matchDate}:${userId}`);
+  assert.ok(notification);
+  assert.match(notification.message, /Tienes 1 partido de madrugada pendiente/);
+  assert.equal(notification.entity_id, second.body.id);
 });
 
 test("la portada mantiene como próximo un partido cerrado antes de empezar", async () => {
