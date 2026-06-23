@@ -292,12 +292,12 @@ const buildMobileProjectedLayout = (activeRoundIndex, rounds) => {
 };
 
 const desktopBracketMetrics = {
-  cardWidth: 260,
-  cardHeight: 96,
-  roundWidth: 320,
-  baseGap: 28,
-  topPadding: 58,
-  sidePadding: 24
+  cardWidth: 220,
+  cardHeight: 88,
+  roundWidth: 270,
+  baseGap: 20,
+  topPadding: 52,
+  sidePadding: 20
 };
 
 const buildDesktopKnockoutLayout = (rounds) => {
@@ -428,6 +428,7 @@ function KnockoutPanelsView({ rounds, matchById }) {
         </button>
       ))}
     </nav>
+    <div className="worldcup-round-content">
     <header className="worldcup-round-summary">
       <div>
         <span className="eyebrow"><ListTree size={14}/> {roundMeta(selectedRound, selectedItems.length)}</span>
@@ -460,6 +461,7 @@ function KnockoutPanelsView({ rounds, matchById }) {
           {previewOpen && <MatchOrigins match={match} matchById={matchById}/>}
         </article>;
       })}
+    </div>
     </div>
   </section>;
 }
@@ -566,19 +568,22 @@ function KnockoutTreeView({ rounds }) {
   useEffect(() => {
     if (!isMobileTree) return;
     setIsPhaseTransitioning(true);
-    requestAnimationFrame(() => {
-      const left = getMobileTargetLeft();
-      programmaticScrollRef.current = true;
-      mobileModeRef.current?.scrollIntoView({ block: "start", behavior: "auto" });
-      treeRef.current?.scrollTo({ left, top: 0, behavior: "auto" });
-      window.setTimeout(() => {
-        programmaticScrollRef.current = false;
-      }, 110);
-      window.setTimeout(() => {
-        setIsPhaseTransitioning(false);
-      }, 180);
+    const frame = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const left = getMobileTargetLeft();
+        programmaticScrollRef.current = true;
+        mobileModeRef.current?.scrollIntoView({ block: "start", behavior: "auto" });
+        treeRef.current?.scrollTo({ left, top: 0, behavior: "auto" });
+        window.setTimeout(() => {
+          programmaticScrollRef.current = false;
+        }, 110);
+        window.setTimeout(() => {
+          setIsPhaseTransitioning(false);
+        }, 160);
+      });
     });
-  }, [activeIndex, isMobileTree, mobileLayout.activeLocalIndex]);
+    return () => cancelAnimationFrame(frame);
+  }, [activeIndex, isMobileTree, mobileLayout.activeLocalIndex, mobileLayout.width, mobileLayout.height]);
   const visibleRounds = isMobileTree
     ? mobileLayout.visibleRoundIndexes.map((roundIndex) => ({
         roundIndex,

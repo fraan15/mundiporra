@@ -112,3 +112,27 @@
   .worldcup-view-switch-wide{position:static;right:auto;top:auto;z-index:auto;margin:0 0 14px;padding:6px;border-radius:16px;box-shadow:var(--surface-shadow,0 10px 24px rgba(0,0,0,.06))}
   .worldcup-view-switch-wide button{width:auto;height:auto;min-height:40px;border-radius:11px}
 }
+
+.worldcup-round-content{min-width:0;display:grid;gap:14px}
+.worldcup-round-content .worldcup-round-summary{margin-bottom:0}
+.worldcup-round-list{min-width:0}
+.desktop-bracket-round-label{width:220px}
+.desktop-bracket-match{width:220px}
+.desktop-bracket-match .bracket-compact-card{width:220px;min-height:88px;padding:8px 9px}
+.desktop-bracket-match .bracket-compact-card .team-info{font-size:12px}
+.desktop-bracket-match .bracket-compact-card .team-score{font-size:16px}
+.desktop-bracket-match .bracket-compact-card .match-status{font-size:10px}
+@media(max-width:640px){
+  html,body,#root{overflow-x:hidden}
+  .page,.worldcup-page,.worldcup-knockout-view,.mobile-bracket-mode{overflow-x:clip}
+  .mobile-bracket-scroll{overflow-x:auto;overflow-y:visible;scrollbar-width:none;-ms-overflow-style:none}
+  .mobile-bracket-scroll::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}
+  .worldcup-dashboard-actions{grid-template-columns:1fr 1fr;gap:0;margin:14px 0 24px;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:color-mix(in srgb,var(--panel) 92%,transparent);box-shadow:var(--surface-shadow,0 10px 24px rgba(0,0,0,.06))}
+  .worldcup-dashboard-actions button{border:0;border-radius:0;box-shadow:none;background:transparent;padding:16px 10px;grid-template-columns:auto minmax(0,1fr)}
+  .worldcup-dashboard-actions button+button{border-left:1px solid var(--line)}
+  .worldcup-dashboard-actions button svg:last-child{display:none}
+  .worldcup-dashboard-actions strong{font-size:15px}
+  .worldcup-dashboard-actions small{font-size:10px}
+  .worldcup-view-switch-wide{width:100%;display:grid;grid-template-columns:1fr 1fr;position:static;right:auto;top:auto;z-index:auto;margin:0 0 14px;padding:6px;border-radius:16px}
+  .worldcup-view-switch-wide button{width:auto;height:auto;min-height:40px;border-radius:11px}
+}
