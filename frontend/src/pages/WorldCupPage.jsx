@@ -211,7 +211,7 @@ const buildMobileProjectedLayout = (activeRoundIndex, rounds) => {
   const positions = [...positionById.values()];
   const maxBottom = positions.length ? Math.max(...positions.map((position) => position.top + cardHeight)) : topPadding + cardHeight;
   const width = sidePadding * 2 + visibleRoundIndexes.length * roundWidth - (roundWidth - cardWidth);
-  const height = maxBottom + 160;
+  const height = maxBottom + 80;
 
   if (import.meta.env.DEV) {
     const usedCenters = new Map();
@@ -355,7 +355,9 @@ function KnockoutTreeView({ rounds }) {
   const scrollContentRef = useRef(null);
   const wheelLockRef = useRef(false);
   const touchStartRef = useRef(null);
+  const mobileModeRef = useRef(null);
   const mobileScrollDebounceRef = useRef(null);
+  const programmaticScrollRef = useRef(false);
   const [activeRound, setActiveRound] = useState(rounds[0]?.[0] || "");
   const [isMobileTree, setIsMobileTree] = useState(false);
   const [treeLines, setTreeLines] = useState([]);
@@ -378,6 +380,7 @@ function KnockoutTreeView({ rounds }) {
     node?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
   };
   const handleWheel = (event) => {
+    if (isMobileTree) return;
     if (Math.abs(event.deltaX) < 8 && Math.abs(event.deltaY) < 8) return;
     event.preventDefault();
     if (wheelLockRef.current) return;
@@ -391,6 +394,7 @@ function KnockoutTreeView({ rounds }) {
     const container = treeRef.current;
     if (!container) return;
     if (isMobileTree) {
+      if (programmaticScrollRef.current) return;
       window.clearTimeout(mobileScrollDebounceRef.current);
       mobileScrollDebounceRef.current = window.setTimeout(() => {
         const localIndex = Math.round((container.scrollLeft + 72 - mobileBracketMetrics.sidePadding) / mobileBracketMetrics.roundWidth);
@@ -398,7 +402,7 @@ function KnockoutTreeView({ rounds }) {
         if (Number.isFinite(nextRoundIndex) && rounds[nextRoundIndex]?.[0] !== activeRound) {
           setActiveRound(rounds[nextRoundIndex][0]);
         }
-      }, 180);
+      }, 280);
       return;
     }
     const sections = [...container.querySelectorAll("[data-round-index]")];
@@ -488,7 +492,12 @@ function KnockoutTreeView({ rounds }) {
     if (!isMobileTree) return;
     const left = Math.max(0, mobileBracketMetrics.sidePadding + mobileLayout.activeLocalIndex * mobileBracketMetrics.roundWidth - 72);
     requestAnimationFrame(() => {
-      treeRef.current?.scrollTo({ left, top: 0, behavior: "auto" });
+      programmaticScrollRef.current = true;
+      treeRef.current?.scrollTo({ left, top: 0, behavior: "smooth" });
+      mobileModeRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+      window.setTimeout(() => {
+        programmaticScrollRef.current = false;
+      }, 350);
     });
   }, [activeIndex, isMobileTree, mobileLayout.activeLocalIndex]);
   const visibleRounds = isMobileTree
@@ -511,15 +520,13 @@ function KnockoutTreeView({ rounds }) {
     </button>
   </div>;
   if (isMobileTree) {
-    return <section className="worldcup-tree-mode mobile-bracket-mode">
+    return <section className="worldcup-tree-mode mobile-bracket-mode" ref={mobileModeRef}>
       {toolbar}
       <div
         className="mobile-bracket-scroll"
         ref={treeRef}
         onScroll={handleScroll}
         onWheel={handleWheel}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
       >
         <div
           className="mobile-bracket-board"

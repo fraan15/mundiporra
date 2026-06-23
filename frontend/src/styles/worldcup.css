@@ -55,14 +55,14 @@
   .knockout-lines-svg{height:100%}
 }
 
-.mobile-bracket-mode{gap:10px}
-.mobile-bracket-scroll{position:relative;overflow-x:auto;overflow-y:visible;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding:4px 0 calc(110px + env(safe-area-inset-bottom));overscroll-behavior-x:contain}
-.mobile-bracket-board{position:relative;width:var(--mobile-bracket-width);height:var(--mobile-bracket-height);min-height:360px}
+.mobile-bracket-mode{gap:10px;scroll-margin-top:88px}
+.mobile-bracket-scroll{position:relative;overflow-x:auto;overflow-y:visible;scroll-snap-type:x proximity;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;padding:4px 0 calc(110px + env(safe-area-inset-bottom));overscroll-behavior-x:contain}
+.mobile-bracket-board{position:relative;width:var(--mobile-bracket-width);height:var(--mobile-bracket-height);min-height:var(--mobile-bracket-height)}
 .mobile-bracket-lines{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:visible}
 .mobile-bracket-lines path{fill:none;stroke:color-mix(in srgb,var(--accent,var(--lime)) 40%,var(--line));stroke-width:2.25;stroke-linecap:square;stroke-linejoin:miter}
-.mobile-bracket-round{position:absolute;top:0;width:260px;height:28px;scroll-snap-align:start;scroll-margin-left:0;z-index:3;color:var(--muted);font-size:11px;font-weight:950;text-transform:uppercase;letter-spacing:.06em}
+.mobile-bracket-round{position:absolute;top:0;width:260px;height:28px;scroll-snap-align:start;scroll-snap-stop:normal;scroll-margin-left:0;z-index:3;color:var(--muted);font-size:11px;font-weight:950;text-transform:uppercase;letter-spacing:.06em}
 .mobile-bracket-round span{display:inline-flex;align-items:center;height:24px;padding:0 9px;border:1px solid var(--line);border-radius:999px;background:color-mix(in srgb,var(--panel) 92%,transparent);box-shadow:0 6px 16px rgba(117,44,56,.06)}
-.mobile-bracket-match{position:absolute;z-index:2;width:260px}
+.mobile-bracket-match{position:absolute;z-index:2;width:260px;scroll-snap-stop:normal}
 .bracket-compact-card{width:260px;min-height:96px;display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid color-mix(in srgb,var(--line) 86%,transparent);border-radius:10px;background:color-mix(in srgb,var(--panel) 96%,#fff 4%);box-shadow:0 9px 22px rgba(117,44,56,.08)}
 .bracket-compact-card .team-row{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:25px;color:var(--text)}
 .bracket-compact-card .team-row.is-loser{opacity:.52}
@@ -76,6 +76,7 @@
 .bracket-compact-card .match-status{margin-top:auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:11px;font-weight:800}
 [data-theme="dark"] .bracket-compact-card{background:#10243a;color:#f2f7ff;box-shadow:0 12px 28px rgba(0,0,0,.26)}
 @media(max-width:640px){
+  .mobile-bracket-mode{scroll-margin-top:76px}
   .mobile-bracket-scroll{margin-inline:-4px;padding-inline:0}
   .mobile-bracket-lines path{stroke-width:2}
 }
