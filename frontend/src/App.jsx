@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { Navigate, NavLink, Outlet, Route, Routes, useLocation, useNavigate } from "react-router-dom";
-import { Activity, ArrowDown, ArrowRight, ArrowUp, BarChart3, Bell, Check, CheckCheck, ChevronDown, ChevronLeft, ChevronRight, Goal, KeyRound, LayoutDashboard, LogOut, MessageCircle, Moon, Shield, Sparkles, Sun, Trophy, User, X } from "lucide-react";
+import { Activity, ArrowDown, ArrowRight, ArrowUp, BarChart3, Bell, Check, CheckCheck, ChevronDown, ChevronLeft, ChevronRight, Goal, KeyRound, LayoutDashboard, LogOut, Megaphone, MessageCircle, Moon, Shield, Sparkles, Sun, Trophy, User, X } from "lucide-react";
 import { api } from "./api/client";
 import { LoginPage } from "./pages/LoginPage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -93,7 +93,49 @@ function NotificationsBell() {
     </div>}
   </div>;
 }
-function ProfileMenu() {
+function NewsDrawer({ open, items, unreadCount, onClose, onMarkRead, onMarkAllRead }) {
+  const swipeRef = useRef(null);
+  const start = (event) => {
+    if (event.pointerType === "mouse") return;
+    swipeRef.current = { x: event.clientX, y: event.clientY };
+  };
+  const end = (event) => {
+    if (!swipeRef.current) return;
+    const deltaX = event.clientX - swipeRef.current.x;
+    const deltaY = event.clientY - swipeRef.current.y;
+    swipeRef.current = null;
+    if (Math.abs(deltaX) < 45 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+    if (deltaX < 0) onClose();
+  };
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open, onClose]);
+  if (!open) return null;
+  return <div className="news-drawer-backdrop" onPointerDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <aside className="news-drawer" aria-label="Novedades" onPointerDown={start} onPointerUp={end} onPointerCancel={() => { swipeRef.current = null; }}>
+      <header>
+        <div><span className="eyebrow"><Megaphone size={14}/> NOVEDADES</span><h2>Últimas noticias</h2></div>
+        <button type="button" aria-label="Cerrar novedades" title="Cerrar" onClick={onClose}><X size={18}/></button>
+      </header>
+      {unreadCount > 0 && <div className="news-drawer-tools"><button className="news-read-all" type="button" onClick={onMarkAllRead}>Marcar todas como leídas</button></div>}
+      <div className="news-drawer-list">
+        {items.length ? items.map((item) => <article key={item.id} className={item.read ? "read" : "unread"}>
+          <div className="news-item-meta"><time>{new Date(item.created_at).toLocaleString("es-ES", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</time>{!item.read && <span>Nueva</span>}</div>
+          <h3>{item.title}</h3>
+          <p>{item.body}</p>
+          {!item.read && <button type="button" onClick={() => onMarkRead(item.id)}>Marcar como leída</button>}
+        </article>) : <p className="empty-state">Todavía no hay novedades publicadas.</p>}
+      </div>
+    </aside>
+  </div>;
+}
+
+function ProfileMenu({ unreadNews = 0, onOpenNews }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const menuRef = useRef(null);
@@ -137,12 +179,13 @@ function ProfileMenu() {
   };
   return <div className="profile-menu" ref={menuRef}>
     <button className="profile-shortcut" aria-expanded={open} aria-haspopup="menu" onClick={toggle}>
-      <Avatar user={user}/>
+      <span className="profile-avatar-wrap"><Avatar user={user}/>{unreadNews > 0 && <i className="profile-news-dot" aria-label={`${unreadNews} novedades pendientes`}/>}</span>
       <span><strong>{user.display_name||user.username}</strong><small>{user.is_read_only ? "Solo lectura" : user.role === "admin" ? "Administrador" : "Participante"}</small></span>
       <ChevronDown className={open ? "open" : ""} size={15}/>
     </button>
     {open && <div className="profile-dropdown">
       {!changingPassword ? <>
+        <button onClick={() => { setOpen(false); onOpenNews(); }}><Megaphone size={17}/><span><strong>Novedades</strong><small>{unreadNews > 0 ? `${unreadNews} sin leer` : "Últimos avisos publicados"}</small></span></button>
         <button onClick={() => { setOpen(false); navigate("/perfil"); }}><User size={17}/><span><strong>Perfil</strong><small>Consulta tus estadísticas</small></span></button>
         {!user.is_read_only && <button onClick={() => { setOpen(false); navigate("/notificaciones"); }}><Bell size={17}/><span><strong>Notificaciones</strong><small>Configura los avisos push</small></span></button>}
         {!user.is_read_only && <button onClick={() => { setChangingPassword(true); setMessage({ type: "", text: "" }); }}><KeyRound size={17}/><span><strong>Cambiar contraseña</strong><small>Actualiza tu clave de acceso</small></span></button>}
@@ -291,6 +334,8 @@ function MainLayout() {
   const [theme,setTheme]=useState(()=>localStorage.getItem("theme")||"light");
   const [pendingAlert,setPendingAlert]=useState(false);
   const [unreadChat,setUnreadChat]=useState(0);
+  const [newsOpen,setNewsOpen]=useState(false);
+  const [newsData,setNewsData]=useState({items:[],unread_count:0});
   const [adminMessage,setAdminMessage]=useState(null);
   const [messageError,setMessageError]=useState("");
   const [answering,setAnswering]=useState(false);
@@ -342,6 +387,8 @@ function MainLayout() {
     const loadChatStatus=()=>api("/chat/status").then(data=>setUnreadChat(data.unread)).catch(()=>{});
     return startVisiblePolling(loadChatStatus,10000);
   },[location.pathname]);
+  const loadNews=()=>api("/news").then(result=>setNewsData(Array.isArray(result)?{items:result,unread_count:result.length}:result)).catch(()=>{});
+  useEffect(()=>startVisiblePolling(loadNews,60000),[]);
   const loadAdminMessage=()=>api("/admin-messages/pending").then(data=>setAdminMessage(data.message)).catch(()=>{});
   useEffect(()=>{
     if(user.role==="admin"||user.is_read_only)return;
@@ -355,6 +402,20 @@ function MainLayout() {
     }catch(error){setMessageError(error.message)}
     finally{setAnswering(false)}
   };
+  const markNewsRead=async id=>{
+    await api(`/news/${id}/read`,{method:"POST"});
+    setNewsData(current=>({
+      items:current.items.map(item=>item.id===id?{...item,read:true,read_at:new Date().toISOString()}:item),
+      unread_count:Math.max(0,current.unread_count-1)
+    }));
+  };
+  const markAllNewsRead=async()=>{
+    await api("/news/read-all",{method:"POST"});
+    setNewsData(current=>({
+      items:current.items.map(item=>({...item,read:true,read_at:item.read_at||new Date().toISOString()})),
+      unread_count:0
+    }));
+  };
   const items = [
     ["/", "Inicio", LayoutDashboard],
     ["/partidos", "Partidos", Trophy],
@@ -364,6 +425,7 @@ function MainLayout() {
     ...(user.role === "admin" ? [["/gestion", "Gestión", Shield]] : [])
   ];
   return <div className="app-shell">
+    <NewsDrawer open={newsOpen} items={newsData.items} unreadCount={newsData.unread_count} onClose={()=>setNewsOpen(false)} onMarkRead={markNewsRead} onMarkAllRead={markAllNewsRead}/>
     <MovementSummaryPanel enabled={!adminMessage}/>
     {adminMessage&&<div className="mandatory-message-overlay" role="dialog" aria-modal="true" aria-labelledby="mandatory-message-title">
       <section className="mandatory-message-card">
@@ -392,7 +454,7 @@ function MainLayout() {
         <span className="brand-mark"><img src="/images/mundial_2026.png" alt="" /></span>
         <span className="brand-copy"><strong>MundiPorra</strong><TodayMatchesTicker fallback={settings.pool_name || "MUNDIPORRA"}/></span>
       </button>
-      <div className="user-area"><button className="icon-btn" title="Cambiar tema" onClick={()=>setTheme(theme==="dark"?"light":"dark")}>{theme==="dark"?<Sun size={18}/>:<Moon size={18}/>}</button><NotificationsBell/><ProfileMenu/></div>
+      <div className="user-area"><button className="icon-btn" title="Cambiar tema" onClick={()=>setTheme(theme==="dark"?"light":"dark")}>{theme==="dark"?<Sun size={18}/>:<Moon size={18}/>}</button><NotificationsBell/><ProfileMenu unreadNews={newsData.unread_count} onOpenNews={()=>setNewsOpen(true)}/></div>
     </header>
     <nav className="main-nav" style={{ "--nav-items": items.length }}>{items.map(([to, label, Icon]) => <NavLink key={to} to={to} end={to==="/"} className={({isActive})=>isActive?"active":""}><span className="nav-icon"><Icon size={18}/>{to==="/chat"&&unreadChat>0&&<i className="chat-unread-dot" aria-label={`${unreadChat} mensajes sin leer`}/>}</span><span>{label}</span></NavLink>)}</nav>
     <main><Outlet /></main>
