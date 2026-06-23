@@ -1032,7 +1032,13 @@ function AdminResultEditor({ match, onCancel, onSaved }) {
       p1: match.penalty_team1 ?? "",
       p2: match.penalty_team2 ?? "",
     }),
-    [hasOwnGoal, setHasOwnGoal] = useState(false),
+    [hasOwnGoal, setHasOwnGoal] = useState(
+      Boolean(
+        Number(match.scorer_enabled) &&
+          Number(initialScore.g1) + Number(initialScore.g2) > 0 &&
+          !(match.actual_scorers || []).length,
+      ),
+    ),
     [error, setError] = useState(""),
     [saving, setSaving] = useState(false);
   useEffect(() => {
@@ -1203,17 +1209,9 @@ function AdminResultEditor({ match, onCancel, onSaved }) {
       )}
       {scorerEnabled && !isNilNil && (
         <div className="result-scorers-editor">
-          <strong>Goleadores puntuables</strong>
-          <label className="toggle">
-            <input
-              type="checkbox"
-              checked={hasOwnGoal}
-              onChange={(e) => setHasOwnGoal(e.target.checked)}
-            />
-            Autogol / sin goleador puntuable
-          </label>
           {!hasOwnGoal && (
             <>
+              <strong>Goleadores puntuables</strong>
               <ScorerPicker
                 players={available}
                 value={null}
@@ -1248,6 +1246,14 @@ function AdminResultEditor({ match, onCancel, onSaved }) {
               </small>
             </>
           )}
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={hasOwnGoal}
+              onChange={(e) => setHasOwnGoal(e.target.checked)}
+            />
+            Marcar si todo son autogoles
+          </label>
         </div>
       )}
       {error && <div className="alert error">{error}</div>}
