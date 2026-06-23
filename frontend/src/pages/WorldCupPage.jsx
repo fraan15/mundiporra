@@ -22,19 +22,29 @@ const roundLabel = (round) => roundLabels[round] || round || "Eliminatoria";
 const scoreText = (match) => match.score?.ft?.length === 2 ? `${match.score.ft[0]} - ${match.score.ft[1]}` : "VS";
 const dateText = (match) => match.match_date ? new Date(`${match.match_date}T12:00:00`).toLocaleDateString("es-ES", { day: "numeric", month: "short" }) : match.source_date;
 const timeText = (match) => match.match_time || match.source_time || "";
-const roundOrder = ["Round of 32", "Round of 16", "Quarter-final", "Semi-final", "Final", "Match for third place"];
+const roundOrder = ["Round of 32", "Round of 16", "Quarter-final", "Quarter-finals", "Semi-final", "Semi-finals", "Final", "Match for third place", "Third-place match"];
+const mainBracketRounds = ["Round of 32", "Round of 16", "Quarter-final", "Quarter-finals", "Semi-final", "Semi-finals", "Final"];
 const winnerRef = (value) => {
   const match = String(value || "").match(/^W(\d+)$/i);
   return match ? Number(match[1]) : null;
 };
 const dependencyRefs = (match) => [winnerRef(match.team1), winnerRef(match.team2)].filter(Boolean);
-const roundRankFromNextRound = (nextRoundMatches) => {
+const sortedByReference = (items) => [...items].sort((a, b) => a.reference_id - b.reference_id);
+const rankByBracketTree = (matches) => {
+  const matchById = new Map(matches.map((match) => [match.reference_id, match]));
+  const children = new Set(matches.flatMap(dependencyRefs));
+  const roots = sortedByReference(matches)
+    .filter((match) => mainBracketRounds.includes(match.round) && !children.has(match.reference_id))
+    .sort((a, b) => (a.round === "Final" ? -1 : 0) - (b.round === "Final" ? -1 : 0) || a.reference_id - b.reference_id);
   const ranks = new Map();
-  nextRoundMatches.forEach((match, matchIndex) => {
-    dependencyRefs(match).forEach((ref, refIndex) => {
-      ranks.set(ref, matchIndex * 2 + refIndex);
-    });
-  });
+  let rank = 0;
+  const visit = (match) => {
+    if (!match || ranks.has(match.reference_id)) return;
+    ranks.set(match.reference_id, rank++);
+    dependencyRefs(match).forEach((ref) => visit(matchById.get(ref)));
+  };
+  roots.forEach(visit);
+  sortedByReference(matches).forEach(visit);
   return ranks;
 };
 
@@ -68,6 +78,7 @@ function GroupsView({ groups }) {
 }
 
 function KnockoutView({ matches }) {
+  const bracketRank = rankByBracketTree(matches);
   const roundsByName = matches.reduce((acc, match) => {
     acc[match.round] = acc[match.round] || [];
     acc[match.round].push(match);
@@ -75,13 +86,10 @@ function KnockoutView({ matches }) {
   }, {});
   const rounds = roundOrder
     .filter((round) => roundsByName[round]?.length)
-    .map((round, index, visibleRounds) => {
-      const nextRound = visibleRounds[index + 1];
-      const nextItems = nextRound ? [...roundsByName[nextRound]].sort((a, b) => a.reference_id - b.reference_id) : [];
-      const dependencyRank = roundRankFromNextRound(nextItems);
+    .map((round) => {
       const items = [...roundsByName[round]].sort((a, b) =>
-        (dependencyRank.get(a.reference_id) ?? a.reference_id + 1000) -
-        (dependencyRank.get(b.reference_id) ?? b.reference_id + 1000) ||
+        (bracketRank.get(a.reference_id) ?? a.reference_id + 1000) -
+        (bracketRank.get(b.reference_id) ?? b.reference_id + 1000) ||
         a.reference_id - b.reference_id
       );
       return [round, items];
