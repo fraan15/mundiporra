@@ -526,8 +526,12 @@ function AdminMatches() {
       )
     )
       return;
-    await api(`/matches/${m.id}/result`, { method: "DELETE" });
-    setNotice("Resultado eliminado y partido reabierto.");
+    const result = await api(`/matches/${m.id}/result`, { method: "DELETE" });
+    setNotice(
+      result.status === "closed"
+        ? "Resultado eliminado; el partido permanece cerrado porque el plazo ya pasó."
+        : "Resultado eliminado y partido reabierto.",
+    );
     load();
   };
   const remove = async (m) => {
@@ -1028,6 +1032,7 @@ function AdminResultEditor({ match, onCancel, onSaved }) {
       p1: match.penalty_team1 ?? "",
       p2: match.penalty_team2 ?? "",
     }),
+    [hasOwnGoal, setHasOwnGoal] = useState(false),
     [error, setError] = useState(""),
     [saving, setSaving] = useState(false);
   useEffect(() => {
@@ -1060,6 +1065,12 @@ function AdminResultEditor({ match, onCancel, onSaved }) {
       setScorerIds([NO_SCORER_ID]);
   }, [score.g1, score.g2, isNilNil, scorerEnabled]);
   useEffect(() => {
+    if (isNilNil) setHasOwnGoal(false);
+  }, [isNilNil]);
+  useEffect(() => {
+    if (hasOwnGoal) setScorerIds([]);
+  }, [hasOwnGoal]);
+  useEffect(() => {
     if (players.length && !isNilNil)
       setScorerIds((ids) => ids.filter((id) => validScorerIds.has(id)));
   }, [score.g1, score.g2, players.length, isNilNil]);
@@ -1090,7 +1101,8 @@ function AdminResultEditor({ match, onCancel, onSaved }) {
         body: {
           result_team1: Number(score.g1),
           result_team2: Number(score.g2),
-          scorer_ids: scorerIds,
+          scorer_ids: hasOwnGoal && !isNilNil ? [] : scorerIds,
+          has_own_goal: hasOwnGoal && !isNilNil,
           has_penalties: hasPenalties,
           penalty_team1: hasPenalties ? Number(penalties.p1) : null,
           penalty_team2: hasPenalties ? Number(penalties.p2) : null,
@@ -1192,38 +1204,50 @@ function AdminResultEditor({ match, onCancel, onSaved }) {
       {scorerEnabled && !isNilNil && (
         <div className="result-scorers-editor">
           <strong>Goleadores puntuables</strong>
-          <ScorerPicker
-            players={available}
-            value={null}
-            onChange={(playerId) =>
-              playerId && setScorerIds([...scorerIds, playerId])
-            }
-            buttonLabel="Añadir goleador"
-            matchLabel={`${match.team1} - ${match.team2}`}
-          />
-          <div className="selected-scorers">
-            {scorerIds.map((id) => {
-              const player =
-                players.find((row) => row.id === id) ||
-                match.actual_scorers?.find((row) => row.id === id);
-              return (
-                player && (
-                  <button
-                    type="button"
-                    key={id}
-                    onClick={() =>
-                      setScorerIds(scorerIds.filter((value) => value !== id))
-                    }
-                  >
-                    {player.name} ×
-                  </button>
-                )
-              );
-            })}
-          </div>
-          <small>
-            Selecciona cada jugador una sola vez. Los autogoles no se añaden.
-          </small>
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={hasOwnGoal}
+              onChange={(e) => setHasOwnGoal(e.target.checked)}
+            />
+            Autogol / sin goleador puntuable
+          </label>
+          {!hasOwnGoal && (
+            <>
+              <ScorerPicker
+                players={available}
+                value={null}
+                onChange={(playerId) =>
+                  playerId && setScorerIds([...scorerIds, playerId])
+                }
+                buttonLabel="Añadir goleador"
+                matchLabel={`${match.team1} - ${match.team2}`}
+              />
+              <div className="selected-scorers">
+                {scorerIds.map((id) => {
+                  const player =
+                    players.find((row) => row.id === id) ||
+                    match.actual_scorers?.find((row) => row.id === id);
+                  return (
+                    player && (
+                      <button
+                        type="button"
+                        key={id}
+                        onClick={() =>
+                          setScorerIds(scorerIds.filter((value) => value !== id))
+                        }
+                      >
+                        {player.name} ×
+                      </button>
+                    )
+                  );
+                })}
+              </div>
+              <small>
+                Selecciona cada jugador una sola vez. Los autogoles no se añaden.
+              </small>
+            </>
+          )}
         </div>
       )}
       {error && <div className="alert error">{error}</div>}

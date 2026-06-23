@@ -119,7 +119,11 @@ const validGiphyUrl = (value) => {
     return url.protocol === "https:" && (url.hostname === "giphy.com" || url.hostname.endsWith(".giphy.com"));
   } catch { return false; }
 };
-const parseIntField = (value) => Number.isInteger(Number(value)) && Number(value) >= 0 ? Number(value) : null;
+const parseIntField = (value) => {
+  if (typeof value === "number") return Number.isInteger(value) && value >= 0 ? value : null;
+  if (typeof value !== "string" || !/^\d+$/.test(value)) return null;
+  return Number(value);
+};
 const MATCH_TIME_ZONE = "Europe/Madrid";
 const madridDateTimeToIso = (value) => {
   const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
@@ -180,6 +184,7 @@ const penaltySummary = (match) => {
 };
 const settingBooleanValue = (value) => value === true || value === 1 || value === "1" ? "1" : "0";
 const requestBoolean = (value) => value === true || value === 1 || value === "1";
+const hasOwnGoalFlag = (value) => value === true || value === 1 || value === "1";
 const matchPayload = (body, existing = {}) => {
   const date = body.match_date ?? existing.match_date;
   const time = body.match_time ?? existing.match_time;
@@ -749,7 +754,7 @@ app.get("/api/dashboard", requireAuth, (req, res) => {
     position: "—", total_points: 0, exact_hits: 0, winner_hits: 0,
     predicted_matches: 0, average_points: 0
   };
-  const today = new Date().toISOString().slice(0, 10);
+  const today = dateInTimeZone(new Date(), MATCH_TIME_ZONE);
   const todayPoints = db.prepare(`
     SELECT COALESCE(SUM(p.total_points),0) points FROM predictions p JOIN matches m ON m.id=p.match_id
     WHERE p.user_id=? AND m.match_date=?
@@ -1698,7 +1703,7 @@ app.post("/api/matches/:id/finish", requireAdmin, (req, res) => {
   const scorerIds = parseScorerList(req.body.scorer_ids);
   if (scorerIds === null) return res.status(400).json({ error: "La lista de goleadores no es válida." });
   const noScorerSelected = scorerIds.includes(NO_SCORER_ID);
-  if (before.scorer_enabled && g1 + g2 > 0 && scorerIds.length === 0) {
+  if (before.scorer_enabled && g1 + g2 > 0 && scorerIds.length === 0 && !hasOwnGoalFlag(req.body.has_own_goal)) {
     return res.status(400).json({ error: "Selecciona al menos un goleador. Los autogoles no se incluyen." });
   }
   if (g1 + g2 > 0 && noScorerSelected) return res.status(400).json({ error: "Sin goleador solo es válido para resultados 0-0." });
@@ -1859,7 +1864,7 @@ app.put("/api/matches/:id/scorers", requireAdmin, (req, res) => {
   const scorerIds = parseScorerList(req.body.scorer_ids);
   if (scorerIds === null) return res.status(400).json({ error: "La lista de goleadores no es válida." });
   const noScorerSelected = scorerIds.includes(NO_SCORER_ID);
-  if (match.scorer_enabled && match.result_team1 + match.result_team2 > 0 && !scorerIds.length) {
+  if (match.scorer_enabled && match.result_team1 + match.result_team2 > 0 && !scorerIds.length && !hasOwnGoalFlag(req.body.has_own_goal)) {
     return res.status(400).json({ error: "Selecciona al menos un goleador." });
   }
   if (match.result_team1 + match.result_team2 > 0 && noScorerSelected) return res.status(400).json({ error: "Sin goleador solo es válido para resultados 0-0." });

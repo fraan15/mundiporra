@@ -184,6 +184,6 @@ export function recalculateMatch(matchId) {
 }
 
 export function recalculateAll() {
-  const matches = db.prepare("SELECT id FROM matches WHERE result_team1 IS NOT NULL AND result_team2 IS NOT NULL").all();
+  const matches = db.prepare("SELECT id FROM matches WHERE status='finished' AND result_team1 IS NOT NULL AND result_team2 IS NOT NULL").all();
   return matches.reduce((total, match) => total + recalculateMatch(match.id), 0);
 }

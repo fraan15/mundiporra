@@ -21,7 +21,9 @@ export const leaderboardRows = () => db.prepare(`
     COALESCE(SUM(CASE WHEN p.winner_points>0 THEN 1 ELSE 0 END),0) winner_hits,
     COALESCE(SUM(CASE WHEN p.exact_result_points>0 THEN 1 ELSE 0 END),0) exact_hits
     ,COALESCE(SUM(CASE WHEN p.scorer_points>0 THEN 1 ELSE 0 END),0) scorer_hits
-  FROM users u LEFT JOIN predictions p ON p.user_id=u.id
+  FROM users u
+  LEFT JOIN predictions p ON p.user_id=u.id
+    AND p.match_id IN (SELECT id FROM matches WHERE status='finished')
   LEFT JOIN (SELECT user_id,SUM(points) adjustments FROM points_adjustments GROUP BY user_id) adj ON adj.user_id=u.id
   LEFT JOIN (
     SELECT user_id,total_points
