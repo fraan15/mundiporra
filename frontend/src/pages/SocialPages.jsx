@@ -153,28 +153,35 @@ function MatchSimulationOverlay({ match, players, user, onClose }) {
     if (Math.abs(deltaX) < 45 || Math.abs(deltaX) < Math.abs(deltaY) * 1.2) return;
     setCurrentIndex(index => deltaX < 0 ? Math.min(orderedMatches.length - 1, index + 1) : Math.max(0, index - 1));
   };
+  const swipeStart = (event) => {
+    if (event.target.closest("button,input,.simulation-score-editor,.simulation-scorers,.scorer-picker-backdrop")) return;
+    beginSwipe(event);
+  };
+  const item = currentMatch,
+    itemScore = scores[item.id] || { g1: "0", g2: "0" },
+    itemScorerIds = scorerIdsByMatch[item.id] || [],
+    itemActive = activeByMatch[item.id] !== false,
+    itemAvailableScorers = simulationPlayers.filter(player => scoringCodesFor(item, itemScore).includes(player.team_fifa_code) && !itemScorerIds.includes(player.id)),
+    hasMultipleMatches = orderedMatches.length > 1;
   return <div className="movement-overlay simulation-overlay" role="dialog" aria-modal="true" aria-labelledby="simulation-title">
     <section className="movement-card simulation-card">
       <header className="movement-head"><div><span><Calculator size={13}/> SIMULACIÓN PRIVADA</span><h2 id="simulation-title">Cálculo del resultado</h2></div><button onClick={onClose} aria-label="Cerrar cálculo"><X size={21}/></button></header>
-      <div className="movement-scroll">
+      <div className="movement-scroll" onPointerDown={hasMultipleMatches ? swipeStart : undefined} onPointerUp={hasMultipleMatches ? endSwipe : undefined} onPointerCancel={hasMultipleMatches ? () => { swipeRef.current = null; } : undefined}>
         <p className="simulation-disclaimer">Vista informativa. Nada de lo que introduzcas aquí se guarda.</p>
-        {orderedMatches.length > 1 && <div className="simulation-current-match"><strong>{currentMatch.team1} - {currentMatch.team2}</strong><span>{currentIndex + 1} de {orderedMatches.length}</span></div>}
+        {hasMultipleMatches && <div className="simulation-current-match">
+          <strong><span><Flag team={item.team1} teamData={item.team1_team}/>{item.team1}</span><b>–</b><span>{item.team2}<Flag team={item.team2} teamData={item.team2_team}/></span></strong>
+          <label className="simulation-active-toggle" title={itemActive ? "Partido activo en la simulación" : "Partido fuera de la simulación"}><input type="checkbox" checked={itemActive} onChange={event => setActiveByMatch(current => ({ ...current, [item.id]: event.target.checked }))}/><span>{itemActive ? "Activo" : "Off"}</span></label>
+          <small>{item.match_date} · {item.match_time}</small>
+        </div>}
         <div className="simulation-gesture-area">
-        <div className="simulation-track" style={{ transform: `translateX(-${currentIndex * 100}%)` }}>
-          {orderedMatches.map(item => {
-            const itemScore = scores[item.id] || { g1: "0", g2: "0" }, itemScorerIds = scorerIdsByMatch[item.id] || [], itemActive = activeByMatch[item.id] !== false;
-            const itemAvailableScorers = simulationPlayers.filter(player => scoringCodesFor(item, itemScore).includes(player.team_fifa_code) && !itemScorerIds.includes(player.id));
-            return <article className={itemActive ? "simulation-match-slide active" : "simulation-match-slide inactive"} key={item.id}>
-              <label className="simulation-active-toggle" title={itemActive ? "Partido activo en la simulación" : "Partido fuera de la simulación"}><input type="checkbox" checked={itemActive} onChange={event => setActiveByMatch(current => ({ ...current, [item.id]: event.target.checked }))}/><span>{itemActive ? "Activo" : "Off"}</span></label>
+          <article className={itemActive ? "simulation-match-slide active" : "simulation-match-slide inactive"} key={item.id}>
               <div className="detail-score-picker horizontal simulation-score-editor">
                 <HorizontalScoreControl team={item.team1} value={itemScore.g1} onChange={value => updateScore(item.id, "g1", value)} onAdjust={delta => adjustScore(item.id, "g1", delta)}/>
                 <b>–</b>
                 <HorizontalScoreControl team={item.team2} value={itemScore.g2} onChange={value => updateScore(item.id, "g2", value)} onAdjust={delta => adjustScore(item.id, "g2", delta)}/>
               </div>
               {Boolean(Number(item.scorer_enabled)) && Number(itemScore.g1) + Number(itemScore.g2) > 0 && <div className="simulation-scorers scorer-pick"><strong>Goleadores que marcarían</strong><ScorerPicker players={itemAvailableScorers} value={null} onChange={playerId => addScorer(item.id, playerId)} buttonLabel="Añadir goleador" matchLabel={`${item.team1} - ${item.team2}`}/><div className="selected-scorers">{itemScorerIds.map(playerId => { const player = simulationPlayers.find(row => row.id === playerId); return player && <button type="button" key={playerId} onClick={() => removeScorer(item.id, playerId)}>{player.name} ×</button>; })}</div></div>}
-            </article>;
-          })}
-        </div>
+          </article>
         </div>
         {simulationError && <div className="alert error">{simulationError}</div>}
         {simulation && <>
@@ -183,7 +190,7 @@ function MatchSimulationOverlay({ match, players, user, onClose }) {
           <div className="movement-ranking">{simulation.ranking.map(row => <div className={row.id === user.id ? "me" : ""} key={row.id}><b>#{row.position}<i className={row.movement > 0 ? "up" : row.movement < 0 ? "down" : "same"}>{row.movement > 0 ? <ArrowUp/> : row.movement < 0 ? <ArrowDown/> : <span>=</span>}</i></b><span>{row.username}{row.id === user.id && <small>Tú</small>}</span><strong>{row.match_points > 0 && <small className="movement-rank-earned">+{row.match_points}</small>}{row.points} pts</strong></div>)}</div>
         </>}
       </div>
-      {orderedMatches.length > 1 && <footer className="movement-pagination simulation-swipe-footer" onPointerDown={beginSwipe} onPointerUp={endSwipe} onPointerCancel={() => { swipeRef.current = null; }}>
+      {hasMultipleMatches && <footer className="movement-pagination simulation-swipe-footer" onPointerDown={beginSwipe} onPointerUp={endSwipe} onPointerCancel={() => { swipeRef.current = null; }}>
         <div aria-hidden="true">{orderedMatches.map((item, index) => <span key={item.id} className={index === currentIndex ? "active" : ""}/>)}</div>
         <span>{currentIndex + 1} / {orderedMatches.length}</span>
       </footer>}
