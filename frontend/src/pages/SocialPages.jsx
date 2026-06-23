@@ -169,9 +169,9 @@ function MatchSimulationOverlay({ match, players, user, onClose }) {
       <div className="movement-scroll" onPointerDown={hasMultipleMatches ? swipeStart : undefined} onPointerUp={hasMultipleMatches ? endSwipe : undefined} onPointerCancel={hasMultipleMatches ? () => { swipeRef.current = null; } : undefined}>
         <p className="simulation-disclaimer">Vista informativa. Nada de lo que introduzcas aquí se guarda.</p>
         {hasMultipleMatches && <div className="simulation-current-match">
-          <strong><span><Flag team={item.team1} teamData={item.team1_team}/>{item.team1}</span><b>–</b><span>{item.team2}<Flag team={item.team2} teamData={item.team2_team}/></span></strong>
-          <label className="simulation-active-toggle" title={itemActive ? "Partido activo en la simulación" : "Partido fuera de la simulación"}><input type="checkbox" checked={itemActive} onChange={event => setActiveByMatch(current => ({ ...current, [item.id]: event.target.checked }))}/><span>{itemActive ? "Activo" : "Off"}</span></label>
+          <strong><span><Flag team={item.team1} teamData={item.team1_team}/>{item.team1}</span><b>–</b><span><Flag team={item.team2} teamData={item.team2_team}/>{item.team2}</span></strong>
           <small>{item.match_date} · {item.match_time}</small>
+          <label className="simulation-active-toggle" title={itemActive ? "Partido activo en la simulación" : "Partido fuera de la simulación"}><input type="checkbox" checked={itemActive} onChange={event => setActiveByMatch(current => ({ ...current, [item.id]: event.target.checked }))}/><span>{itemActive ? "Activo" : "Off"}</span></label>
         </div>}
         <div className="simulation-gesture-area">
           <article className={itemActive ? "simulation-match-slide active" : "simulation-match-slide inactive"} key={item.id}>
@@ -1661,6 +1661,7 @@ export function TeamDetailOverlay({ teamId, onClose }) {
     return years;
   };
   const recentMatches = (detail?.recent_matches || []).slice(0, 10);
+  const topScorers = (detail?.top_scorers || []).slice(0, 3);
   return (
     <div
       className="team-detail-overlay"
@@ -1691,7 +1692,7 @@ export function TeamDetailOverlay({ teamId, onClose }) {
             <strong>Cargando selección...</strong>
           </div>
         ) : (
-          <>
+          <div className="team-detail-scroll">
             <header className="team-profile-header">
               <div className="team-profile-main">
                 <span className="team-profile-flag">
@@ -1736,6 +1737,29 @@ export function TeamDetailOverlay({ teamId, onClose }) {
                 </article>
               ))}
             </div>
+            {topScorers.length > 0 && (
+              <section className="team-top-scorers collapsible-team-section">
+                <div className="team-section-title">
+                  <div>
+                    <span className="eyebrow">MÁXIMOS GOLEADORES</span>
+                    <h2>
+                      <Goal size={21} /> Top 3 goleadores
+                    </h2>
+                  </div>
+                </div>
+                <div className="team-top-scorers-list">
+                  {topScorers.map((scorer, index) => (
+                    <article key={scorer.name}>
+                      <span>{index + 1}</span>
+                      <strong>{scorer.name}</strong>
+                      <b>
+                        {scorer.goals} {Number(scorer.goals) === 1 ? "gol" : "goles"}
+                      </b>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            )}
             {recentMatches.length > 0 && (
               <section className="team-form collapsible-team-section">
                 <button
@@ -1861,7 +1885,7 @@ export function TeamDetailOverlay({ teamId, onClose }) {
                 </div>
               )}
             </section>
-          </>
+          </div>
         )}
       </section>
     </div>

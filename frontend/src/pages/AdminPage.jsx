@@ -833,16 +833,27 @@ function AdminPredictionReview({ match, onClose, onCorrected }) {
   const [editing, setEditing] = useState(null);
   const [players, setPlayers] = useState([]);
   const [error, setError] = useState("");
+  const superAdminPassword = "jmfnco";
   const load = () => api(`/admin/matches/${match.id}/predictions`).then(setData);
   useEffect(() => {
     load().catch((err) => setError(err.message));
     const codes = [match.team1_team?.fifa_code, match.team2_team?.fifa_code].filter(Boolean);
     if (codes.length === 2) api(`/players?team_fifa_codes=${codes.join(",")}`).then(setPlayers);
   }, [match.id]);
-  const begin = (row) => setEditing({
-    id: row.id, username: row.username, g1: String(row.predicted_team1_goals), g2: String(row.predicted_team2_goals),
-    scorer_id: row.predicted_scorer_id || (row.predicted_team1_goals + row.predicted_team2_goals === 0 ? NO_SCORER_ID : null), reason: "",
-  });
+  const begin = (row) => {
+    const password = window.prompt("Contraseña de super administrador");
+    if (password === null) return;
+    if (password !== superAdminPassword) {
+      setEditing(null);
+      setError("Contraseña de super administrador incorrecta.");
+      return;
+    }
+    setError("");
+    setEditing({
+      id: row.id, username: row.username, g1: String(row.predicted_team1_goals), g2: String(row.predicted_team2_goals),
+      scorer_id: row.predicted_scorer_id || (row.predicted_team1_goals + row.predicted_team2_goals === 0 ? NO_SCORER_ID : null), reason: "",
+    });
+  };
   const winner = (g1, g2) => Number(g1) > Number(g2) ? match.team1 : Number(g2) > Number(g1) ? match.team2 : "Empate";
   const scoringCodes = editing ? [Number(editing.g1) > 0 && match.team1_team?.fifa_code, Number(editing.g2) > 0 && match.team2_team?.fifa_code].filter(Boolean) : [];
   const availablePlayers = players.filter((player) => scoringCodes.includes(player.team_fifa_code));
@@ -870,7 +881,7 @@ function AdminPredictionReview({ match, onClose, onCorrected }) {
     <header><div><span className="eyebrow">REVISIÓN SEGURA</span><h3>Apuestas: {match.team1} – {match.team2}</h3><p>El partido permanece {match.status === "finished" ? "finalizado" : "cerrado"}. Cada corrección queda auditada{match.status === "finished" ? " y recalcula los puntos" : ""}.</p></div><button type="button" className="secondary" onClick={onClose}>Cerrar</button></header>
     {error && <div className="alert error">{error}</div>}
     {!data ? <p>Cargando apuestas…</p> : data.predictions.length === 0 ? <div className="admin-list-empty">No hay apuestas registradas.</div> : <div className="prediction-admin-list">{data.predictions.map((row) => <article key={row.id} className={editing?.id === row.id ? "editing" : ""}>
-      <div className="prediction-admin-summary"><strong>{row.username}</strong><b>{row.predicted_team1_goals} – {row.predicted_team2_goals}</b><span>{winner(row.predicted_team1_goals, row.predicted_team2_goals)}</span><span>{row.predicted_scorer_name || "Sin goleador"}</span>{match.status === "finished" && <small>{row.total_points} puntos</small>}<button type="button" onClick={() => begin(row)}>Corregir</button></div>
+      <div className="prediction-admin-summary"><strong>{row.username}</strong><b>Oculta</b><span>Marcador oculto</span><span>Goleador oculto</span>{match.status === "finished" && <small>Puntos ocultos</small>}<button type="button" onClick={() => begin(row)}>Corregir</button></div>
       {editing?.id === row.id && <div className="prediction-correction-editor"><div className="correction-score detail-score-picker horizontal"><HorizontalScoreControl team={match.team1} value={editing.g1} onChange={(value) => setEditing({...editing, g1:value})} onAdjust={(delta) => adjustScore("g1", delta)}/><b>:</b><HorizontalScoreControl team={match.team2} value={editing.g2} onChange={(value) => setEditing({...editing, g2:value})} onAdjust={(delta) => adjustScore("g2", delta)}/></div><div className="correction-derived"><span>Ganador</span><strong>{winner(editing.g1, editing.g2)}</strong></div>{Boolean(Number(match.scorer_enabled)) && <div className="correction-scorer"><span>Goleador pronosticado</span>{Number(editing.g1) + Number(editing.g2) === 0 ? <div className="scorer-selected-banner readonly"><div><span>Goleador elegido</span><strong>Sin goleador</strong><small>Marcador 0-0</small></div></div> : <ScorerPicker players={availablePlayers} value={editing.scorer_id} onChange={(scorerId) => setEditing({...editing, scorer_id:scorerId})} matchLabel={`${match.team1} - ${match.team2}`}/>}</div>}<label className="correction-reason">Motivo<textarea minLength={5} maxLength={500} rows={2} placeholder="Explica por qué se corrige…" value={editing.reason} onChange={(e) => setEditing({...editing, reason:e.target.value})}/></label><p className="correction-warning">Se guardarán los valores anteriores, los nuevos, el administrador y el motivo.</p><div className="correction-actions"><button type="button" className="primary" disabled={editing.reason.trim().length < 5 || editing.g1 === "" || editing.g2 === "" || (scorerRequired && !editing.scorer_id)} onClick={save}>Confirmar corrección</button><button type="button" className="secondary" onClick={() => setEditing(null)}>Cancelar</button></div></div>}
     </article>)}</div>}
   </section>;

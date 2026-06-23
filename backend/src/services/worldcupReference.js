@@ -165,7 +165,7 @@ export async function syncWorldCupReference({ fetchImpl = globalThis.fetch, sour
   return normalized;
 }
 
-function referenceStatsForTeam(catalog, team) {
+function referenceStatsForTeam(catalog, team, playerNames = null) {
   const playedMatches = catalog.matches
     .filter((match) => match.score?.ft && [match.team1.fifa_code, match.team2.fifa_code].includes(team.fifa_code))
     .sort((a, b) => new Date(b.starts_at) - new Date(a.starts_at));
@@ -205,12 +205,26 @@ function referenceStatsForTeam(catalog, team) {
       outcome: goals_for > goals_against ? "W" : goals_for < goals_against ? "L" : "D"
     };
   });
-  return { stats, recent_matches, source: "worldcup_json", synced_at: catalog.synced_at || null };
+  const scorersByName = new Map();
+  playedMatches.forEach((match) => {
+    const home = match.team1.fifa_code === team.fifa_code;
+    const teamGoals = home ? match.goals1 : match.goals2;
+    (teamGoals || []).forEach((goal) => {
+      if (!goal.name || (playerNames && !playerNames.has(goal.name))) return;
+      const current = scorersByName.get(goal.name) || { name: goal.name, goals: 0 };
+      current.goals += 1;
+      scorersByName.set(goal.name, current);
+    });
+  });
+  const top_scorers = [...scorersByName.values()]
+    .sort((a, b) => b.goals - a.goals || a.name.localeCompare(b.name, "es"))
+    .slice(0, 3);
+  return { stats, recent_matches, top_scorers, source: "worldcup_json", synced_at: catalog.synced_at || null };
 }
 
-export function teamReferenceStats(team) {
+export function teamReferenceStats(team, playerNames = null) {
   try {
-    return referenceStatsForTeam(loadWorldCupReference(), team);
+    return referenceStatsForTeam(loadWorldCupReference(), team, playerNames);
   } catch {
     return null;
   }

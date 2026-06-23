@@ -405,12 +405,24 @@ app.get("/api/teams/:id/detail", requireAuth, (req, res) => {
       },
       outcome: goals_for > goals_against ? "W" : goals_for < goals_against ? "L" : "D" };
   });
-  const reference = teamReferenceStats(team);
+  const manualTopScorers = [...scorerRows
+    .filter((scorer) => scorer.team_fifa_code === team.fifa_code)
+    .reduce((scorers, scorer) => {
+      const current = scorers.get(scorer.name) || { name: scorer.name, goals: 0 };
+      current.goals += 1;
+      scorers.set(scorer.name, current);
+      return scorers;
+    }, new Map()).values()]
+    .sort((a, b) => b.goals - a.goals || a.name.localeCompare(b.name, "es"))
+    .slice(0, 3);
+  const playerNames = new Set(players.map((player) => player.name));
+  const reference = teamReferenceStats(team, playerNames);
   res.json({
     team,
     stats: reference?.stats || manualStats,
     players,
     recent_matches: reference?.recent_matches || manualRecentMatches,
+    top_scorers: reference?.top_scorers || manualTopScorers,
     stats_source: reference?.source || "manual_results",
     stats_synced_at: reference?.synced_at || null
   });
