@@ -8,8 +8,11 @@ import "../styles/worldcup.css";
 const roundLabels = {
   "Round of 32": "Dieciseisavos",
   "Round of 16": "Octavos",
+  "Quarter-final": "Cuartos",
   "Quarter-finals": "Cuartos",
+  "Semi-final": "Semifinales",
   "Semi-finals": "Semifinales",
+  "Match for third place": "Tercer puesto",
   "Third-place match": "Tercer puesto",
   "Final": "Final"
 };
@@ -19,12 +22,21 @@ const roundLabel = (round) => roundLabels[round] || round || "Eliminatoria";
 const scoreText = (match) => match.score?.ft?.length === 2 ? `${match.score.ft[0]} - ${match.score.ft[1]}` : "VS";
 const dateText = (match) => match.match_date ? new Date(`${match.match_date}T12:00:00`).toLocaleDateString("es-ES", { day: "numeric", month: "short" }) : match.source_date;
 const timeText = (match) => match.match_time || match.source_time || "";
-const roundOrder = ["Round of 32", "Round of 16", "Quarter-finals", "Semi-finals", "Final", "Third-place match"];
+const roundOrder = ["Round of 32", "Round of 16", "Quarter-final", "Semi-final", "Final", "Match for third place"];
 const winnerRef = (value) => {
   const match = String(value || "").match(/^W(\d+)$/i);
   return match ? Number(match[1]) : null;
 };
 const dependencyRefs = (match) => [winnerRef(match.team1), winnerRef(match.team2)].filter(Boolean);
+const roundRankFromNextRound = (nextRoundMatches) => {
+  const ranks = new Map();
+  nextRoundMatches.forEach((match, matchIndex) => {
+    dependencyRefs(match).forEach((ref, refIndex) => {
+      ranks.set(ref, matchIndex * 2 + refIndex);
+    });
+  });
+  return ranks;
+};
 
 function useInitialTab() {
   const location = useLocation();
@@ -63,7 +75,17 @@ function KnockoutView({ matches }) {
   }, {});
   const rounds = roundOrder
     .filter((round) => roundsByName[round]?.length)
-    .map((round) => [round, [...roundsByName[round]].sort((a, b) => a.reference_id - b.reference_id)]);
+    .map((round, index, visibleRounds) => {
+      const nextRound = visibleRounds[index + 1];
+      const nextItems = nextRound ? [...roundsByName[nextRound]].sort((a, b) => a.reference_id - b.reference_id) : [];
+      const dependencyRank = roundRankFromNextRound(nextItems);
+      const items = [...roundsByName[round]].sort((a, b) =>
+        (dependencyRank.get(a.reference_id) ?? a.reference_id + 1000) -
+        (dependencyRank.get(b.reference_id) ?? b.reference_id + 1000) ||
+        a.reference_id - b.reference_id
+      );
+      return [round, items];
+    });
   return <div className="worldcup-tree">
     {rounds.map(([round, items]) => <section className="worldcup-round" key={round}>
       <header><span>{roundLabel(round)}</span><strong>{items.length} partidos</strong></header>

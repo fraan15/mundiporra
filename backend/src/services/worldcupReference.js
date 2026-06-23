@@ -288,7 +288,7 @@ export function worldCupOverview() {
   };
 }
 
-export function startWorldCupReferenceSync({ logger = console, intervalMs = 3 * 60 * 60 * 1000 } = {}) {
+export function startWorldCupReferenceSync({ logger = console, intervalMs = 60 * 60 * 1000 } = {}) {
   if (process.env.WORLD_CUP_SYNC_ENABLED === "false") return { stop() {} };
   let timer = null;
   let stopped = false;
