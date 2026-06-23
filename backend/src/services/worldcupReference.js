@@ -6,7 +6,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
 const catalogDir = path.join(root, "data/catalog");
 export const referencePath = path.join(catalogDir, "worldcup.matches.es.json");
-export const rawReferencePath = path.join(catalogDir, "worldcup.raw.json");
+export const rawReferencePath = path.join(catalogDir, "worldcup.json");
+const legacyRawReferencePath = path.join(catalogDir, "worldcup.raw.json");
 export const WORLD_CUP_SOURCE_URL = process.env.WORLD_CUP_JSON_URL ||
   "https://raw.githubusercontent.com/openfootball/worldcup.json/refs/heads/master/2026/worldcup.json";
 
@@ -24,6 +25,21 @@ const teamAliases = new Map([
   ["Portugal", "POR"], ["DR Congo", "COD"], ["Uzbekistan", "UZB"], ["Colombia", "COL"],
   ["England", "ENG"], ["Croatia", "CRO"], ["Ghana", "GHA"], ["Panama", "PAN"]
 ]);
+
+export const worldCupGroups = [
+  { name: "Group A", teams: ["Mexico", "South Africa", "South Korea", "Czech Republic"] },
+  { name: "Group B", teams: ["Canada", "Bosnia & Herzegovina", "Qatar", "Switzerland"] },
+  { name: "Group C", teams: ["Brazil", "Morocco", "Haiti", "Scotland"] },
+  { name: "Group D", teams: ["USA", "Paraguay", "Australia", "Turkey"] },
+  { name: "Group E", teams: ["Germany", "CuraÃ§ao", "Ivory Coast", "Ecuador"] },
+  { name: "Group F", teams: ["Netherlands", "Japan", "Sweden", "Tunisia"] },
+  { name: "Group G", teams: ["Belgium", "Egypt", "Iran", "New Zealand"] },
+  { name: "Group H", teams: ["Spain", "Cape Verde", "Saudi Arabia", "Uruguay"] },
+  { name: "Group I", teams: ["France", "Senegal", "Iraq", "Norway"] },
+  { name: "Group J", teams: ["Argentina", "Algeria", "Austria", "Jordan"] },
+  { name: "Group K", teams: ["Portugal", "DR Congo", "Uzbekistan", "Colombia"] },
+  { name: "Group L", teams: ["England", "Croatia", "Ghana", "Panama"] }
+];
 
 const madridFormatter = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Europe/Madrid",
@@ -73,6 +89,10 @@ function normalizeGoals(goals) {
     : [];
 }
 
+export function isKnockoutRound(round) {
+  return Boolean(round) && !/^Matchday\b/i.test(String(round).trim());
+}
+
 export function normalizeWorldCupReference(source, options = {}) {
   const teams = options.teams || readCatalog("worldcup.teams.es.json");
   const stadiums = options.stadiums || readCatalog("worldcup.stadiums.json").stadiums;
@@ -83,6 +103,7 @@ export function normalizeWorldCupReference(source, options = {}) {
     return {
       reference_id: index + 1,
       round: match.round,
+      is_knockout: isKnockoutRound(match.round),
       group: match.group || null,
       ...normalizeDateTime(match.date, match.time),
       team1: normalizeTeam(match.team1, teamByCode),
@@ -106,6 +127,19 @@ export function normalizeWorldCupReference(source, options = {}) {
 }
 
 export function loadWorldCupReference() {
+  const rawPath = fs.existsSync(rawReferencePath)
+    ? rawReferencePath
+    : fs.existsSync(legacyRawReferencePath)
+      ? legacyRawReferencePath
+      : null;
+  if (rawPath) {
+    const raw = JSON.parse(fs.readFileSync(rawPath, "utf8"));
+    return normalizeWorldCupReference(raw, {
+      generatedFrom: "worldcup.json",
+      sourceUrl: WORLD_CUP_SOURCE_URL,
+      syncedAt: fs.statSync(rawPath).mtime.toISOString()
+    });
+  }
   return JSON.parse(fs.readFileSync(referencePath, "utf8"));
 }
 
@@ -122,8 +156,6 @@ export async function syncWorldCupReference({ fetchImpl = globalThis.fetch, sour
   fs.mkdirSync(catalogDir, { recursive: true });
   fs.writeFileSync(`${rawReferencePath}.tmp`, `${JSON.stringify(source, null, 2)}\n`);
   fs.renameSync(`${rawReferencePath}.tmp`, rawReferencePath);
-  fs.writeFileSync(`${referencePath}.tmp`, `${JSON.stringify(normalized, null, 2)}\n`);
-  fs.renameSync(`${referencePath}.tmp`, referencePath);
   return normalized;
 }
 
@@ -176,6 +208,84 @@ export function teamReferenceStats(team) {
   } catch {
     return null;
   }
+}
+
+function standingSeed(teamName, teamsByCode) {
+  const fifaCode = teamAliases.get(teamName) || null;
+  const team = fifaCode ? teamsByCode.get(fifaCode) : null;
+  return {
+    fifa_code: fifaCode,
+    source_name: teamName,
+    name: team?.name || teamName,
+    flag_icon: team?.flag_icon || null,
+    played: 0,
+    won: 0,
+    drawn: 0,
+    lost: 0,
+    goals_for: 0,
+    goals_against: 0,
+    goal_difference: 0,
+    points: 0
+  };
+}
+
+function applyStandingMatch(standing, goalsFor, goalsAgainst) {
+  standing.played += 1;
+  standing.goals_for += goalsFor;
+  standing.goals_against += goalsAgainst;
+  standing.goal_difference = standing.goals_for - standing.goals_against;
+  if (goalsFor > goalsAgainst) standing.won += 1;
+  else if (goalsFor < goalsAgainst) standing.lost += 1;
+  else standing.drawn += 1;
+  standing.points = standing.won * 3 + standing.drawn;
+}
+
+export function worldCupOverview() {
+  const catalog = loadWorldCupReference();
+  const teams = readCatalog("worldcup.teams.es.json");
+  const teamsByCode = new Map(teams.map((team) => [team.fifa_code, team]));
+  const groups = worldCupGroups.map((group) => {
+    const standings = group.teams.map((teamName) => standingSeed(teamName, teamsByCode));
+    const standingsByCode = new Map(standings.map((team) => [team.fifa_code, team]));
+    catalog.matches
+      .filter((match) => match.group === group.name && match.score?.ft)
+      .forEach((match) => {
+        const home = standingsByCode.get(match.team1.fifa_code);
+        const away = standingsByCode.get(match.team2.fifa_code);
+        if (!home || !away) return;
+        applyStandingMatch(home, match.score.ft[0], match.score.ft[1]);
+        applyStandingMatch(away, match.score.ft[1], match.score.ft[0]);
+      });
+    standings.sort((a, b) =>
+      b.points - a.points ||
+      b.goal_difference - a.goal_difference ||
+      b.goals_for - a.goals_for ||
+      a.name.localeCompare(b.name, "es")
+    );
+    return { name: group.name, standings };
+  });
+  const knockout_matches = catalog.matches
+    .filter((match) => match.is_knockout)
+    .map((match) => ({
+      reference_id: match.reference_id,
+      round: match.round,
+      match_date: match.match_date,
+      match_time: match.match_time,
+      source_date: match.source?.date || match.match_date,
+      source_time: match.source?.time || "",
+      team1: match.team1.name_es || match.team1.source_name,
+      team2: match.team2.name_es || match.team2.source_name,
+      team1_code: match.team1.fifa_code,
+      team2_code: match.team2.fifa_code,
+      stadium: match.stadium,
+      score: match.score
+    }));
+  return {
+    name: catalog.name,
+    synced_at: catalog.synced_at || null,
+    groups,
+    knockout_matches
+  };
 }
 
 export function startWorldCupReferenceSync({ logger = console, intervalMs = 3 * 60 * 60 * 1000 } = {}) {

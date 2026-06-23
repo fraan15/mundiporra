@@ -1409,6 +1409,7 @@ const winnerFromScore = (g1, g2) => {
       ? "team1"
       : "team2";
 };
+const knockoutNotice = "Partido de eliminatoria: pronóstico válido hasta 120 minutos. La tanda de penaltis no cuenta para resultado, signo ni goleadores.";
 function HorizontalScoreControl({ team, value, onChange, onAdjust }) {
   const dragRef = useRef(null);
   const score = value === "" ? 0 : Number(value);
@@ -1961,6 +1962,8 @@ export function MatchDetailPage() {
     [comparing, setComparing] = useState(false),
     [result, setResult] = useState({ g1: "", g2: "" }),
     [resultScorerIds, setResultScorerIds] = useState([]),
+    [resultHasPenalties, setResultHasPenalties] = useState(false),
+    [resultPenalties, setResultPenalties] = useState({ p1: "", p2: "" }),
     [savingResult, setSavingResult] = useState(false),
     [resultMessage, setResultMessage] = useState(""),
     [pick, setPick] = useState({
@@ -2036,7 +2039,14 @@ export function MatchDetailPage() {
         g1: data.match.result_team1 ?? "",
         g2: data.match.result_team2 ?? "",
       });
-  }, [data?.match.result_team1, data?.match.result_team2]);
+    if (data) {
+      setResultHasPenalties(data.match.penalty_team1 !== null && data.match.penalty_team2 !== null);
+      setResultPenalties({
+        p1: data.match.penalty_team1 ?? "",
+        p2: data.match.penalty_team2 ?? "",
+      });
+    }
+  }, [data?.match.result_team1, data?.match.result_team2, data?.match.penalty_team1, data?.match.penalty_team2]);
   useEffect(() => {
     if (data)
       setResultScorerIds(
@@ -2180,6 +2190,7 @@ export function MatchDetailPage() {
   );
   const resultNeedsScorer =
     scorerEnabled && Number(result.g1) + Number(result.g2) > 0;
+  const resultScoreIsDraw = result.g1 !== "" && result.g2 !== "" && Number(result.g1) === Number(result.g2);
   const saveResult = async () => {
     setSavingResult(true);
     setResultMessage("");
@@ -2190,6 +2201,9 @@ export function MatchDetailPage() {
           result_team1: Number(result.g1),
           result_team2: Number(result.g2),
           scorer_ids: resultNeedsScorer ? resultScorerIds : [],
+          has_penalties: resultHasPenalties,
+          penalty_team1: resultHasPenalties ? Number(resultPenalties.p1) : null,
+          penalty_team2: resultHasPenalties ? Number(resultPenalties.p2) : null,
         },
       });
       setResultMessage(
@@ -2201,6 +2215,16 @@ export function MatchDetailPage() {
     } finally {
       setSavingResult(false);
     }
+  };
+  const updateResultScore = (field, value) => {
+    setResult((current) => {
+      const next = { ...current, [field]: value };
+      if (next.g1 !== "" && next.g2 !== "" && Number(next.g1) !== Number(next.g2)) {
+        setResultHasPenalties(false);
+        setResultPenalties({ p1: "", p2: "" });
+      }
+      return next;
+    });
   };
   const updatePickScore = (field, value) =>
     setPick((current) => {
@@ -2331,6 +2355,12 @@ export function MatchDetailPage() {
               ? "Pronósticos abiertos"
               : "Pronósticos cerrados"}
         </em>
+        {m.penalty_summary && (
+          <p className="penalty-summary">{m.penalty_summary.text}</p>
+        )}
+        {Number(m.is_knockout) === 1 && (
+          <p className="knockout-notice">{knockoutNotice}</p>
+        )}
         {m.status === "finished" && m.actual_scorers?.length > 0 && (
           <div className="match-result-scorers">
             <strong>Goleadores</strong>
@@ -2362,7 +2392,7 @@ export function MatchDetailPage() {
                   min="0"
                   inputMode="numeric"
                   value={result.g1}
-                  onChange={(e) => setResult({ ...result, g1: e.target.value })}
+                  onChange={(e) => updateResultScore("g1", e.target.value)}
                 />
               </label>
               <b>:</b>
@@ -2374,10 +2404,48 @@ export function MatchDetailPage() {
                   min="0"
                   inputMode="numeric"
                   value={result.g2}
-                  onChange={(e) => setResult({ ...result, g2: e.target.value })}
+                  onChange={(e) => updateResultScore("g2", e.target.value)}
                 />
               </label>
             </div>
+            {Number(m.is_knockout) === 1 && (
+              <div className="knockout-admin-box">
+                <p>Selecciona solo goleadores hasta el 120. Los penaltis de la tanda no cuentan.</p>
+                <label className="toggle">
+                  <input
+                    type="checkbox"
+                    checked={resultHasPenalties}
+                    disabled={!resultScoreIsDraw}
+                    onChange={(e) => setResultHasPenalties(e.target.checked)}
+                  />
+                  Tanda de penaltis
+                </label>
+                {resultHasPenalties && resultScoreIsDraw && (
+                  <div className="penalty-inputs">
+                    <label>
+                      Penaltis {m.team1}
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={resultPenalties.p1}
+                        onChange={(e) => setResultPenalties({ ...resultPenalties, p1: e.target.value })}
+                      />
+                    </label>
+                    <label>
+                      Penaltis {m.team2}
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={resultPenalties.p2}
+                        onChange={(e) => setResultPenalties({ ...resultPenalties, p2: e.target.value })}
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
+            )}
             {resultNeedsScorer && (
               <div className="result-scorers-editor">
                 <strong>Goleadores puntuables</strong>
@@ -2428,6 +2496,7 @@ export function MatchDetailPage() {
                 savingResult ||
                 result.g1 === "" ||
                 result.g2 === "" ||
+                (resultHasPenalties && (resultPenalties.p1 === "" || resultPenalties.p2 === "" || Number(resultPenalties.p1) === Number(resultPenalties.p2))) ||
                 (resultNeedsScorer && resultScorerIds.length === 0)
               }
               onClick={saveResult}
@@ -2455,6 +2524,7 @@ export function MatchDetailPage() {
           className={`content-card detail-prediction ${!m.betting_open ? "detail-prediction-locked" : ""}`}
         >
           <div className="detail-prediction-heading"><h2>{user.is_read_only ? "Vista de espectador" : "Mi pronóstico"}</h2>{m.status === "closed" && Boolean(m.in_play) && <button type="button" className="simulation-trigger" onClick={() => setSimulationOpen(true)}><Calculator size={17}/><span>Simular</span></button>}</div>
+          {Number(m.is_knockout) === 1 && <p className="knockout-notice compact">{knockoutNotice}</p>}
           {m.betting_open && !user.is_read_only ? (
             <>
               <div className="detail-winner-picks">

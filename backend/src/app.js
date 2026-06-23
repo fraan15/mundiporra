@@ -12,7 +12,7 @@ import { READ_ONLY_USER, hydrateUser, requireAdmin, requireAuth, requireWritable
 import { autoCloseExpired, calculateWinner, effectiveCloseAt, isExpired, recalculateAll, recalculateMatch } from "./services/matches.js";
 import { createNotification, leaderboardRows, notifyAll, notifyAllExcept, notifyNewTopThree, saveRankingSnapshot } from "./services/notifications.js";
 import { NO_SCORER, NO_SCORER_ID, parseScorerList, parseScorerSelection, serializeActualScorers, serializePredictedScorer } from "./services/scorers.js";
-import { loadWorldCupReference, syncWorldCupReference, teamReferenceStats } from "./services/worldcupReference.js";
+import { loadWorldCupReference, syncWorldCupReference, teamReferenceStats, worldCupOverview } from "./services/worldcupReference.js";
 import { getPushPreferences, pushConfigured, savePushSubscription, sendPushToUser, vapidPublicKey } from "./services/push.js";
 
 initDatabase();
@@ -172,6 +172,23 @@ const scoringTeamIds = (match, team1Goals, team2Goals) => [
   team1Goals > 0 ? match.team1_id : null,
   team2Goals > 0 ? match.team2_id : null
 ].filter(Boolean);
+const unresolvedWorldCupTeam = (team) => !team?.fifa_code && /^(?:[123][A-L](?:\/[A-L])*|[WL]\d+)$/i.test(String(team?.source_name || team?.name_es || "").trim());
+const parseOptionalPenalty = (value) => value === undefined || value === null || value === "" ? null : parseIntField(value);
+const penaltySummary = (match) => {
+  if (!Number(match.is_knockout) || match.result_team1 === null || match.result_team2 === null ||
+      Number(match.result_team1) !== Number(match.result_team2) ||
+      match.penalty_team1 === null || match.penalty_team2 === null) return null;
+  const p1 = Number(match.penalty_team1), p2 = Number(match.penalty_team2);
+  if (!Number.isInteger(p1) || !Number.isInteger(p2) || p1 === p2) return null;
+  return {
+    winner: p1 > p2 ? "team1" : "team2",
+    winner_name: p1 > p2 ? match.team1 : match.team2,
+    score: `${p1}-${p2}`,
+    text: `Tras penaltis: gana ${p1 > p2 ? match.team1 : match.team2} ${p1}-${p2}`
+  };
+};
+const settingBooleanValue = (value) => value === true || value === 1 || value === "1" ? "1" : "0";
+const requestBoolean = (value) => value === true || value === 1 || value === "1";
 const matchPayload = (body, existing = {}) => {
   const date = body.match_date ?? existing.match_date;
   const time = body.match_time ?? existing.match_time;
@@ -186,6 +203,7 @@ const matchPayload = (body, existing = {}) => {
     auto_close_at: autoClose,
     force_published: body.force_published === undefined ? Number(existing.force_published || 0) : body.force_published ? 1 : 0,
     is_star: body.is_star === undefined ? Number(existing.is_star || 0) : body.is_star ? 1 : 0,
+    is_knockout: body.is_knockout === undefined ? Number(existing.is_knockout || 0) : requestBoolean(body.is_knockout) ? 1 : 0,
     scorer_enabled: body.scorer_enabled === undefined
       ? Number(existing.id ? existing.scorer_enabled : body.team1_id && body.team2_id ? 1 : 0)
       : body.scorer_enabled ? 1 : 0
@@ -294,6 +312,7 @@ const serializeMatches = (matches) => {
     stadium_info: stadiums.get(match.stadium_id) || null,
     predicted_scorer: serializePredictedScorer(match, predictedScorers.get(match.predicted_scorer_id)),
     actual_scorers: serializeActualScorers(match, scorersByMatch.get(match.id) || []),
+    penalty_summary: penaltySummary(match),
     published: isMatchPublished(match),
     publishes_at: matchPublishesAt(match).toISOString(),
     effective_close_at: effectiveCloseAt(match).toISOString(),
@@ -459,7 +478,7 @@ app.get("/api/admin/matches", requireAdmin, (req, res) => {
 app.get("/api/admin/match-reference", requireAdmin, (req, res) => {
   const requestedDate = String(req.query.date || "").trim();
   const from = /^\d{4}-\d{2}-\d{2}$/.test(requestedDate) ? requestedDate : dateInTimeZone();
-  const to = addDays(from, 3);
+  const to = addDays(from, 7);
   const catalog = loadWorldCupReference();
   const teams = new Map(db.prepare("SELECT id,fifa_code,name FROM teams").all().map((team) => [team.fifa_code, team]));
   const stadiums = new Map(db.prepare("SELECT id,name,city FROM stadiums").all().map((stadium) => [`${stadium.name}\n${stadium.city}`, stadium]));
@@ -479,13 +498,20 @@ app.get("/api/admin/match-reference", requireAdmin, (req, res) => {
           (row.team1_id === team2.id && row.team2_id === team1.id))
       ) : null;
       const missing = [
-        !team1 && `Equipo: ${match.team1.name_es}`,
-        !team2 && `Equipo: ${match.team2.name_es}`,
-        !stadium && `Estadio: ${match.stadium.name || match.stadium.city}`
+        !team1 && {
+          type: unresolvedWorldCupTeam(match.team1) ? "unresolved_team" : "team",
+          label: match.team1.name_es
+        },
+        !team2 && {
+          type: unresolvedWorldCupTeam(match.team2) ? "unresolved_team" : "team",
+          label: match.team2.name_es
+        },
+        !stadium && { type: "stadium", label: match.stadium.name || match.stadium.city }
       ].filter(Boolean);
       return {
         reference_id: match.reference_id,
         round: match.round?.replace(/^Matchday /, "Jornada "),
+        is_knockout: Boolean(match.is_knockout),
         group: match.group?.replace(/^Group /, "Grupo ") || null,
         match_date: match.match_date,
         match_time: match.match_time,
@@ -494,7 +520,8 @@ app.get("/api/admin/match-reference", requireAdmin, (req, res) => {
         team2: team2 || { id: null, name: match.team2.name_es },
         stadium: stadium || { id: null, name: match.stadium.name, city: match.stadium.city },
         existing_match: existing,
-        selectable: missing.length === 0,
+        selectable: true,
+        complete: missing.length === 0,
         missing
       };
     });
@@ -764,6 +791,14 @@ app.get("/api/dashboard/calendar", requireAuth, (req, res) => {
     GROUP BY m.id ORDER BY m.match_date,m.match_time
   `).all(req.user.id);
   res.json(serializeMatches(matches));
+});
+
+app.get("/api/worldcup/overview", requireAuth, (_req, res) => {
+  try {
+    res.json(worldCupOverview());
+  } catch {
+    res.status(503).json({ error: "La informacion del Mundial aun no esta sincronizada." });
+  }
 });
 
 app.get("/api/profile/me", requireAuth, (req, res) => {
@@ -1434,10 +1469,10 @@ app.post("/api/matches", requireAdmin, (req, res) => {
   if (data.stadium_id && !entities.stadium) return res.status(400).json({ error: "Estadio no válido." });
   const stamp = now();
   const result = db.prepare(`INSERT INTO matches(match_date,match_time,stadium,team1,team2,team1_id,team2_id,stadium_id,
-    scorer_enabled,status,auto_close_at,force_published,is_star,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,'open',?,?,?,?,?)`)
+    scorer_enabled,status,auto_close_at,force_published,is_star,is_knockout,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,'open',?,?,?,?,?,?)`)
     .run(data.match_date, data.match_time, entities.stadium?.name || "", team1Name, team2Name,
       entities.team1?.id || null, entities.team2?.id || null, entities.stadium?.id || null, data.scorer_enabled,
-      data.auto_close_at, data.force_published, data.is_star, stamp, stamp);
+      data.auto_close_at, data.force_published, data.is_star, data.is_knockout, stamp, stamp);
   const created = db.prepare("SELECT * FROM matches WHERE id=?").get(result.lastInsertRowid);
   logAction(req.user.id, "create_match", "match", created.id, "Partido creado", null, created);
   if (isMatchPublished(created) && created.status === "open" && !isExpired(created)) {
@@ -1470,10 +1505,10 @@ app.put("/api/matches/:id", requireAdmin, (req, res) => {
   }
   db.transaction(() => {
     db.prepare(`UPDATE matches SET match_date=?,match_time=?,stadium=?,team1=?,team2=?,team1_id=?,team2_id=?,
-      stadium_id=?,scorer_enabled=?,auto_close_at=?,force_published=?,is_star=?,updated_at=? WHERE id=?`)
+      stadium_id=?,scorer_enabled=?,auto_close_at=?,force_published=?,is_star=?,is_knockout=?,updated_at=? WHERE id=?`)
       .run(data.match_date, data.match_time, entities.stadium?.name || before.stadium || "", team1Name, team2Name,
         entities.team1?.id || null, entities.team2?.id || null, entities.stadium?.id || null, data.scorer_enabled,
-        data.auto_close_at, data.force_published, data.is_star, now(), before.id);
+        data.auto_close_at, data.force_published, data.is_star, data.is_knockout, now(), before.id);
     if (!data.scorer_enabled) {
       db.prepare("DELETE FROM match_scorers WHERE match_id=?").run(before.id);
       db.prepare("UPDATE predictions SET predicted_scorer_id=NULL,scorer_points=0 WHERE match_id=?").run(before.id);
@@ -1554,7 +1589,7 @@ app.delete("/api/matches/:id/result", requireAdmin, (req, res) => {
   db.transaction(() => {
     db.prepare(`
       UPDATE matches
-      SET status=?,result_team1=NULL,result_team2=NULL,winner=NULL,close_reason=?,updated_at=?
+      SET status=?,result_team1=NULL,result_team2=NULL,winner=NULL,penalty_team1=NULL,penalty_team2=NULL,close_reason=?,updated_at=?
       WHERE id=?
     `).run(nextStatus, closeReason, stamp, before.id);
     db.prepare(`
@@ -1598,20 +1633,41 @@ app.post("/api/matches/:id/finish", requireAdmin, (req, res) => {
     `).all(...playerScorerIds, ...allowedTeamIds);
     if (valid.length !== playerScorerIds.length) return res.status(400).json({ error: "Todos los goleadores deben pertenecer a equipos que hayan marcado." });
   }
+  const wantsPenalties = requestBoolean(req.body.has_penalties) ||
+    (req.body.has_penalties === undefined &&
+      req.body.penalty_team1 !== undefined && req.body.penalty_team1 !== null && req.body.penalty_team1 !== "" &&
+      req.body.penalty_team2 !== undefined && req.body.penalty_team2 !== null && req.body.penalty_team2 !== "");
+  const p1 = parseOptionalPenalty(req.body.penalty_team1);
+  const p2 = parseOptionalPenalty(req.body.penalty_team2);
+  if ((req.body.penalty_team1 !== undefined && p1 === null && req.body.penalty_team1 !== "" && req.body.penalty_team1 !== null) ||
+      (req.body.penalty_team2 !== undefined && p2 === null && req.body.penalty_team2 !== "" && req.body.penalty_team2 !== null)) {
+    return res.status(400).json({ error: "Los penaltis deben ser enteros positivos o cero." });
+  }
+  let penaltyTeam1 = null, penaltyTeam2 = null;
+  if (wantsPenalties) {
+    if (!Number(before.is_knockout)) return res.status(400).json({ error: "Solo los partidos de eliminatoria pueden tener tanda de penaltis." });
+    if (g1 !== g2) return res.status(400).json({ error: "Solo se pueden guardar penaltis si el resultado hasta 120 minutos es empate." });
+    if (p1 === null || p2 === null) return res.status(400).json({ error: "Introduce los goles de la tanda para ambos equipos." });
+    if (p1 === p2) return res.status(400).json({ error: "La tanda de penaltis no puede terminar empatada." });
+    penaltyTeam1 = p1;
+    penaltyTeam2 = p2;
+  }
   const winner = calculateWinner(g1, g2);
   if (req.body.winner && req.body.winner !== winner) return res.status(400).json({ error: "El ganador no coincide con el marcador." });
   if (before.status === "finished" && before.result_team1 === g1 && before.result_team2 === g2) {
     const storedScorerIds = db.prepare("SELECT player_id FROM match_scorers WHERE match_id=? ORDER BY player_id")
       .all(before.id).map((row) => row.player_id);
     const submittedScorerIds = [...playerScorerIds].sort((a, b) => a - b);
-    if (storedScorerIds.length === submittedScorerIds.length && storedScorerIds.every((id, index) => id === submittedScorerIds[index])) {
+    if (storedScorerIds.length === submittedScorerIds.length && storedScorerIds.every((id, index) => id === submittedScorerIds[index]) &&
+        Number(before.penalty_team1 ?? -1) === Number(penaltyTeam1 ?? -1) &&
+        Number(before.penalty_team2 ?? -1) === Number(penaltyTeam2 ?? -1)) {
       return res.json(serializeMatch(before));
     }
   }
   const leaderboardBefore = leaderboardRows();
   db.transaction(() => {
-    db.prepare("UPDATE matches SET status='finished',result_team1=?,result_team2=?,winner=?,updated_at=? WHERE id=?")
-      .run(g1, g2, winner, now(), before.id);
+    db.prepare("UPDATE matches SET status='finished',result_team1=?,result_team2=?,winner=?,penalty_team1=?,penalty_team2=?,updated_at=? WHERE id=?")
+      .run(g1, g2, winner, penaltyTeam1, penaltyTeam2, now(), before.id);
     db.prepare("DELETE FROM match_scorers WHERE match_id=?").run(before.id);
     const addScorer = db.prepare("INSERT INTO match_scorers(match_id,player_id) VALUES(?,?)");
     playerScorerIds.forEach((playerId) => addScorer.run(before.id, playerId));
@@ -2137,13 +2193,19 @@ app.post("/api/admin/sync-worldcup-json", requireAdmin, async (req, res, next) =
 });
 app.get("/api/admin/settings", requireAdmin, (_req, res) => res.json(settings()));
 app.put("/api/admin/settings", requireAdmin, (req, res) => {
-  const allowed = ["pool_name", "winner_points", "exact_result_points", "scorer_points", "auto_close_enabled", "auto_close_minutes_before", "prediction_reminder_enabled"];
+  const allowed = ["pool_name", "winner_points", "exact_result_points", "scorer_points", "auto_close_enabled", "auto_close_minutes_before", "prediction_reminder_enabled", "knockout_mode_enabled"];
   const numeric = ["winner_points", "exact_result_points", "scorer_points", "auto_close_minutes_before"];
+  const booleans = ["auto_close_enabled", "prediction_reminder_enabled", "knockout_mode_enabled"];
   if (numeric.some((key) => req.body[key] !== undefined && (!Number.isInteger(Number(req.body[key])) || Number(req.body[key]) < 0))) {
     return res.status(400).json({ error: "Las puntuaciones y los minutos deben ser enteros positivos o cero." });
   }
+  if (booleans.some((key) => req.body[key] !== undefined && !["0", "1", 0, 1, true, false].includes(req.body[key]))) {
+    return res.status(400).json({ error: "Configuración no válida." });
+  }
   const update = db.prepare("INSERT INTO app_settings(key,value,updated_at) VALUES(?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at");
-  db.transaction(() => allowed.forEach((key) => { if (req.body[key] !== undefined) update.run(key, String(req.body[key]), now()); }))();
+  db.transaction(() => allowed.forEach((key) => {
+    if (req.body[key] !== undefined) update.run(key, booleans.includes(key) ? settingBooleanValue(req.body[key]) : String(req.body[key]), now());
+  }))();
   logAction(req.user.id, "edit_settings", "settings", null, "Configuración actualizada", null, settings());
   res.json(settings());
 });

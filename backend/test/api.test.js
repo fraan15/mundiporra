@@ -5,6 +5,7 @@ import sharp from "sharp";
 import { app } from "../src/app.js";
 import { db } from "../src/db/database.js";
 import { remindNextNightMissingPredictions } from "../src/services/matches.js";
+import { normalizeWorldCupReference } from "../src/services/worldcupReference.js";
 
 test("sirve el frontend compilado desde la ruta raíz", async () => {
   const response = await request(app).get("/");
@@ -361,6 +362,92 @@ test("el administrador puede paginar y filtrar partidos", async () => {
   await normalUser.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
   const forbidden = await normalUser.get("/api/admin/matches");
   assert.equal(forbidden.status, 403);
+});
+
+test("el calendario worldcup marca eliminatorias desde round", () => {
+  const catalog = normalizeWorldCupReference({
+    name: "World Cup 2026",
+    matches: [
+      { round: "Matchday 1", date: "2026-06-11", time: "13:00 UTC-6", team1: "Mexico", team2: "South Africa", ground: "Mexico City" },
+      { round: "Round of 32", date: "2026-06-28", time: "12:00 UTC-7", team1: "2A", team2: "2B", ground: "Los Angeles (Inglewood)" },
+      { round: "Semi-final", date: "2026-07-14", time: "14:00 UTC-5", team1: "W97", team2: "W98", ground: "Dallas (Arlington)" }
+    ]
+  });
+  assert.equal(catalog.matches[0].is_knockout, false);
+  assert.equal(catalog.matches[1].is_knockout, true);
+  assert.equal(catalog.matches[2].is_knockout, true);
+});
+
+test("las eliminatorias guardan penaltis informativos sin cambiar el signo puntuable", async () => {
+  const admin = request.agent(app), user = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  await user.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
+  const suffix = Date.now();
+  const created = await admin.post("/api/matches").send({
+    match_date: "2099-07-20",
+    match_time: "21:00",
+    team1: `KO A ${suffix}`,
+    team2: `KO B ${suffix}`,
+    force_published: true,
+    scorer_enabled: false,
+    is_knockout: true
+  });
+  assert.equal(created.status, 201);
+  assert.equal(created.body.is_knockout, 1);
+  const prediction = await user.post("/api/predictions").send({
+    match_id: created.body.id,
+    predicted_winner: "draw",
+    predicted_team1_goals: 1,
+    predicted_team2_goals: 1,
+    predicted_scorer_id: null
+  });
+  assert.equal(prediction.status, 201);
+
+  await admin.patch(`/api/matches/${created.body.id}/status`).send({ status: "closed" });
+  const finished = await admin.post(`/api/matches/${created.body.id}/finish`).send({
+    result_team1: 1,
+    result_team2: 1,
+    scorer_ids: [],
+    has_penalties: true,
+    penalty_team1: 6,
+    penalty_team2: 5
+  });
+  assert.equal(finished.status, 200);
+  assert.equal(finished.body.winner, "draw");
+  assert.equal(finished.body.penalty_team1, 6);
+  assert.equal(finished.body.penalty_team2, 5);
+  assert.equal(finished.body.penalty_summary.text, `Tras penaltis: gana KO A ${suffix} 6-5`);
+
+  const scored = db.prepare("SELECT winner_points,exact_result_points,total_points FROM predictions WHERE id=?").get(prediction.body.id);
+  assert.ok(scored.winner_points > 0);
+  assert.ok(scored.exact_result_points > 0);
+  assert.equal(scored.total_points, scored.winner_points + scored.exact_result_points);
+});
+
+test("rechaza penaltis si el resultado de eliminatoria hasta 120 no es empate", async () => {
+  const admin = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  const created = await admin.post("/api/matches").send({
+    match_date: "2099-07-21",
+    match_time: "21:00",
+    team1: "KO no empate A",
+    team2: "KO no empate B",
+    force_published: true,
+    scorer_enabled: false,
+    is_knockout: true
+  });
+  assert.equal(created.status, 201);
+
+  const rejected = await admin.post(`/api/matches/${created.body.id}/finish`).send({
+    result_team1: 2,
+    result_team2: 1,
+    scorer_ids: [],
+    has_penalties: true,
+    penalty_team1: 6,
+    penalty_team2: 5
+  });
+  assert.equal(rejected.status, 400);
+  assert.match(rejected.body.error, /120 minutos es empate/);
 });
 
 test("el calendario JSON solo ofrece referencias manuales y marca duplicados", async () => {

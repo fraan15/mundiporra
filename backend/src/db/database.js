@@ -79,6 +79,9 @@ export function initDatabase() {
       auto_close_at TEXT NOT NULL,
       force_published INTEGER NOT NULL DEFAULT 0 CHECK(force_published IN (0,1)),
       is_star INTEGER NOT NULL DEFAULT 0 CHECK(is_star IN (0,1)),
+      is_knockout INTEGER NOT NULL DEFAULT 0 CHECK(is_knockout IN (0,1)),
+      penalty_team1 INTEGER,
+      penalty_team2 INTEGER,
       close_reason TEXT CHECK(close_reason IN ('manual','automatic') OR close_reason IS NULL),
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
@@ -366,6 +369,9 @@ export function initDatabase() {
   const matchColumns = db.prepare("PRAGMA table_info(matches)").all().map((column) => column.name);
   if (!matchColumns.includes("force_published")) db.exec("ALTER TABLE matches ADD COLUMN force_published INTEGER NOT NULL DEFAULT 0 CHECK(force_published IN (0,1))");
   if (!matchColumns.includes("is_star")) db.exec("ALTER TABLE matches ADD COLUMN is_star INTEGER NOT NULL DEFAULT 0 CHECK(is_star IN (0,1))");
+  if (!matchColumns.includes("is_knockout")) db.exec("ALTER TABLE matches ADD COLUMN is_knockout INTEGER NOT NULL DEFAULT 0 CHECK(is_knockout IN (0,1))");
+  if (!matchColumns.includes("penalty_team1")) db.exec("ALTER TABLE matches ADD COLUMN penalty_team1 INTEGER");
+  if (!matchColumns.includes("penalty_team2")) db.exec("ALTER TABLE matches ADD COLUMN penalty_team2 INTEGER");
   if (!matchColumns.includes("team1_id")) db.exec("ALTER TABLE matches ADD COLUMN team1_id INTEGER REFERENCES teams(id)");
   if (!matchColumns.includes("team2_id")) db.exec("ALTER TABLE matches ADD COLUMN team2_id INTEGER REFERENCES teams(id)");
   if (!matchColumns.includes("stadium_id")) db.exec("ALTER TABLE matches ADD COLUMN stadium_id INTEGER REFERENCES stadiums(id)");
@@ -428,7 +434,8 @@ export function initDatabase() {
     ["scorer_points", "2"],
     ["auto_close_enabled", "1"],
     ["auto_close_minutes_before", "0"],
-    ["prediction_reminder_enabled", "1"]
+    ["prediction_reminder_enabled", "1"],
+    ["knockout_mode_enabled", "0"]
   ].forEach(([key, value]) => addSetting.run(key, value, stamp));
 
   const addUser = db.prepare(`

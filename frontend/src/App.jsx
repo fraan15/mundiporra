@@ -8,6 +8,7 @@ import { LeaderboardPage } from "./pages/LeaderboardPage";
 import { HistoryPage, DayHistoryPage } from "./pages/HistoryPage";
 import { AdminPage } from "./pages/AdminPage";
 import { MatchesPage } from "./pages/MatchesPage";
+import { WorldCupPage } from "./pages/WorldCupPage";
 import { ActivityPage, MatchDetailPage, ProfilePage, PublicProfilePage } from "./pages/SocialPages";
 import { ChatPage } from "./pages/ChatPage";
 import { Avatar } from "./components/Avatar";
@@ -384,6 +385,7 @@ export function App() {
       <Route element={<ProtectedRoute/>}><Route element={<MainLayout/>}>
         <Route index element={<DashboardPage/>}/>
         <Route path="partidos" element={<MatchesPage/>}/>
+        <Route path="mundial" element={<WorldCupPage/>}/>
         <Route path="match/:id" element={<MatchDetailPage/>}/>
         <Route path="clasificacion" element={<LeaderboardPage/>}/>
         <Route path="perfil" element={<ProfilePage/>}/>

@@ -260,7 +260,7 @@ function AdminMessages() {
 }
 
 function AdminMatches() {
-  const blank = {
+  const blankForm = (knockoutDefault = false) => ({
     match_date: "",
     match_time: "",
     team1_id: "",
@@ -270,8 +270,9 @@ function AdminMatches() {
     auto_close_at: "",
     force_published: false,
     is_star: false,
+    is_knockout: knockoutDefault,
     scorer_enabled: true,
-  };
+  });
   const toLocalDateTime = (value) => {
     if (!value) return "";
     const date = new Date(value);
@@ -279,7 +280,8 @@ function AdminMatches() {
     return new Date(date.getTime() - offset).toISOString().slice(0, 16);
   };
   const [matches, setMatches] = useState([]),
-    [form, setForm] = useState(blank),
+    [settings, setSettings] = useState(null),
+    [form, setForm] = useState(blankForm()),
     [edit, setEdit] = useState(null),
     [notice, setNotice] = useState("");
   const [teams, setTeams] = useState([]),
@@ -315,6 +317,15 @@ function AdminMatches() {
       },
     );
   }, []);
+  useEffect(() => {
+    api("/admin/settings").then((data) => {
+      setSettings(data);
+      setForm((current) =>
+        edit ? current : { ...current, is_knockout: data.knockout_mode_enabled === "1" },
+      );
+    });
+  }, [edit]);
+  const matchBlank = () => blankForm(settings?.knockout_mode_enabled === "1");
   const selectFilter = (value) => {
     setFilter(value);
     setPage(1);
@@ -335,19 +346,23 @@ function AdminMatches() {
     }
   };
   const useReferenceMatch = (match) => {
-    if (!match.selectable || match.existing_match) return;
+    if (match.existing_match) return;
     setEdit(null);
     setForm({
-      ...blank,
+      ...matchBlank(),
       match_date: match.match_date,
       match_time: match.match_time,
-      team1_id: match.team1.id,
-      team2_id: match.team2.id,
-      stadium_id: match.stadium.id,
+      team1_id: match.team1.id || "",
+      team2_id: match.team2.id || "",
+      stadium_id: match.stadium.id || "",
+      is_knockout: Boolean(match.is_knockout),
     });
     setNotice(
       "Datos copiados al formulario. Revísalos y pulsa «Crear partido» para guardarlo.",
     );
+    if (!match.complete) {
+      setNotice("Datos parciales copiados al formulario. Completa a mano lo que falte antes de crear el partido.");
+    }
     setReference(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -365,7 +380,7 @@ function AdminMatches() {
       method: edit ? "PUT" : "POST",
       body,
     });
-    setForm(blank);
+    setForm(matchBlank());
     setEdit(null);
     setNotice("Partido guardado.");
     setPage(1);
@@ -385,6 +400,7 @@ function AdminMatches() {
       auto_close_at: customClose,
       force_published: Boolean(m.force_published),
       is_star: Boolean(m.is_star),
+      is_knockout: Boolean(m.is_knockout),
       scorer_enabled: Boolean(m.scorer_enabled),
     });
   };
@@ -601,6 +617,16 @@ function AdminMatches() {
           <label className="toggle">
             <input
               type="checkbox"
+              checked={form.is_knockout}
+              onChange={(e) =>
+                setForm({ ...form, is_knockout: e.target.checked })
+              }
+            />
+            Partido de eliminatoria
+          </label>
+          <label className="toggle">
+            <input
+              type="checkbox"
               checked={form.force_published}
               onChange={(e) =>
                 setForm({ ...form, force_published: e.target.checked })
@@ -626,7 +652,7 @@ function AdminMatches() {
             className="secondary"
             onClick={() => {
               setEdit(null);
-              setForm(blank);
+              setForm(matchBlank());
             }}
           >
             Cancelar
@@ -657,6 +683,7 @@ function AdminMatches() {
               <div>
                 <strong>
                   {m.is_star ? "⭐ Partido Estrella x2 · " : ""}
+                  {m.is_knockout ? "Eliminatoria · " : ""}
                   {m.team1} – {m.team2}
                 </strong>
                 <span>
@@ -776,12 +803,27 @@ function AdminPredictionReview({ match, onClose, onCorrected }) {
 }
 
 function MatchReferencePanel({ data, onSelect }) {
+  const pageSize = 8;
+  const [page, setPage] = useState(1);
   const dateLabel = (date) =>
     new Date(`${date}T12:00:00`).toLocaleDateString("es-ES", {
       weekday: "short",
       day: "numeric",
       month: "short",
     });
+  const missingText = (items) => items.map((item) => {
+    if (typeof item === "string") return item;
+    if (item.type === "unresolved_team") return `Equipo no resuelto en JSON (${item.label}); espera a la próxima sincronización o selecciónalo a mano.`;
+    if (item.type === "team") return `Equipo no vinculado: ${item.label}`;
+    if (item.type === "stadium") return `Estadio no vinculado: ${item.label}`;
+    return item.label || "Dato no vinculado";
+  }).join(" ");
+  const totalPages = Math.max(1, Math.ceil(data.matches.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const visibleMatches = data.matches.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  useEffect(() => {
+    setPage(1);
+  }, [data.from, data.to, data.matches.length]);
   return (
     <section className="match-reference">
       <header>
@@ -797,11 +839,11 @@ function MatchReferencePanel({ data, onSelect }) {
       </header>
       <div className="reference-list">
         {data.matches.length ? (
-          data.matches.map((match) => (
+          visibleMatches.map((match) => (
             <button
               type="button"
               key={match.reference_id}
-              disabled={!match.selectable || Boolean(match.existing_match)}
+              disabled={Boolean(match.existing_match)}
               onClick={() => onSelect(match)}
             >
               <time>
@@ -813,20 +855,20 @@ function MatchReferencePanel({ data, onSelect }) {
                   {match.team1.name} – {match.team2.name}
                 </strong>
                 <span>
-                  {match.group || match.round} · {match.stadium.name}
+                  {match.group || match.round} · {match.is_knockout ? "Eliminatoria · " : ""}{match.stadium.name}
                 </span>
                 {match.missing.length > 0 && (
-                  <em>Falta vincular: {match.missing.join(", ")}</em>
+                  <em>{missingText(match.missing)}</em>
                 )}
               </div>
               {match.existing_match ? (
                 <mark>
                   <Check size={13} /> Ya añadido
                 </mark>
-              ) : match.selectable ? (
+              ) : match.complete ? (
                 <mark className="available">Usar datos</mark>
               ) : (
-                <mark>No disponible</mark>
+                <mark className="available">Usar datos parciales</mark>
               )}
             </button>
           ))
@@ -836,6 +878,13 @@ function MatchReferencePanel({ data, onSelect }) {
           </div>
         )}
       </div>
+      {data.matches.length > pageSize && (
+        <nav className="reference-pagination" aria-label="Paginación del calendario de referencia">
+          <button type="button" disabled={currentPage <= 1} onClick={() => setPage((value) => value - 1)}>Anterior</button>
+          <span>Página {currentPage} de {totalPages} · {data.matches.length} partidos</span>
+          <button type="button" disabled={currentPage >= totalPages} onClick={() => setPage((value) => value + 1)}>Siguiente</button>
+        </nav>
+      )}
     </section>
   );
 }
@@ -851,6 +900,13 @@ function AdminResultEditor({ match, onCancel, onSaved }) {
     [scorerIds, setScorerIds] = useState(
       (match.actual_scorers || []).map((player) => player.id),
     ),
+    [hasPenalties, setHasPenalties] = useState(
+      Boolean(match.penalty_team1 !== null && match.penalty_team2 !== null),
+    ),
+    [penalties, setPenalties] = useState({
+      p1: match.penalty_team1 ?? "",
+      p2: match.penalty_team2 ?? "",
+    }),
     [error, setError] = useState(""),
     [saving, setSaving] = useState(false);
   useEffect(() => {
@@ -866,7 +922,9 @@ function AdminResultEditor({ match, onCancel, onSaved }) {
       api(`/players?team_fifa_codes=${codes.join(",")}`).then(setPlayers);
   }, [match.id]);
   const scorerEnabled = Boolean(Number(match.scorer_enabled));
+  const isKnockout = Boolean(Number(match.is_knockout));
   const isNilNil = Number(score.g1) + Number(score.g2) === 0;
+  const scoreIsDraw = score.g1 !== "" && score.g2 !== "" && Number(score.g1) === Number(score.g2);
   const scoringTeamCodes = [
     Number(score.g1) > 0 && match.team1_team?.fifa_code,
     Number(score.g2) > 0 && match.team2_team?.fifa_code,
@@ -884,6 +942,12 @@ function AdminResultEditor({ match, onCancel, onSaved }) {
     if (players.length && !isNilNil)
       setScorerIds((ids) => ids.filter((id) => validScorerIds.has(id)));
   }, [score.g1, score.g2, players.length, isNilNil]);
+  useEffect(() => {
+    if (!scoreIsDraw) {
+      setHasPenalties(false);
+      setPenalties({ p1: "", p2: "" });
+    }
+  }, [scoreIsDraw]);
   const available = players.filter(
     (player) =>
       scoringTeamCodes.includes(player.team_fifa_code) &&
@@ -906,6 +970,9 @@ function AdminResultEditor({ match, onCancel, onSaved }) {
           result_team1: Number(score.g1),
           result_team2: Number(score.g2),
           scorer_ids: scorerIds,
+          has_penalties: hasPenalties,
+          penalty_team1: hasPenalties ? Number(penalties.p1) : null,
+          penalty_team2: hasPenalties ? Number(penalties.p2) : null,
         },
       });
       onSaved();
@@ -943,6 +1010,44 @@ function AdminResultEditor({ match, onCancel, onSaved }) {
           onAdjust={(delta) => adjustScore("g2", delta)}
         />
       </div>
+      {isKnockout && (
+        <div className="knockout-admin-box">
+          <p>Selecciona solo goleadores hasta el 120. Los penaltis de la tanda no cuentan.</p>
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={hasPenalties}
+              disabled={!scoreIsDraw}
+              onChange={(e) => setHasPenalties(e.target.checked)}
+            />
+            Tanda de penaltis
+          </label>
+          {hasPenalties && scoreIsDraw && (
+            <div className="penalty-inputs">
+              <label>
+                Penaltis {match.team1}
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={penalties.p1}
+                  onChange={(e) => setPenalties({ ...penalties, p1: e.target.value })}
+                />
+              </label>
+              <label>
+                Penaltis {match.team2}
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={penalties.p2}
+                  onChange={(e) => setPenalties({ ...penalties, p2: e.target.value })}
+                />
+              </label>
+            </div>
+          )}
+        </div>
+      )}
       {scorerEnabled && isNilNil && (
         <div>
           <label>
@@ -1002,7 +1107,7 @@ function AdminResultEditor({ match, onCancel, onSaved }) {
         </div>
       )}
       {error && <div className="alert error">{error}</div>}
-      <button className="primary" type="button" onClick={save} disabled={saving}>
+      <button className="primary" type="button" onClick={save} disabled={saving || (hasPenalties && (penalties.p1 === "" || penalties.p2 === "" || Number(penalties.p1) === Number(penalties.p2)))}>
         {saving ? "Guardando…" : "Guardar resultado"}
       </button>
       <button className="secondary" type="button" onClick={onCancel} disabled={saving}>
@@ -1358,6 +1463,19 @@ function AdminSettings() {
               }
             />
             Activar cierre automático
+          </label>
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={form.knockout_mode_enabled === "1"}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  knockout_mode_enabled: e.target.checked ? "1" : "0",
+                })
+              }
+            />
+            Activar modo eliminatorias
           </label>
         </div>
         <button className="primary">Guardar configuración</button>
