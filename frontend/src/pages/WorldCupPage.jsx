@@ -158,41 +158,66 @@ const compactRoundLabel = (round) => {
 
 const mobileBracketMetrics = {
   cardWidth: 260,
-  cardHeight: 102,
+  cardHeight: 112,
   roundWidth: 282,
-  baseStepY: 130,
-  topPadding: 48,
-  sidePadding: 16
+  activeGap: 32,
+  topPadding: 36,
+  sidePadding: 16,
+  previousPairOffset: 72
 };
 
-const buildMobileBracketLayout = (rounds) => {
-  const { cardWidth, cardHeight, roundWidth, baseStepY, topPadding, sidePadding } = mobileBracketMetrics;
+const buildMobileProjectedLayout = (activeRoundIndex, rounds) => {
+  const { cardWidth, cardHeight, roundWidth, activeGap, topPadding, sidePadding, previousPairOffset } = mobileBracketMetrics;
   const positionById = new Map();
   const linePaths = [];
-  let boardHeight = topPadding + cardHeight;
+  const visibleRoundIndexes = [activeRoundIndex - 1, activeRoundIndex, activeRoundIndex + 1]
+    .filter((index) => index >= 0 && index < rounds.length);
+  const visibleRoundSet = new Set(visibleRoundIndexes);
+  const activeItems = rounds[activeRoundIndex]?.[1] || [];
+  let boardHeight = topPadding + cardHeight + 80;
 
-  rounds.forEach(([round, items], roundIndex) => {
-    items.forEach((match, matchIndex) => {
-      const parentCenters = dependencyRefs(match)
-        .map((ref) => positionById.get(ref)?.centerY)
-        .filter((value) => Number.isFinite(value));
-      const centerY = parentCenters.length
-        ? parentCenters.reduce((sum, value) => sum + value, 0) / parentCenters.length
-        : topPadding + matchIndex * baseStepY + cardHeight / 2;
-      const left = sidePadding + roundIndex * roundWidth;
-      const top = centerY - cardHeight / 2;
-      positionById.set(match.reference_id, { left, top, centerY, round, roundIndex, matchIndex });
-      boardHeight = Math.max(boardHeight, top + cardHeight + topPadding);
+  const setPosition = (match, roundIndex, matchIndex, centerY) => {
+    const left = sidePadding + roundIndex * roundWidth;
+    const top = centerY - cardHeight / 2;
+    positionById.set(match.reference_id, { left, top, centerY, round: match.round, roundIndex, matchIndex });
+    boardHeight = Math.max(boardHeight, top + cardHeight + 180);
+  };
+
+  activeItems.forEach((match, matchIndex) => {
+    const centerY = topPadding + matchIndex * (cardHeight + activeGap) + cardHeight / 2;
+    setPosition(match, activeRoundIndex, matchIndex, centerY);
+  });
+
+  const previousRound = rounds[activeRoundIndex - 1]?.[1] || [];
+  activeItems.forEach((activeMatch) => {
+    const activePosition = positionById.get(activeMatch.reference_id);
+    const parents = previousRound.filter((candidate) => dependencyRefs(activeMatch).includes(candidate.reference_id));
+    parents.forEach((match, parentIndex) => {
+      const offset = parents.length === 1 ? 0 : (parentIndex === 0 ? -previousPairOffset : previousPairOffset);
+      setPosition(match, activeRoundIndex - 1, previousRound.indexOf(match), activePosition.centerY + offset);
     });
   });
 
-  rounds.forEach(([, items], roundIndex) => {
-    const nextRound = rounds[roundIndex + 1]?.[1] || [];
+  const nextRound = rounds[activeRoundIndex + 1]?.[1] || [];
+  nextRound.forEach((match, matchIndex) => {
+    const sourceCenters = activeItems
+      .filter((candidate) => dependencyRefs(match).includes(candidate.reference_id))
+      .map((candidate) => positionById.get(candidate.reference_id)?.centerY)
+      .filter((value) => Number.isFinite(value));
+    if (!sourceCenters.length) return;
+    const centerY = sourceCenters.reduce((sum, value) => sum + value, 0) / sourceCenters.length;
+    setPosition(match, activeRoundIndex + 1, matchIndex, centerY);
+  });
+
+  visibleRoundIndexes.forEach((roundIndex) => {
+    const items = rounds[roundIndex]?.[1] || [];
+    const candidateNextRound = rounds[roundIndex + 1]?.[1] || [];
     items.forEach((match) => {
-      const nextMatch = nextRound.find((candidate) => dependencyRefs(candidate).includes(match.reference_id));
       const origin = positionById.get(match.reference_id);
+      if (!origin) return;
+      const nextMatch = candidateNextRound.find((candidate) => dependencyRefs(candidate).includes(match.reference_id));
       const target = nextMatch ? positionById.get(nextMatch.reference_id) : null;
-      if (!origin || !target) return;
+      if (!target || !visibleRoundSet.has(target.roundIndex)) return;
       const startX = origin.left + cardWidth;
       const startY = origin.centerY;
       const endX = target.left;
@@ -205,6 +230,7 @@ const buildMobileBracketLayout = (rounds) => {
   return {
     positionById,
     linePaths,
+    visibleRoundIndexes,
     width: sidePadding * 2 + Math.max(1, rounds.length) * roundWidth - (roundWidth - cardWidth),
     height: boardHeight
   };
@@ -331,14 +357,14 @@ function KnockoutTreeView({ rounds }) {
   const activeItems = rounds[activeIndex]?.[1] || [];
   const previousRound = rounds[activeIndex - 1]?.[0] || null;
   const nextRound = rounds[activeIndex + 1]?.[0] || null;
-  const mobileLayout = useMemo(() => buildMobileBracketLayout(rounds), [rounds]);
+  const mobileLayout = useMemo(() => buildMobileProjectedLayout(activeIndex, rounds), [activeIndex, rounds]);
   const jumpToRound = (index) => {
     const bounded = Math.max(0, Math.min(rounds.length - 1, index));
     const round = rounds[bounded]?.[0];
     if (isMobileTree) {
       if (round) setActiveRound(round);
-      const node = treeRef.current?.querySelector(`[data-mobile-round-index="${bounded}"]`);
-      node?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "start" });
+      const left = Math.max(0, mobileBracketMetrics.sidePadding + bounded * mobileBracketMetrics.roundWidth - 72);
+      treeRef.current?.scrollTo({ left, top: 0, behavior: "smooth" });
       return;
     }
     const node = treeRef.current?.querySelector(`[data-round-index="${bounded}"]`);
@@ -359,12 +385,7 @@ function KnockoutTreeView({ rounds }) {
     const container = treeRef.current;
     if (!container) return;
     if (isMobileTree) {
-      const sections = [...container.querySelectorAll("[data-mobile-round-index]")];
-      const current = sections.reduce((closest, section) => {
-        const distance = Math.abs(section.offsetLeft - container.scrollLeft);
-        return !closest || distance < closest.distance ? { section, distance } : closest;
-      }, null);
-      const index = Number(current?.section?.dataset.mobileRoundIndex);
+      const index = Math.round((container.scrollLeft + 72 - mobileBracketMetrics.sidePadding) / mobileBracketMetrics.roundWidth);
       if (Number.isFinite(index) && rounds[index]?.[0] !== activeRound) setActiveRound(rounds[index][0]);
       return;
     }
@@ -455,6 +476,10 @@ function KnockoutTreeView({ rounds }) {
     const id = window.setTimeout(refreshTreeGeometry, 260);
     return () => window.clearTimeout(id);
   }, [activeRound, isMobileTree]);
+  useEffect(() => {
+    if (!isMobileTree) return;
+    treeRef.current?.scrollTo({ top: 0, behavior: "instant" });
+  }, [activeIndex, isMobileTree]);
   const visibleRounds = isMobileTree ? rounds.filter(([round]) => round === activeRound) : rounds;
   const toolbar = <div className="worldcup-tree-toolbar">
     <button className="worldcup-phase-side previous" disabled={!previousRound} onClick={() => jumpToRound(activeIndex - 1)}>
@@ -483,7 +508,9 @@ function KnockoutTreeView({ rounds }) {
           <svg className="mobile-bracket-lines" aria-hidden="true" width={mobileLayout.width} height={mobileLayout.height} viewBox={`0 0 ${mobileLayout.width} ${mobileLayout.height}`}>
             {mobileLayout.linePaths.map((path, index) => <path d={path} key={`${path}-${index}`}/>)}
           </svg>
-          {rounds.map(([round], roundIndex) => (
+          {mobileLayout.visibleRoundIndexes.map((roundIndex) => {
+            const round = rounds[roundIndex]?.[0];
+            return (
             <section
               className="mobile-bracket-round"
               data-mobile-round-index={roundIndex}
@@ -492,8 +519,11 @@ function KnockoutTreeView({ rounds }) {
             >
               <span>{compactRoundLabel(round)}</span>
             </section>
-          ))}
-          {rounds.flatMap(([, items]) => items.map((match) => {
+          );
+          })}
+          {mobileLayout.visibleRoundIndexes.flatMap((roundIndex) => {
+            const items = rounds[roundIndex]?.[1] || [];
+            return items.map((match) => {
             const position = mobileLayout.positionById.get(match.reference_id);
             if (!position) return null;
             const nextRoundItems = rounds[position.roundIndex + 1]?.[1] || [];
@@ -509,7 +539,8 @@ function KnockoutTreeView({ rounds }) {
             >
               <BracketCompactCard match={match}/>
             </article>;
-          }))}
+          });
+          })}
         </div>
       </div>
     </section>;
