@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronRight, GitBranch, Grid3X3, ListTree, MapPin, Shield } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
@@ -107,6 +107,10 @@ const compactRoundLabel = (round) => {
   if (label === "Semifinales") return "Semis";
   if (label === "Dieciseisavos") return "Diec...";
   return label;
+};
+const desktopRoundLabel = (round) => {
+  const label = roundLabel(round);
+  return label === "Semifinales" ? "Semis" : label;
 };
 
 const mobileBracketMetrics = {
@@ -287,6 +291,73 @@ const buildMobileProjectedLayout = (activeRoundIndex, rounds) => {
   };
 };
 
+const desktopBracketMetrics = {
+  cardWidth: 260,
+  cardHeight: 96,
+  roundWidth: 320,
+  baseGap: 28,
+  topPadding: 58,
+  sidePadding: 24
+};
+
+const buildDesktopKnockoutLayout = (rounds) => {
+  const { cardWidth, cardHeight, roundWidth, baseGap, topPadding, sidePadding } = desktopBracketMetrics;
+  const baseStep = cardHeight + baseGap;
+  const positionById = new Map();
+  const getItems = (roundIndex) => rounds[roundIndex]?.[1] || [];
+
+  rounds.forEach(([round, items], roundIndex) => {
+    const previousItems = getItems(roundIndex - 1);
+    items.forEach((match, matchIndex) => {
+      const left = sidePadding + roundIndex * roundWidth;
+      let centerY = topPadding + matchIndex * baseStep + cardHeight / 2;
+      if (roundIndex > 0) {
+        const feeders = previousItems
+          .filter((previousMatch) => feedsInto(previousMatch, match))
+          .map((previousMatch) => positionById.get(previousMatch.reference_id))
+          .filter(Boolean);
+        if (feeders.length) {
+          centerY = feeders.reduce((sum, position) => sum + position.centerY, 0) / feeders.length;
+        }
+      }
+      positionById.set(match.reference_id, {
+        left,
+        top: centerY - cardHeight / 2,
+        centerY,
+        round,
+        roundIndex,
+        matchIndex
+      });
+    });
+  });
+
+  const linePaths = [];
+  rounds.forEach(([, items], roundIndex) => {
+    const nextItems = getItems(roundIndex + 1);
+    items.forEach((sourceMatch) => {
+      const source = positionById.get(sourceMatch.reference_id);
+      const targetMatch = nextItems.find((candidate) => feedsInto(sourceMatch, candidate));
+      const target = targetMatch ? positionById.get(targetMatch.reference_id) : null;
+      if (!source || !target) return;
+      const startX = source.left + cardWidth;
+      const startY = source.centerY;
+      const endX = target.left;
+      const endY = target.centerY;
+      const midX = startX + (endX - startX) / 2;
+      linePaths.push(`M ${startX} ${startY} H ${midX} V ${endY} H ${endX}`);
+    });
+  });
+
+  const positions = [...positionById.values()];
+  const maxBottom = positions.length ? Math.max(...positions.map((position) => position.top + cardHeight)) : topPadding + cardHeight;
+  return {
+    positionById,
+    linePaths,
+    width: sidePadding * 2 + (rounds.length - 1) * roundWidth + cardWidth,
+    height: maxBottom + 40
+  };
+};
+
 function BracketCompactCard({ match }) {
   const scores = match.score?.ft?.length === 2 ? match.score.ft : null;
   const winnerIndex = scores
@@ -393,18 +464,53 @@ function KnockoutPanelsView({ rounds, matchById }) {
   </section>;
 }
 
+function DesktopKnockoutTree({ rounds }) {
+  const layout = useMemo(() => buildDesktopKnockoutLayout(rounds), [rounds]);
+  return <section className="desktop-bracket-scroll" aria-label="Arbol completo de eliminatorias">
+    <div
+      className="desktop-bracket-board"
+      style={{
+        "--desktop-bracket-width": `${layout.width}px`,
+        "--desktop-bracket-height": `${layout.height}px`
+      }}
+    >
+      <svg className="desktop-bracket-lines" aria-hidden="true" width={layout.width} height={layout.height} viewBox={`0 0 ${layout.width} ${layout.height}`}>
+        {layout.linePaths.map((path, index) => <path d={path} key={`${path}-${index}`}/>)}
+      </svg>
+      {rounds.map(([round], roundIndex) => (
+        <div
+          className="desktop-bracket-round-label"
+          key={round}
+          style={{ left: desktopBracketMetrics.sidePadding + roundIndex * desktopBracketMetrics.roundWidth }}
+        >
+          {desktopRoundLabel(round)}
+        </div>
+      ))}
+      {rounds.flatMap(([round, items]) => items.map((match) => {
+        const position = layout.positionById.get(match.reference_id);
+        if (!position) return null;
+        return <article
+          className="desktop-bracket-match"
+          data-match-id={match.reference_id}
+          data-round={round}
+          data-match-index={position.matchIndex}
+          key={match.reference_id}
+          style={{ left: position.left, top: position.top, width: desktopBracketMetrics.cardWidth }}
+        >
+          <BracketCompactCard match={match}/>
+        </article>;
+      }))}
+    </div>
+  </section>;
+}
+
 function KnockoutTreeView({ rounds }) {
   const treeRef = useRef(null);
-  const scrollContentRef = useRef(null);
-  const wheelLockRef = useRef(false);
   const mobileModeRef = useRef(null);
   const mobileScrollDebounceRef = useRef(null);
   const programmaticScrollRef = useRef(false);
   const [activeRound, setActiveRound] = useState(rounds[0]?.[0] || "");
   const [isMobileTree, setIsMobileTree] = useState(false);
-  const [treeLines, setTreeLines] = useState([]);
-  const [treeCanvas, setTreeCanvas] = useState({ width: 0, height: 0 });
-  const [treeHeight, setTreeHeight] = useState(null);
   const [isPhaseTransitioning, setIsPhaseTransitioning] = useState(false);
   const activeIndex = Math.max(0, rounds.findIndex(([round]) => round === activeRound));
   const activeItems = rounds[activeIndex]?.[1] || [];
@@ -430,17 +536,6 @@ function KnockoutTreeView({ rounds }) {
     if (round) setActiveRound(round);
     node?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
   };
-  const handleWheel = (event) => {
-    if (isMobileTree) return;
-    if (Math.abs(event.deltaX) < 8 && Math.abs(event.deltaY) < 8) return;
-    event.preventDefault();
-    if (wheelLockRef.current) return;
-    wheelLockRef.current = true;
-    jumpToRound(activeIndex + (event.deltaX + event.deltaY > 0 ? 1 : -1));
-    window.setTimeout(() => {
-      wheelLockRef.current = false;
-    }, 420);
-  };
   const handleScroll = () => {
     const container = treeRef.current;
     if (!container) return;
@@ -456,65 +551,11 @@ function KnockoutTreeView({ rounds }) {
         if (Number.isFinite(nextRoundIndex) && rounds[nextRoundIndex]?.[0] !== activeRound) {
           setActiveRound(rounds[nextRoundIndex][0]);
         }
-      }, 110);
+      }, 70);
       return;
     }
-    const sections = [...container.querySelectorAll("[data-round-index]")];
-    const containerCenter = container.scrollLeft + container.clientWidth / 2;
-    const current = sections.reduce((closest, section) => {
-      const sectionCenter = section.offsetLeft + section.clientWidth / 2;
-      const distance = Math.abs(sectionCenter - containerCenter);
-      return !closest || distance < closest.distance ? { section, distance } : closest;
-    }, null);
-    const index = Number(current?.section?.dataset.roundIndex);
-    if (Number.isFinite(index) && rounds[index]?.[0] !== activeRound) setActiveRound(rounds[index][0]);
   };
-  const refreshTreeGeometry = () => {
-    const container = treeRef.current;
-    const content = scrollContentRef.current;
-    if (!container || !content) return;
-    const contentRect = content.getBoundingClientRect();
-    const activeSection = content.querySelector(`[data-round-index="${activeIndex}"]`);
-    const activeStack = activeSection?.querySelector(".worldcup-round-stack");
-    if (activeSection && activeStack) {
-      setTreeHeight(activeSection.offsetTop + activeStack.offsetTop + activeStack.scrollHeight + 24);
-    }
-    setTreeCanvas({ width: content.scrollWidth, height: content.scrollHeight });
-    const nextLines = [];
-    rounds.forEach(([round, items], roundIndex) => {
-      const nextRound = rounds[roundIndex + 1];
-      if (!nextRound) return;
-      const nextMatches = nextRound[1];
-      items.forEach((match) => {
-        const nextMatch = nextMatches.find((candidate) => dependencyRefs(candidate).includes(match.reference_id));
-        if (!nextMatch) return;
-        const from = content.querySelector(`[data-match-id="${match.reference_id}"]`);
-        const to = content.querySelector(`[data-match-id="${nextMatch.reference_id}"]`);
-        if (!from || !to) return;
-        const fromRect = from.getBoundingClientRect();
-        const toRect = to.getBoundingClientRect();
-        const x1 = fromRect.right - contentRect.left;
-        const y1 = fromRect.top + fromRect.height / 2 - contentRect.top;
-        const x2 = toRect.left - contentRect.left;
-        const y2 = toRect.top + toRect.height / 2 - contentRect.top;
-        const midX = x1 + Math.max(22, (x2 - x1) / 2);
-        nextLines.push(`M ${x1} ${y1} H ${midX} V ${y2} H ${x2}`);
-      });
-    });
-    setTreeLines(nextLines);
-  };
-  useLayoutEffect(() => {
-    refreshTreeGeometry();
-    const onResize = () => refreshTreeGeometry();
-    const images = scrollContentRef.current?.querySelectorAll("img") || [];
-    images.forEach((image) => image.addEventListener("load", refreshTreeGeometry));
-    window.addEventListener("resize", onResize);
-    return () => {
-      window.removeEventListener("resize", onResize);
-      images.forEach((image) => image.removeEventListener("load", refreshTreeGeometry));
-      window.clearTimeout(mobileScrollDebounceRef.current);
-    };
-  }, [rounds, activeIndex, isMobileTree]);
+  useEffect(() => () => window.clearTimeout(mobileScrollDebounceRef.current), []);
   useEffect(() => {
     const media = window.matchMedia("(max-width: 640px)");
     const syncMobile = () => setIsMobileTree(media.matches);
@@ -522,10 +563,6 @@ function KnockoutTreeView({ rounds }) {
     media.addEventListener("change", syncMobile);
     return () => media.removeEventListener("change", syncMobile);
   }, []);
-  useEffect(() => {
-    const id = window.setTimeout(refreshTreeGeometry, 260);
-    return () => window.clearTimeout(id);
-  }, [activeRound, isMobileTree]);
   useEffect(() => {
     if (!isMobileTree) return;
     setIsPhaseTransitioning(true);
@@ -536,7 +573,7 @@ function KnockoutTreeView({ rounds }) {
       treeRef.current?.scrollTo({ left, top: 0, behavior: "auto" });
       window.setTimeout(() => {
         programmaticScrollRef.current = false;
-      }, 140);
+      }, 110);
       window.setTimeout(() => {
         setIsPhaseTransitioning(false);
       }, 180);
@@ -568,7 +605,6 @@ function KnockoutTreeView({ rounds }) {
         className="mobile-bracket-scroll"
         ref={treeRef}
         onScroll={handleScroll}
-        onWheel={handleWheel}
       >
         <div
           className="mobile-bracket-board"
@@ -613,41 +649,7 @@ function KnockoutTreeView({ rounds }) {
       </div>
     </section>;
   }
-  return <section className="worldcup-tree-mode">
-    {toolbar}
-    <div
-      className="worldcup-tree compact knockout-stage-shell"
-      ref={treeRef}
-      onScroll={handleScroll}
-      onWheel={handleWheel}
-      style={treeHeight ? { "--tree-height": `${treeHeight}px` } : undefined}
-    >
-      <div className="worldcup-tree-scroll-content knockout-matches" ref={scrollContentRef}>
-        <svg className="worldcup-tree-lines knockout-lines-svg" aria-hidden="true" width={treeCanvas.width} height={treeCanvas.height} viewBox={`0 0 ${treeCanvas.width || 1} ${treeCanvas.height || 1}`}>
-          {treeLines.map((path, index) => <path d={path} key={`${path}-${index}`}/>)}
-        </svg>
-        {visibleRounds.map(({ round, matches: items, roundIndex }) => {
-          const nextRound = rounds[roundIndex + 1]?.[1] || [];
-          return <section className={`worldcup-round ${round === activeRound ? "is-active" : ""}`} data-round-index={roundIndex} key={round}>
-          <div className="worldcup-round-stack" style={{ "--match-count": items.length }}>
-            {items.map((match, matchIndex) => {
-              const nextMatch = nextRound.find((candidate) => dependencyRefs(candidate).includes(match.reference_id));
-              return <article className="worldcup-bracket-match" data-match-id={match.reference_id} data-next-match-id={nextMatch?.reference_id || ""} data-round={round} data-match-index={matchIndex} style={{ "--match-index": matchIndex }} key={match.reference_id}>
-                <div className="worldcup-match-meta"><span>#{match.reference_id}</span><time>{dateText(match)} {timeText(match)}</time></div>
-                <div className="worldcup-bracket-teams">
-                  <span><Flag team={match.team1}/><strong>{match.team1}</strong></span>
-                  <b>{scoreText(match)}</b>
-                  <span><Flag team={match.team2}/><strong>{match.team2}</strong></span>
-                </div>
-                <small><MapPin size={12}/>{match.stadium?.city || match.stadium?.name || "Sede pendiente"}</small>
-              </article>;
-            })}
-          </div>
-        </section>;
-        })}
-      </div>
-    </div>
-  </section>;
+  return <DesktopKnockoutTree rounds={rounds}/>;
 }
 
 function KnockoutView({ matches }) {
@@ -658,13 +660,12 @@ function KnockoutView({ matches }) {
     return <div className="worldcup-origin-empty">No hay eliminatorias disponibles.</div>;
   }
   return <div className="worldcup-knockout-view">
-    <div className="worldcup-view-switch" aria-label="Ver cuadro como">
-      <span>Ver</span>
-      <button className={viewMode === "tree" ? "active" : ""} onClick={() => setViewMode("tree")} aria-label="Vista en arbol">
-        <ListTree size={18}/>
+    <div className="worldcup-view-switch worldcup-view-switch-wide" aria-label="Ver cuadro como">
+      <button className={viewMode === "panels" ? "active" : ""} onClick={() => setViewMode("panels")}>
+        Modo panel
       </button>
-      <button className={viewMode === "panels" ? "active" : ""} onClick={() => setViewMode("panels")} aria-label="Vista en paneles">
-        <Grid3X3 size={18}/>
+      <button className={viewMode === "tree" ? "active" : ""} onClick={() => setViewMode("tree")}>
+        Modo arbol
       </button>
     </div>
     {viewMode === "tree"
@@ -705,7 +706,7 @@ export function WorldCupPage() {
     </section>
     <div className="worldcup-tabs" role="tablist" aria-label="Vista del Mundial">
       <button className={tab === "groups" ? "active" : ""} onClick={() => setTab("groups")}><Grid3X3 size={17}/>Grupos</button>
-      <button className={tab === "knockout" ? "active" : ""} onClick={() => setTab("knockout")}><ListTree size={17}/>Cuadro eliminatorias</button>
+      <button className={tab === "knockout" ? "active" : ""} onClick={() => setTab("knockout")}><ListTree size={17}/><span className="desktop-label">Cuadro eliminatorias</span><span className="mobile-label">Eliminatorias</span></button>
     </div>
     {error ? <div className="alert error">{error}</div> : !data ? <div className="page-loader"><span/></div> : tab === "groups"
       ? <GroupsView groups={data.groups || []}/>

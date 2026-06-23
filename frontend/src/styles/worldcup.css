@@ -84,3 +84,31 @@
   .mobile-bracket-scroll::-webkit-scrollbar{display:none;width:0;height:0}
   .mobile-bracket-lines path{stroke-width:2}
 }
+
+.mobile-label{display:none}
+.worldcup-view-switch-wide{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:0;margin:0 0 14px;padding:6px;border:1px solid var(--line);border-radius:16px;background:color-mix(in srgb,var(--panel) 92%,transparent);box-shadow:var(--surface-shadow,0 10px 24px rgba(0,0,0,.06));backdrop-filter:blur(14px)}
+.worldcup-view-switch-wide button{display:grid;place-items:center;width:auto;min-height:40px;border:0;border-radius:11px;background:transparent;color:var(--muted);font-weight:900}
+.worldcup-view-switch-wide button.active{background:var(--accent,var(--lime));color:#fff}
+.desktop-bracket-scroll{overflow-x:auto;overflow-y:visible;padding:8px 0 24px;overscroll-behavior-x:contain}
+.desktop-bracket-board{position:relative;width:var(--desktop-bracket-width);height:var(--desktop-bracket-height);min-height:var(--desktop-bracket-height)}
+.desktop-bracket-lines{position:absolute;inset:0;pointer-events:none;z-index:1;overflow:visible}
+.desktop-bracket-lines path{fill:none;stroke:color-mix(in srgb,var(--accent,var(--lime)) 36%,var(--line));stroke-width:2.25;stroke-linecap:square;stroke-linejoin:miter}
+.desktop-bracket-round-label{position:absolute;top:0;width:260px;text-align:center;color:var(--muted);font-size:12px;font-weight:950;text-transform:uppercase;letter-spacing:.06em}
+.desktop-bracket-match{position:absolute;z-index:2;width:260px}
+.desktop-bracket-match .bracket-compact-card{width:260px}
+.mobile-bracket-scroll{scrollbar-width:none;-ms-overflow-style:none}
+.mobile-bracket-scroll::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}
+.mobile-bracket-board,.mobile-bracket-mode{scrollbar-width:none;-ms-overflow-style:none}
+.mobile-bracket-board::-webkit-scrollbar,.mobile-bracket-mode::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}
+.mobile-bracket-match{transition:transform 95ms ease-out,opacity 95ms ease-out,left 95ms ease-out,top 95ms ease-out}
+.mobile-bracket-mode.is-phase-transitioning .mobile-bracket-match{transition:transform 110ms ease-out,opacity 110ms ease-out,left 110ms ease-out,top 110ms ease-out}
+@media(max-width:640px){
+  .worldcup-tabs{grid-template-columns:1fr 1fr;gap:0;padding:6px}
+  .worldcup-tabs button{min-height:40px;border-radius:12px}
+  .worldcup-tabs button+button{border-left:1px solid var(--line)}
+  .worldcup-tabs button.active+button,.worldcup-tabs button:has(+ button.active){border-left-color:transparent}
+  .desktop-label{display:none}
+  .mobile-label{display:inline}
+  .worldcup-view-switch-wide{position:static;right:auto;top:auto;z-index:auto;margin:0 0 14px;padding:6px;border-radius:16px;box-shadow:var(--surface-shadow,0 10px 24px rgba(0,0,0,.06))}
+  .worldcup-view-switch-wide button{width:auto;height:auto;min-height:40px;border-radius:11px}
+}
