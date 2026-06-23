@@ -66,7 +66,7 @@ export function createNotification({
       (user_id,type,title,message,entity_type,entity_id,link,event_key,created_at)
     VALUES (?,?,?,?,?,?,?,?,?)
   `).run(userId, type, title, message, entityType, entityId, link, eventKey, now());
-  if (result.changes && sendPush) void sendPushToUser(userId, { type, title, message, entityId, link, eventKey });
+  if (result.changes && sendPush) setImmediate(() => void sendPushToUser(userId, { type, title, message, entityId, link, eventKey }));
   return Boolean(result.changes);
 }
 

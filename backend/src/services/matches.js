@@ -7,6 +7,8 @@ export function effectiveCloseAt(match, config = settings()) {
   return new Date(new Date(match.auto_close_at).getTime() - minutes * 60000);
 }
 
+const matchStartsAt = (match) => new Date(`${match.match_date}T${match.match_time}:00`);
+
 export function isExpired(match) {
   const config = settings();
   return !(match.status === "open" && match.close_reason === "manual") &&
@@ -112,8 +114,7 @@ export function remindNextNightMissingPredictions(referenceDate = new Date()) {
 
 export function autoCloseExpired() {
   const config = settings();
-  if (config.auto_close_enabled !== "1") return 0;
-  const open = db.prepare("SELECT * FROM matches WHERE status='open' AND COALESCE(close_reason,'')!='manual'").all();
+  const open = db.prepare("SELECT * FROM matches WHERE status='open'").all();
   let count = 0;
   const close = db.transaction((match) => {
     db.prepare("UPDATE matches SET status='closed', close_reason='automatic', updated_at=? WHERE id=?")
@@ -131,7 +132,11 @@ export function autoCloseExpired() {
     });
   });
   for (const match of open) {
-    if (new Date() >= effectiveCloseAt(match, config)) {
+    const started = new Date() >= matchStartsAt(match);
+    const expired = config.auto_close_enabled === "1" &&
+      match.close_reason !== "manual" &&
+      new Date() >= effectiveCloseAt(match, config);
+    if (started || expired) {
       close(match);
       count += 1;
     }

@@ -558,6 +558,31 @@ test("una predicción debe coincidir con el ganador del marcador", async () => {
   assert.equal(response.status, 400);
 });
 
+test("no permite pronosticar en un partido ya empezado aunque esté abierto manualmente", async () => {
+  const admin = request.agent(app);
+  const user = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  await user.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
+  const created = await admin.post("/api/matches").send({
+    match_date: "2000-01-01",
+    match_time: "12:00",
+    team1: "Partido empezado",
+    team2: "Abierto manual",
+    force_published: true
+  });
+  assert.equal(created.status, 201);
+  db.prepare("UPDATE matches SET status='open',close_reason='manual' WHERE id=?").run(created.body.id);
+
+  const response = await user.post("/api/predictions").send({
+    match_id: created.body.id,
+    predicted_winner: "draw",
+    predicted_team1_goals: 1,
+    predicted_team2_goals: 1
+  });
+  assert.equal(response.status, 409);
+  assert.match(response.body.error, /cerradas/);
+});
+
 test("un Partido Estrella duplica los puntos y deja trazabilidad x2", async () => {
   const admin = request.agent(app);
   const user = request.agent(app);
@@ -1217,6 +1242,27 @@ test("al reabrir se puede elegir cierre automático o apertura manual", async ()
   assert.equal(manual.status, 200);
   assert.equal(manual.body.status, "open");
   assert.equal(manual.body.close_reason, "manual");
+});
+
+test("no permite reabrir un partido que ya está en juego", async () => {
+  const admin = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  const created = await admin.post("/api/matches").send({
+    match_date: "2000-01-02",
+    match_time: "12:00",
+    team1: "En juego",
+    team2: "No reabrible",
+    force_published: true
+  });
+  assert.equal(created.status, 201);
+  await admin.patch(`/api/matches/${created.body.id}/status`).send({ status: "closed" });
+
+  const reopened = await admin.patch(`/api/matches/${created.body.id}/status`).send({
+    status: "open",
+    reopen_mode: "manual"
+  });
+  assert.equal(reopened.status, 409);
+  assert.match(reopened.body.error, /en juego/);
 });
 
 test("eliminar un resultado no reabre apuestas si ya pasó la hora de cierre", async () => {

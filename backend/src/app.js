@@ -90,17 +90,6 @@ app.use(session({
   }
 }));
 app.use(hydrateUser);
-let lastRequestAutoCloseCheck = 0;
-app.use("/api", (req, _res, next) => {
-  const currentTime = Date.now();
-  const shouldCheckAutoClose = req.method === "GET" && !req.path.startsWith("/auth") &&
-    (req.path === "/dashboard" || req.path === "/matches" || currentTime - lastRequestAutoCloseCheck >= 1000);
-  if (shouldCheckAutoClose) {
-    lastRequestAutoCloseCheck = currentTime;
-    autoCloseExpired();
-  }
-  next();
-});
 
 const avatarUrl = (user) => user?.avatar_filename ? `/avatars/${user.avatar_filename}` : null;
 const removeChatMediaFiles = (token) => {
@@ -318,7 +307,7 @@ const serializeMatches = (matches) => {
     published: isMatchPublished(match),
     publishes_at: matchPublishesAt(match).toISOString(),
     effective_close_at: effectiveCloseAt(match).toISOString(),
-    betting_open: isMatchPublished(match) && match.status === "open" && !isExpired(match),
+    betting_open: isMatchPublished(match) && match.status === "open" && !isExpired(match) && !isMatchInPlay(match),
     in_play: isMatchInPlay(match)
   }));
 };
@@ -448,6 +437,7 @@ app.get("/api/stadiums", requireAuth, (req, res) => {
 });
 
 app.get("/api/matches", requireAuth, (req, res) => {
+  autoCloseExpired();
   const matches = db.prepare(`
     SELECT m.*, COUNT(bettor.id) prediction_count,
       mine.id prediction_id, mine.predicted_winner, mine.predicted_team1_goals, mine.predicted_team2_goals,
@@ -754,6 +744,7 @@ const pointsDetail = (userId, stats) => {
 };
 
 app.get("/api/dashboard", requireAuth, (req, res) => {
+  autoCloseExpired();
   const stats = userStats(req.user.id) || {
     position: "—", total_points: 0, exact_hits: 0, winner_hits: 0,
     predicted_matches: 0, average_points: 0
@@ -1631,6 +1622,7 @@ app.patch("/api/matches/:id/status", requireAdmin, (req, res) => {
   const status = req.body.status;
   if (!before || !["open", "closed", "finished"].includes(status)) return res.status(400).json({ error: "Partido o estado no válido." });
   if (status === "finished" && (before.result_team1 === null || before.result_team2 === null)) return res.status(400).json({ error: "Introduce el resultado antes de finalizar." });
+  if (status === "open" && isMatchInPlay(before)) return res.status(409).json({ error: "No se puede reabrir un partido que ya está en juego." });
   const reopenMode = req.body.reopen_mode;
   if (status === "open" && !["automatic", "manual"].includes(reopenMode)) {
     return res.status(400).json({ error: "Indica si la reapertura mantiene el cierre automático o queda abierta manualmente." });
@@ -1919,7 +1911,7 @@ function savePrediction(req, res, predictionId = null) {
   const scorerSelection = parseScorerSelection(req.body.predicted_scorer_id);
   if (!match) return res.status(404).json({ error: "Partido no encontrado." });
   if (!isMatchPublished(match)) return res.status(409).json({ error: "Este partido todavía no está publicado para apostar." });
-  if (match.status !== "open" || isExpired(match)) return res.status(409).json({ error: "Las apuestas de este partido ya están cerradas." });
+  if (match.status !== "open" || isExpired(match) || isMatchInPlay(match)) return res.status(409).json({ error: "Las apuestas de este partido ya están cerradas." });
   if (g1 === null || g2 === null || !["team1", "team2", "draw"].includes(winner)) return res.status(400).json({ error: "Predicción no válida." });
   if (!scorerSelection) return res.status(400).json({ error: "Goleador no válido." });
   if (predictionWinner(g1, g2) !== winner) return res.status(400).json({ error: "El ganador elegido no coincide con el resultado pronosticado." });

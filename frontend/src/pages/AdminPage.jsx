@@ -67,8 +67,12 @@ export function AdminPage() {
     </div>
   );
 }
-const Notice = ({ text }) =>
-  text ? <div className="alert success">{text}</div> : null;
+const Notice = ({ text, notice }) => {
+  const source = notice ?? text;
+  if (!source) return null;
+  const value = typeof source === "string" ? { type: "success", text: source } : source;
+  return value.text ? <div className={`alert ${value.type || "success"}`}>{value.text}</div> : null;
+};
 
 function AdminNews() {
   const blank = { title: "", body: "", published: true };
@@ -362,7 +366,8 @@ function AdminMatches() {
     [settings, setSettings] = useState(null),
     [form, setForm] = useState(blankForm()),
     [edit, setEdit] = useState(null),
-    [notice, setNotice] = useState("");
+    [notice, setNotice] = useState(null),
+    [savingMatch, setSavingMatch] = useState(false);
   const [teams, setTeams] = useState([]),
     [stadiums, setStadiums] = useState([]),
     [resultMatch, setResultMatch] = useState(null),
@@ -436,17 +441,24 @@ function AdminMatches() {
       stadium_id: match.stadium.id || "",
       is_knockout: Boolean(match.is_knockout),
     });
-    setNotice(
-      "Datos copiados al formulario. Revísalos y pulsa «Crear partido» para guardarlo.",
-    );
+    setNotice({
+      type: "success",
+      text: "Datos copiados al formulario. Revísalos y pulsa «Crear partido» para guardarlo.",
+    });
     if (!match.complete) {
-      setNotice("Datos parciales copiados al formulario. Completa a mano lo que falte antes de crear el partido.");
+      setNotice({
+        type: "success",
+        text: "Datos parciales copiados al formulario. Completa a mano lo que falte antes de crear el partido.",
+      });
     }
     setReference(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
   const save = async (e) => {
     e.preventDefault();
+    if (savingMatch) return;
+    setSavingMatch(true);
+    setNotice(null);
     const body = {
       ...form,
       auto_close_at:
@@ -455,15 +467,21 @@ function AdminMatches() {
           : "",
     };
     delete body.use_custom_close;
-    await api(edit ? `/matches/${edit}` : "/matches", {
-      method: edit ? "PUT" : "POST",
-      body,
-    });
-    setForm(matchBlank());
-    setEdit(null);
-    setNotice("Partido guardado.");
-    setPage(1);
-    load();
+    try {
+      await api(edit ? `/matches/${edit}` : "/matches", {
+        method: edit ? "PUT" : "POST",
+        body,
+      });
+      setForm(matchBlank());
+      setEdit(null);
+      setNotice({ type: "success", text: "Partido guardado." });
+      setPage(1);
+      await load();
+    } catch (error) {
+      setNotice({ type: "error", text: error.message });
+    } finally {
+      setSavingMatch(false);
+    }
   };
   const startEdit = (m) => {
     const defaultClose = `${m.match_date}T${m.match_time}`;
@@ -492,11 +510,12 @@ function AdminMatches() {
       body.reopen_mode = automatic ? "automatic" : "manual";
     }
     await api(`/matches/${id}/status`, { method: "PATCH", body });
-    setNotice(
-      value === "open"
+    setNotice({
+      type: "success",
+      text: value === "open"
         ? `Partido reabierto con cierre ${body.reopen_mode === "automatic" ? "automático" : "manual"}.`
         : "Partido cerrado manualmente.",
-    );
+    });
     load();
   };
   const finish = (m) => setResultMatch(m);
@@ -535,11 +554,12 @@ function AdminMatches() {
           match={predictionMatch}
           onClose={() => setPredictionMatch(null)}
           onCorrected={(recalculated) =>
-            setNotice(
-              recalculated
+            setNotice({
+              type: "success",
+              text: recalculated
                 ? "Apuesta corregida y puntos recalculados."
                 : "Apuesta corregida; el partido continúa cerrado.",
-            )
+            })
           }
         />
       )}
@@ -549,7 +569,7 @@ function AdminMatches() {
           onCancel={() => setResultMatch(null)}
           onSaved={() => {
             setResultMatch(null);
-            setNotice("Resultado y goleadores guardados. Puntos recalculados.");
+            setNotice({ type: "success", text: "Resultado y goleadores guardados. Puntos recalculados." });
             load();
           }}
         />
@@ -722,8 +742,8 @@ function AdminMatches() {
             ⭐ Partido Estrella: puntuación x2
           </label>
         </div>
-        <button className="primary">
-          {edit ? "Guardar cambios" : "Crear partido"}
+        <button className="primary" disabled={savingMatch}>
+          {savingMatch ? "Guardando..." : edit ? "Guardar cambios" : "Crear partido"}
         </button>
         {edit && (
           <button
