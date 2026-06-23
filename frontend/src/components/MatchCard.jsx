@@ -79,6 +79,7 @@ export function MatchCard({ match, onSaved, verticalScorePicker=false }) {
   const [message, setMessage] = useState("");
   const [reveal, setReveal] = useState(null);
   const [expanded, setExpanded] = useState(false);
+  const [savedPulse, setSavedPulse] = useState(0);
   const [players,setPlayers]=useState([]),[scorerId,setScorerId]=useState(match.predicted_scorer_id||null);
   const hydratedMatchId = useRef(match.id);
   useEffect(() => {
@@ -108,7 +109,7 @@ export function MatchCard({ match, onSaved, verticalScorePicker=false }) {
     try {
       const body = { match_id: match.id, predicted_winner: winner, predicted_team1_goals: Number(g1), predicted_team2_goals: Number(g2), predicted_scorer_id:isNilNil?NO_SCORER_ID:scorerId };
       await api(match.prediction_id ? `/predictions/${match.prediction_id}` : "/predictions", { method: match.prediction_id ? "PUT" : "POST", body });
-      setMessage("Predicción guardada"); onSaved();
+      setMessage("Resultado guardado!"); setSavedPulse((value) => value + 1); onSaved();
     } catch (error) { setMessage(error.message); } finally { setSaving(false); }
   };
   const toggleReveal = async () => {
@@ -144,7 +145,8 @@ export function MatchCard({ match, onSaved, verticalScorePicker=false }) {
         : <div className="score-picker"><div><small>{match.team1}</small><span><button onClick={()=>adjust(setG1,g1,-1)}><Minus/></button><input aria-label={`Goles de ${match.team1}`} inputMode="numeric" type="number" min="0" value={g1} onChange={e=>setG1(e.target.value)}/><button onClick={()=>adjust(setG1,g1,1)}><Plus/></button></span></div><b>:</b><div><small>{match.team2}</small><span><button onClick={()=>adjust(setG2,g2,-1)}><Minus/></button><input aria-label={`Goles de ${match.team2}`} inputMode="numeric" type="number" min="0" value={g2} onChange={e=>setG2(e.target.value)}/><button onClick={()=>adjust(setG2,g2,1)}><Plus/></button></span></div></div>}
       {scorerEnabled&&<div className="scorer-pick"><span className="section-label">3. GOLEADOR DEL PARTIDO</span>{isNilNil?<div className="scorer-selected-banner readonly"><div><span>Goleador elegido</span><strong>Sin goleador</strong><small>Marcador 0-0</small></div></div>:<ScorerPicker players={availableScorers} value={scorerId} onChange={setScorerId} onOpen={()=>{if(players.length===0)loadScorers()}} matchLabel={`${match.team1} - ${match.team2}`}/>}</div>}
       <button className="primary save-prediction" onClick={save} disabled={saving || winner==="" || g1==="" || g2==="" || (scorerEnabled&&Number(g1)+Number(g2)>0&&!scorerId)}><Save size={17}/>{saving?"Guardando...":match.prediction_id?"Guardar cambios":"Guardar resultado"}</button>
-      {message && <small className={message.includes("guardada")?"success-text":"error-text"}>{message}</small>}
+      {message && <small className={message.includes("guardado")?"success-text saved-result-inline":"error-text"}>{message}</small>}
+      {message.includes("guardado") && <div className="saved-result-burst" key={savedPulse} role="status" aria-live="polite"><Check size={22}/><strong>Resultado guardado!</strong></div>}
     </div> : <div className="locked-prediction"><span>{user.is_read_only ? "Modo solo lectura" : "Tu apuesta"}</span><strong>{user.is_read_only ? "Sin participación" : match.predicted_winner ? `${match.team1} ${match.predicted_team1_goals} – ${match.predicted_team2_goals} ${match.team2}` : "Sin predicción"}</strong>{!user.is_read_only&&match.predicted_scorer&&<small>Goleador: {match.predicted_scorer.name}</small>}{!user.is_read_only&&match.status==="finished" && <b><StarPoints match={match} points={match.total_points}/></b>}</div>}
     <button className="reveal-toggle" onClick={toggleReveal}><span><Users size={16}/>{match.prediction_count} participantes</span><span>{match.betting_open ? "Apuestas ocultas hasta el cierre" : "Ver apuestas"}<ChevronDown className={expanded?"rotated":""} size={16}/></span></button>
     {expanded && reveal && <div className="reveal-list">{!reveal.revealed ? <p>{reveal.count ? `${reveal.count} pronóstico${reveal.count===1?"":"s"} registrado${reveal.count===1?"":"s"}. Se revelarán al cierre.` : "Aún no hay participantes."}</p> : reveal.predictions.length ? reveal.predictions.map(p=><div className="revealed-prediction-row" key={p.id}><ReactionBar targetType="prediction" targetId={p.id} disabled={user.is_read_only} own={p.user_id===user.id}><div className="revealed-prediction-main"><strong>{p.username}</strong><span>{predictionScoreText(match,p)}</span></div><small>{predictionScorerText(p)}{match.status==="finished"&&<> · <b>{p.total_points} pts</b></>}</small></ReactionBar></div>) : <p>Aún no hay apuestas.</p>}</div>}

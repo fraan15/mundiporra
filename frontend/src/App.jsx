@@ -296,6 +296,36 @@ function MainLayout() {
   const [answering,setAnswering]=useState(false);
   useEffect(()=>{document.documentElement.dataset.theme=theme;localStorage.setItem("theme",theme)},[theme]);
   useEffect(()=>{
+    let frame;
+    const repairMobileNav=()=>{
+      if(!window.matchMedia("(max-width: 800px)").matches)return;
+      cancelAnimationFrame(frame);
+      frame=requestAnimationFrame(()=>{
+        const nav=document.querySelector(".main-nav");
+        if(!nav)return;
+        const viewportHeight=Math.round(window.visualViewport?.height||window.innerHeight);
+        nav.style.setProperty("--visual-viewport-height",`${viewportHeight}px`);
+        nav.dataset.viewportRepair=String(Date.now());
+      });
+    };
+    repairMobileNav();
+    window.addEventListener("focus",repairMobileNav);
+    window.addEventListener("pageshow",repairMobileNav);
+    window.addEventListener("orientationchange",repairMobileNav);
+    document.addEventListener("visibilitychange",repairMobileNav);
+    window.visualViewport?.addEventListener("resize",repairMobileNav);
+    window.visualViewport?.addEventListener("scroll",repairMobileNav);
+    return()=>{
+      cancelAnimationFrame(frame);
+      window.removeEventListener("focus",repairMobileNav);
+      window.removeEventListener("pageshow",repairMobileNav);
+      window.removeEventListener("orientationchange",repairMobileNav);
+      document.removeEventListener("visibilitychange",repairMobileNav);
+      window.visualViewport?.removeEventListener("resize",repairMobileNav);
+      window.visualViewport?.removeEventListener("scroll",repairMobileNav);
+    };
+  },[]);
+  useEffect(()=>{
     if(sessionStorage.getItem("showPendingLoginAlert")!=="1")return;
     sessionStorage.removeItem("showPendingLoginAlert");
     if(user.role==="admin"||user.is_read_only)return;

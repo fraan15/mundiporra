@@ -1,0 +1,34 @@
+@supports (-webkit-touch-callout: none) {
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  @media (max-width: 800px) {
+    .main-nav {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: auto;
+      height: calc(64px + env(safe-area-inset-bottom, 0px));
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      transform: translateZ(0);
+      -webkit-transform: translateZ(0);
+      will-change: transform;
+      contain: layout paint;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+
+    .page {
+      padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+    }
+
+    main,
+    .page {
+      scroll-margin-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+    }
+  }
+}

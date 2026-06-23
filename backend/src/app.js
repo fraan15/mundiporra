@@ -1261,41 +1261,77 @@ app.get("/api/matches/:id/detail", requireAuth, (req, res) => {
   res.json({ match: serializeMatch(match), participants, participant_count: participantCount, revealed: !open, distribution });
 });
 
-app.post("/api/matches/:id/simulation", requireAuth, (req, res) => {
-  const match = db.prepare("SELECT * FROM matches WHERE id=?").get(req.params.id);
-  if (!match || !canAccessMatch(req, match)) return res.status(404).json({ error: "Partido no encontrado." });
-  if (match.status !== "closed") return res.status(409).json({ error: "La simulación solo está disponible mientras el partido está en juego." });
-  if (!isMatchInPlay(match)) return res.status(409).json({ error: "El partido todavía no ha comenzado." });
-  const g1 = parseIntField(req.body.result_team1), g2 = parseIntField(req.body.result_team2);
-  if (g1 === null || g2 === null) return res.status(400).json({ error: "Introduce un marcador válido." });
-  const scorerIds = parseScorerList(req.body.scorer_ids);
-  if (!scorerIds) return res.status(400).json({ error: "Goleadores no válidos." });
-  const playerScorerIds = scorerIds.filter((value) => value !== NO_SCORER_ID);
-  if (playerScorerIds.length) {
-    const teams = db.prepare("SELECT fifa_code FROM teams WHERE id IN (?,?)").all(match.team1_id, match.team2_id).map(row => row.fifa_code);
-    const valid = db.prepare(`SELECT id FROM players WHERE id IN (${playerScorerIds.map(() => "?").join(",")}) AND team_fifa_code IN (?,?)`).all(...playerScorerIds, ...teams);
-    if (valid.length !== playerScorerIds.length) return res.status(400).json({ error: "Goleador no válido para este partido." });
+const emptySimulationPoints = () => ({ winner_points: 0, exact_result_points: 0, scorer_points: 0, total_points: 0, winner_hits: 0, exact_hits: 0, scorer_hits: 0 });
+const addSimulationPoints = (target, points) => {
+  target.winner_points += Number(points.winner_points || 0);
+  target.exact_result_points += Number(points.exact_result_points || 0);
+  target.scorer_points += Number(points.scorer_points || 0);
+  target.total_points += Number(points.total_points || 0);
+  target.winner_hits += Number(points.winner_hits || 0);
+  target.exact_hits += Number(points.exact_hits || 0);
+  target.scorer_hits += Number(points.scorer_hits || 0);
+};
+const simulationForMatches = (req, items) => {
+  const config = settings(), matches = [], totals = new Map(), perMatch = [];
+  for (const item of items) {
+    const match = db.prepare("SELECT * FROM matches WHERE id=?").get(item.match_id);
+    if (!match || !canAccessMatch(req, match)) throw Object.assign(new Error("Partido no encontrado."), { status: 404 });
+    if (match.status !== "closed") throw Object.assign(new Error("La simulación solo está disponible mientras el partido está en juego."), { status: 409 });
+    if (!isMatchInPlay(match)) throw Object.assign(new Error("El partido todavía no ha comenzado."), { status: 409 });
+    const g1 = parseIntField(item.result_team1), g2 = parseIntField(item.result_team2);
+    if (g1 === null || g2 === null) throw Object.assign(new Error("Introduce un marcador válido."), { status: 400 });
+    const scorerIds = parseScorerList(item.scorer_ids);
+    if (!scorerIds) throw Object.assign(new Error("Goleadores no válidos."), { status: 400 });
+    const playerScorerIds = scorerIds.filter((value) => value !== NO_SCORER_ID);
+    if (playerScorerIds.length) {
+      const teams = db.prepare("SELECT fifa_code FROM teams WHERE id IN (?,?)").all(match.team1_id, match.team2_id).map(row => row.fifa_code);
+      const valid = db.prepare(`SELECT id FROM players WHERE id IN (${playerScorerIds.map(() => "?").join(",")}) AND team_fifa_code IN (?,?)`).all(...playerScorerIds, ...teams);
+      if (valid.length !== playerScorerIds.length) throw Object.assign(new Error("Goleador no válido para este partido."), { status: 400 });
+    }
+    const multiplier = match.is_star ? 2 : 1, winnerValue = calculateWinner(g1, g2), actualScorers = new Set(playerScorerIds);
+    if (Number(match.scorer_enabled) && g1 === 0 && g2 === 0) actualScorers.add(NO_SCORER_ID);
+    const predictions = db.prepare(`SELECT p.*,COALESCE(NULLIF(u.display_name,''),u.username) username FROM predictions p JOIN users u ON u.id=p.user_id WHERE p.match_id=?`).all(match.id);
+    const matchPoints = new Map(predictions.map(prediction => {
+      const predictedScorer = prediction.predicted_team1_goals === 0 && prediction.predicted_team2_goals === 0 ? NO_SCORER_ID : prediction.predicted_scorer_id;
+      const winnerPoints = (prediction.predicted_winner === winnerValue ? Number(config.winner_points || 3) : 0) * multiplier;
+      const exactPoints = (prediction.predicted_team1_goals === g1 && prediction.predicted_team2_goals === g2 ? Number(config.exact_result_points || 5) : 0) * multiplier;
+      const scorerPoints = (Number(match.scorer_enabled) && predictedScorer && actualScorers.has(predictedScorer) ? Number(config.scorer_points || 2) : 0) * multiplier;
+      return [prediction.user_id, { winner_points: winnerPoints, exact_result_points: exactPoints, scorer_points: scorerPoints, total_points: winnerPoints + exactPoints + scorerPoints, winner_hits: winnerPoints > 0 ? 1 : 0, exact_hits: exactPoints > 0 ? 1 : 0, scorer_hits: scorerPoints > 0 ? 1 : 0 }];
+    }));
+    matchPoints.forEach((points, userId) => {
+      if (!totals.has(userId)) totals.set(userId, emptySimulationPoints());
+      addSimulationPoints(totals.get(userId), points);
+    });
+    matches.push({ id: match.id, result_team1: g1, result_team2: g2, winner: winnerValue, multiplier, points: matchPoints.get(req.user.id) || emptySimulationPoints() });
+    perMatch.push({ match_id: match.id, points: matchPoints.get(req.user.id) || emptySimulationPoints() });
   }
-  const config = settings(), multiplier = match.is_star ? 2 : 1;
-  const winnerValue = calculateWinner(g1, g2);
-  const actualScorers = new Set(playerScorerIds);
-  if (Number(match.scorer_enabled) && g1 === 0 && g2 === 0) actualScorers.add(NO_SCORER_ID);
-  const predictions = db.prepare(`SELECT p.*,COALESCE(NULLIF(u.display_name,''),u.username) username FROM predictions p JOIN users u ON u.id=p.user_id WHERE p.match_id=?`).all(match.id);
-  const simulated = new Map(predictions.map(prediction => {
-    const predictedScorer = prediction.predicted_team1_goals === 0 && prediction.predicted_team2_goals === 0 ? NO_SCORER_ID : prediction.predicted_scorer_id;
-    const winnerPoints = (prediction.predicted_winner === winnerValue ? Number(config.winner_points || 3) : 0) * multiplier;
-    const exactPoints = (prediction.predicted_team1_goals === g1 && prediction.predicted_team2_goals === g2 ? Number(config.exact_result_points || 5) : 0) * multiplier;
-    const scorerPoints = (Number(match.scorer_enabled) && predictedScorer && actualScorers.has(predictedScorer) ? Number(config.scorer_points || 2) : 0) * multiplier;
-    return [prediction.user_id, { winner_points: winnerPoints, exact_result_points: exactPoints, scorer_points: scorerPoints, total_points: winnerPoints + exactPoints + scorerPoints }];
-  }));
   const before = leaderboardRows(), previousPositions = new Map(before.map((row, index) => [row.id, index + 1]));
   const ranking = before.map(row => {
-    const points = simulated.get(row.id) || { winner_points: 0, exact_result_points: 0, scorer_points: 0, total_points: 0 };
-    return { ...row, simulated: points, total_points: Number(row.total_points) + points.total_points, exact_hits: Number(row.exact_hits) + (points.exact_result_points > 0 ? 1 : 0), winner_hits: Number(row.winner_hits) + (points.winner_points > 0 ? 1 : 0), scorer_hits: Number(row.scorer_hits) + (points.scorer_points > 0 ? 1 : 0) };
+    const points = totals.get(row.id) || emptySimulationPoints();
+    return { ...row, simulated: points, total_points: Number(row.total_points) + points.total_points, exact_hits: Number(row.exact_hits) + points.exact_hits, winner_hits: Number(row.winner_hits) + points.winner_hits, scorer_hits: Number(row.scorer_hits) + points.scorer_hits };
   }).sort((a, b) => b.total_points - a.total_points || b.exact_hits - a.exact_hits || b.winner_hits - a.winner_hits || b.scorer_hits - a.scorer_hits || a.id - b.id)
     .map((row, index) => ({ id: row.id, username: row.username, points: row.total_points, match_points: row.simulated.total_points, position: index + 1, movement: previousPositions.get(row.id) - (index + 1), is_me: row.id === req.user.id }));
-  const mine = ranking.find(row => row.id === req.user.id);
-  res.json({ result_team1: g1, result_team2: g2, winner: winnerValue, multiplier, points: simulated.get(req.user.id) || null, ranking, mine });
+  return { matches, per_match_points: perMatch, points: totals.get(req.user.id) || emptySimulationPoints(), ranking, mine: ranking.find(row => row.id === req.user.id) };
+};
+
+app.post("/api/matches/:id/simulation", requireAuth, (req, res) => {
+  try {
+    const result = simulationForMatches(req, [{ match_id: req.params.id, result_team1: req.body.result_team1, result_team2: req.body.result_team2, scorer_ids: req.body.scorer_ids }]);
+    const matchResult = result.matches[0];
+    res.json({ ...matchResult, points: result.points, ranking: result.ranking, mine: result.mine });
+  } catch (error) {
+    res.status(error.status || 500).json({ error: error.message || "No se pudo simular el resultado." });
+  }
+});
+
+app.post("/api/matches/simulation", requireAuth, (req, res) => {
+  try {
+    const items = Array.isArray(req.body.matches) ? req.body.matches.filter((item) => item && item.active !== false) : [];
+    if (!items.length) return res.status(400).json({ error: "Activa al menos un partido para simular." });
+    res.json(simulationForMatches(req, items.slice(0, 8)));
+  } catch (error) {
+    res.status(error.status || 500).json({ error: error.message || "No se pudo simular el resultado." });
+  }
 });
 
 app.get("/api/matches/:id/comments", requireAuth, (req, res) => {

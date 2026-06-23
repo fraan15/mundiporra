@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertCircle, ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, Clock3, Eye, Grid3X3, ListTree, Radio, Sparkles, Star } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, Clock3, Eye, Grid3X3, Info, ListTree, Radio, Sparkles, Star, X } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../App";
@@ -38,6 +38,64 @@ const closeText = (match, current) => {
   return hours >= 24 ? `Cierra en ${Math.floor(hours / 24)} día ${hours % 24} h` : `Cierra en ${hours} h ${minutes} min`;
 };
 const closeState = (match) => match.status === "finished" ? "finished" : match.in_play ? "playing" : match.betting_open ? "open" : "closed";
+
+function KnockoutInfoDialog({ onClose }) {
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
+  return <div className="knockout-info-overlay" role="dialog" aria-modal="true" aria-labelledby="knockout-info-title" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
+    <section className="knockout-info-dialog">
+      <header>
+        <div><span className="eyebrow"><Info size={14}/> INFO ELIMINATORIAS</span><h2 id="knockout-info-title">Cómo puntúan los partidos de eliminatoria</h2></div>
+        <button type="button" aria-label="Cerrar información de eliminatorias" title="Cerrar" onClick={onClose}><X size={20}/></button>
+      </header>
+      <div className="knockout-info-scroll">
+        <section>
+          <h3>Desde cuándo aplica</h3>
+          <p>A partir del domingo 28/06, en el partido de las 21:00, los partidos pasan a modo eliminatoria. A nivel de apuesta, todo sigue igual: eliges marcador y goleador como hasta ahora.</p>
+        </section>
+        <section>
+          <h3>Resultado válido para la porra</h3>
+          <ul>
+            <li>Cuenta el marcador final hasta los 120 minutos.</li>
+            <li>Si hay prórroga, la prórroga sí cuenta para el resultado.</li>
+            <li>Si después de 120 minutos el partido está empatado, para la porra cuenta como empate.</li>
+            <li>La tanda de penaltis no cuenta para el resultado, no cambia el signo y no añade goles ni goleadores.</li>
+          </ul>
+        </section>
+        <section>
+          <h3>Goleadores</h3>
+          <ul>
+            <li>Los goles marcados durante los 90 minutos cuentan.</li>
+            <li>Los goles marcados en la prórroga cuentan.</li>
+            <li>Los goles de una tanda de penaltis no cuentan para el goleador.</li>
+            <li>Si hay gol en propia puerta, solo contará como goleador si el sistema lo tiene registrado como goleador válido para ese partido.</li>
+          </ul>
+        </section>
+        <section>
+          <h3>Puntos</h3>
+          <p>El sistema de puntos sigue igual: se puntúa por signo o ganador del marcador válido, por resultado exacto y por goleador. Si el partido es estrella, se aplicará el multiplicador que ya usa la porra.</p>
+        </section>
+        <section>
+          <h3>Ejemplos rápidos</h3>
+          <div className="knockout-info-examples">
+            <article><strong>Apuestas 1-1 y acaba 1-1 tras 120 minutos</strong><p>Aciertas empate y resultado exacto. Si luego un equipo gana en penaltis, no cambia nada para la porra.</p></article>
+            <article><strong>Apuestas 2-2, acaba 2-2 en 90 minutos y 3-3 tras prórroga</strong><p>El resultado válido es 3-3. Aciertas el empate, pero no el resultado exacto.</p></article>
+            <article><strong>Apuestas victoria 2-1 y el partido acaba 1-1 tras 120 minutos</strong><p>Para la porra es empate. No aciertas el signo aunque tu equipo pase en penaltis.</p></article>
+            <article><strong>Apuestas 1-2 y el partido acaba 1-2 en la prórroga</strong><p>Cuenta como victoria visitante 1-2. Puedes acertar signo, resultado exacto y goleador si coincide.</p></article>
+            <article><strong>Tu goleador marca en la prórroga</strong><p>Ese gol sí cuenta para el apartado de goleador.</p></article>
+            <article><strong>Tu goleador marca solo en la tanda de penaltis</strong><p>Ese penalti no cuenta como gol para la porra.</p></article>
+          </div>
+        </section>
+      </div>
+    </section>
+  </div>;
+}
 
 function DashboardPredictionValue({ match, user, emptyText }) {
   const scorer = predictionScorerText(match, user);
@@ -131,7 +189,7 @@ function DashboardCalendar({ matches, onOpenMatch, restoreScrollTop, user, curre
 
 export function DashboardPage() {
   const [calendarReturnInfo]=useState(()=>sessionStorage.getItem("dashboardCalendarReturn")==="1"?{scrollTop:Number(sessionStorage.getItem("dashboardCalendarScrollTop")||0)}:null);
-  const {user}=useAuth(),navigate=useNavigate(),location=useLocation(),[data,setData]=useState(null),[activity,setActivity]=useState([]),[calendarMatches,setCalendarMatches]=useState([]),[tick,setTick]=useState(Date.now()),[matchIndex,setMatchIndex]=useState(0),[liveMatchIndex,setLiveMatchIndex]=useState(0);
+  const {user}=useAuth(),navigate=useNavigate(),location=useLocation(),[data,setData]=useState(null),[activity,setActivity]=useState([]),[calendarMatches,setCalendarMatches]=useState([]),[tick,setTick]=useState(Date.now()),[matchIndex,setMatchIndex]=useState(0),[liveMatchIndex,setLiveMatchIndex]=useState(0),[knockoutInfoOpen,setKnockoutInfoOpen]=useState(false);
   const calendarRestoreScrollTop=calendarReturnInfo ? calendarReturnInfo.scrollTop : null;
   const swipeStart=useRef(null),liveSwipeStart=useRef(null),suppressNextClick=useRef(false),suppressLiveClick=useRef(false);
   const loadDashboard=()=>api("/dashboard").then(setData);
@@ -172,14 +230,16 @@ export function DashboardPage() {
   };
   const liveMatch=inPlayMatches[liveMatchIndex]||inPlayMatches[0];
   return <div className="page dashboard-page"><section className="hero-panel dashboard-hero"><div><span className="eyebrow"><Sparkles size={14}/> TU CENTRO DE JUEGO</span><h1>Hola, {user.display_name||user.username}</h1><p>{user.is_read_only?"Modo solo lectura: puedes consultar toda la porra sin participar.":s.pending?`Tienes ${s.pending} partidos pendientes de pronosticar.`:"Todo al día. A disfrutar de la jornada."}</p></div><button className="hero-rank" onClick={()=>navigate("/clasificacion")} title="Ver clasificación"><small>POSICIÓN</small><strong>#{s.position}</strong><span>{s.total_points} puntos</span></button></section>
+  {knockoutInfoOpen&&<KnockoutInfoDialog onClose={()=>setKnockoutInfoOpen(false)}/>}
   <div className="dashboard-overview">
   {user.role!=="admin"&&!user.is_read_only&&<button className={`pending-bet-banner ${s.pending>0?"has-pending":"complete"}`} onClick={()=>navigate("/partidos#upcoming")}>{s.pending>0?<AlertCircle/>:<CheckCircle2/>}<span><small>PARTIDOS PENDIENTES DE APUESTA</small><strong>{s.pending}</strong><em>{s.pending>0?"Completa tus pronósticos":"Estás al día"}</em></span><ArrowRight/></button>}</div>
   <DashboardCalendar matches={calendarMatches} onOpenMatch={openCalendarMatch} restoreScrollTop={calendarRestoreScrollTop} user={user} currentTime={tick}/>
   <section className="worldcup-dashboard-actions" aria-label="Informacion del Mundial">
+    <button onClick={()=>setKnockoutInfoOpen(true)}><Info size={20}/><span><strong>Info Eliminatorias</strong><small>Reglas de prórroga, penaltis y goleadores</small></span><ArrowRight size={17}/></button>
     <button onClick={()=>navigate("/mundial?tab=groups")}><Grid3X3 size={20}/><span><strong>Grupos</strong><small>Clasificacion, puntos y goles</small></span><ArrowRight size={17}/></button>
     <button onClick={()=>navigate("/mundial?tab=knockout")}><ListTree size={20}/><span><strong>Cuadro Eliminatorias</strong><small>Cruces actualizados desde worldcup.json</small></span><ArrowRight size={17}/></button>
   </section>
               {liveMatch&&<section className="live-matches-section content-card"><div className="card-title"><div><span className="eyebrow live-label"><Radio size={14}/> EN DIRECTO</span><h2>Partidos en juego</h2></div><button className="detail-icon-button" aria-label="Ver detalle del partido en juego" title="Ver detalle" onClick={()=>navigate(`/match/${liveMatch.id}`)}><Eye size={17}/></button></div><div className="live-match-carousel" onPointerDown={event=>{if(event.pointerType!=="mouse")liveSwipeStart.current={x:event.clientX,y:event.clientY}}} onPointerUp={endLiveSwipe} onPointerCancel={()=>{liveSwipeStart.current=null}}><article className={`live-match-card ${liveMatch.is_star?"star-dashboard-card live-star-card":""}`}>{Boolean(liveMatch.is_star)&&<span className="live-star-badge"><Star size={13} fill="currentColor"/> Partido Estrella <b>x2</b></span>}<div className="live-match-teams match-open-card" onClick={()=>openMatch(liveMatch,suppressLiveClick)} onKeyDown={event=>openMatchOnKey(event,liveMatch,suppressLiveClick)} role="button" tabIndex={0} aria-label={`Ver detalle de ${liveMatch.team1} contra ${liveMatch.team2}`}><div><Flag team={liveMatch.team1} teamData={liveMatch.team1_team}/><strong>{liveMatch.team1}</strong></div><span className="live-versus"><b>VS</b><small><Clock3 size={12}/> Comenzó {liveMatch.match_time?.slice(0,5)}</small><em className="live-status-badge"><i/> Live</em></span><div><Flag team={liveMatch.team2} teamData={liveMatch.team2_team}/><strong>{liveMatch.team2}</strong></div></div><div className={`live-match-prediction ${liveMatch.prediction_id?"has-prediction":"no-prediction"}`}><span className="live-prediction-label">{user.is_read_only?"Participación":"Tu apuesta"}</span><DashboardPredictionValue match={liveMatch} user={user} emptyText="No apostado"/></div></article></div>{inPlayMatches.length>1&&<div className="match-carousel-controls live-match-carousel-controls"><button aria-label="Partido en juego anterior" onClick={()=>setLiveMatchIndex((liveMatchIndex-1+inPlayMatches.length)%inPlayMatches.length)}><ArrowLeft size={17}/></button><div>{inPlayMatches.map((match,index)=><button aria-label={`Ver partido en juego ${index+1}`} className={index===liveMatchIndex?"active":""} key={match.id} onClick={()=>setLiveMatchIndex(index)}/>)}</div><button aria-label="Partido en juego siguiente" onClick={()=>setLiveMatchIndex((liveMatchIndex+1)%inPlayMatches.length)}><ArrowRight size={17}/></button></div>}</section>}
   <div className="dashboard-grid">
-  <section className="content-card activity-card"><div className="card-title"><div><span className="eyebrow">COMUNIDAD</span><h2>Última actividad</h2></div><button onClick={()=>navigate("/actividad")}>Ver todo</button></div><div className="activity-feed compact">{activity.slice(0,3).map((a,i)=><article key={i}><ActivityAvatar user={a} type={a.type}/><div><strong className="activity-line">{a.text}{a.type==="points"&&<span className={`points-award ${a.exact_result_points>0?"exact":""}`}>{a.exact_result_points>0&&<Star size={14} fill="currentColor"/>}+{a.total_points} pts</span>}</strong><small>{new Date(a.created_at).toLocaleString("es-ES")}</small></div></article>)}</div></section></div></div>
+  <section className="content-card activity-card"><div className="card-title"><div><span className="eyebrow">COMUNIDAD</span><h2>Última actividad</h2></div><button onClick={()=>navigate("/actividad")}>Ver todo</button></div><div className="activity-feed compact">{activity.slice(0,4).map((a,i)=><article key={i}><ActivityAvatar user={a} type={a.type}/><div><strong className="activity-line">{a.text}{a.type==="points"&&<span className={`points-award ${a.exact_result_points>0?"exact":""}`}>{a.exact_result_points>0&&<Star size={14} fill="currentColor"/>}+{a.total_points} pts</span>}</strong><small>{new Date(a.created_at).toLocaleString("es-ES")}</small></div></article>)}</div></section></div></div>
 }

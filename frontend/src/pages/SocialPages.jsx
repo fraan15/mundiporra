@@ -74,37 +74,97 @@ const consumePointsReturn = () => {
 };
 
 function MatchSimulationOverlay({ match, players, user, onClose }) {
-  const [score, setScore] = useState({ g1: "0", g2: "0" });
-  const [scorerIds, setScorerIds] = useState([]);
+  const [matches, setMatches] = useState([match]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [scores, setScores] = useState({ [match.id]: { g1: "0", g2: "0" } });
+  const [scorerIdsByMatch, setScorerIdsByMatch] = useState({ [match.id]: [] });
+  const [activeByMatch, setActiveByMatch] = useState({ [match.id]: true });
+  const [simulationPlayers, setSimulationPlayers] = useState(players);
   const [simulation, setSimulation] = useState(null);
   const [simulationError, setSimulationError] = useState("");
-  const scoringCodes = [Number(score.g1) > 0 && match.team1_team?.fifa_code, Number(score.g2) > 0 && match.team2_team?.fifa_code].filter(Boolean);
-  const availableScorers = players.filter(player => scoringCodes.includes(player.team_fifa_code));
-  const adjustScore = (field, delta) => setScore(current => ({ ...current, [field]: String(Math.max(0, Number(current[field] || 0) + delta)) }));
+  const orderedMatches = useMemo(() => [...matches].sort((a, b) =>
+    String(b.match_date || "").localeCompare(String(a.match_date || "")) ||
+    String(b.match_time || "").localeCompare(String(a.match_time || "")) ||
+    Number(b.id) - Number(a.id)
+  ), [matches]);
+  const currentMatch = orderedMatches[Math.min(currentIndex, Math.max(orderedMatches.length - 1, 0))] || match;
+  const scoringCodesFor = (item, score) => [Number(score.g1) > 0 && item.team1_team?.fifa_code, Number(score.g2) > 0 && item.team2_team?.fifa_code].filter(Boolean);
+  const updateScore = (matchId, field, value) => setScores(current => ({ ...current, [matchId]: { ...(current[matchId] || { g1: "0", g2: "0" }), [field]: value } }));
+  const adjustScore = (matchId, field, delta) => setScores(current => {
+    const score = current[matchId] || { g1: "0", g2: "0" };
+    return { ...current, [matchId]: { ...score, [field]: String(Math.max(0, Number(score[field] || 0) + delta)) } };
+  });
   useEffect(() => {
-    setScorerIds(ids => ids.filter(id => availableScorers.some(player => player.id === id)));
-  }, [score.g1, score.g2, players.length]);
+    api("/dashboard").then(data => {
+      const inPlay = data.in_play_matches?.length ? data.in_play_matches : [match];
+      setMatches(inPlay);
+      setScores(current => Object.fromEntries(inPlay.map(item => [item.id, current[item.id] || { g1: "0", g2: "0" }])));
+      setScorerIdsByMatch(current => Object.fromEntries(inPlay.map(item => [item.id, current[item.id] || []])));
+      setActiveByMatch(current => Object.fromEntries(inPlay.map(item => [item.id, current[item.id] !== undefined ? current[item.id] : true])));
+    }).catch(() => setMatches([match]));
+  }, [match.id]);
   useEffect(() => {
-    if (score.g1 === "" || score.g2 === "") return;
+    if (currentIndex > orderedMatches.length - 1) setCurrentIndex(Math.max(orderedMatches.length - 1, 0));
+  }, [orderedMatches.length, currentIndex]);
+  useEffect(() => {
+    const codes = [...new Set(orderedMatches.flatMap(item => [item.team1_team?.fifa_code, item.team2_team?.fifa_code]).filter(Boolean))];
+    if (!codes.length) return;
+    api(`/players?team_fifa_codes=${codes.join(",")}`).then(setSimulationPlayers).catch(() => setSimulationPlayers(players));
+  }, [orderedMatches.map(item => item.id).join(","), players.length]);
+  useEffect(() => {
+    setScorerIdsByMatch(current => Object.fromEntries(Object.entries(current).map(([matchId, ids]) => {
+      const item = orderedMatches.find(row => String(row.id) === String(matchId));
+      const score = scores[matchId] || { g1: "0", g2: "0" };
+      const validCodes = item ? scoringCodesFor(item, score) : [];
+      return [matchId, ids.filter(id => simulationPlayers.some(player => player.id === id && validCodes.includes(player.team_fifa_code)))];
+    })));
+  }, [JSON.stringify(scores), simulationPlayers.length, orderedMatches.length]);
+  useEffect(() => {
+    const activeMatches = orderedMatches.filter(item => activeByMatch[item.id] !== false);
+    if (!activeMatches.length) { setSimulation(null); return; }
+    if (activeMatches.some(item => {
+      const score = scores[item.id] || { g1: "0", g2: "0" };
+      return score.g1 === "" || score.g2 === "";
+    })) return;
     const timer = setTimeout(() => {
       setSimulationError("");
-      api(`/matches/${match.id}/simulation`, { method: "POST", body: { result_team1: Number(score.g1), result_team2: Number(score.g2), scorer_ids: scorerIds } })
+      api("/matches/simulation", { method: "POST", body: { matches: activeMatches.map(item => {
+        const score = scores[item.id] || { g1: "0", g2: "0" };
+        return { match_id: item.id, active: true, result_team1: Number(score.g1), result_team2: Number(score.g2), scorer_ids: scorerIdsByMatch[item.id] || [] };
+      }) } })
         .then(setSimulation).catch(error => setSimulationError(error.message));
     }, 180);
     return () => clearTimeout(timer);
-  }, [match.id, score.g1, score.g2, scorerIds.join(",")]);
+  }, [orderedMatches.map(item => item.id).join(","), JSON.stringify(scores), JSON.stringify(scorerIdsByMatch), JSON.stringify(activeByMatch)]);
   const mine = simulation?.mine, points = simulation?.points;
+  const addScorer = (matchId, playerId) => playerId && setScorerIdsByMatch(current => ({ ...current, [matchId]: [...(current[matchId] || []), playerId] }));
+  const removeScorer = (matchId, playerId) => setScorerIdsByMatch(current => ({ ...current, [matchId]: (current[matchId] || []).filter(id => id !== playerId) }));
   return <div className="movement-overlay simulation-overlay" role="dialog" aria-modal="true" aria-labelledby="simulation-title">
     <section className="movement-card simulation-card">
       <header className="movement-head"><div><span><Calculator size={13}/> SIMULACIÓN PRIVADA</span><h2 id="simulation-title">Cálculo del resultado</h2></div><button onClick={onClose} aria-label="Cerrar cálculo"><X size={21}/></button></header>
       <div className="movement-scroll">
         <p className="simulation-disclaimer">Vista informativa. Nada de lo que introduzcas aquí se guarda.</p>
-        <div className="detail-score-picker horizontal simulation-score-editor">
-          <HorizontalScoreControl team={match.team1} value={score.g1} onChange={value => setScore(current => ({ ...current, g1: value }))} onAdjust={delta => adjustScore("g1", delta)}/>
-          <b>–</b>
-          <HorizontalScoreControl team={match.team2} value={score.g2} onChange={value => setScore(current => ({ ...current, g2: value }))} onAdjust={delta => adjustScore("g2", delta)}/>
+        <div className="simulation-carousel-head">
+          <button type="button" onClick={() => setCurrentIndex(index => Math.max(0, index - 1))} disabled={currentIndex === 0} aria-label="Partido anterior"><ChevronLeft size={18}/></button>
+          <div><strong>{currentMatch.team1} - {currentMatch.team2}</strong><span>{currentMatch.match_date} · {currentMatch.match_time}</span></div>
+          <button type="button" onClick={() => setCurrentIndex(index => Math.min(orderedMatches.length - 1, index + 1))} disabled={currentIndex >= orderedMatches.length - 1} aria-label="Partido siguiente"><ChevronRight size={18}/></button>
         </div>
-        {Boolean(Number(match.scorer_enabled)) && Number(score.g1) + Number(score.g2) > 0 && <div className="simulation-scorers scorer-pick"><strong>Goleadores que marcarían</strong><ScorerPicker players={availableScorers.filter(player => !scorerIds.includes(player.id))} value={null} onChange={playerId => playerId && setScorerIds(ids => [...ids, playerId])} buttonLabel="Añadir goleador" matchLabel={`${match.team1} - ${match.team2}`}/><div className="selected-scorers">{scorerIds.map(playerId => { const player = players.find(row => row.id === playerId); return player && <button type="button" key={playerId} onClick={() => setScorerIds(ids => ids.filter(id => id !== playerId))}>{player.name} ×</button>; })}</div></div>}
+        <div className="simulation-track" style={{ transform: `translateX(-${currentIndex * 100}%)` }}>
+          {orderedMatches.map(item => {
+            const itemScore = scores[item.id] || { g1: "0", g2: "0" }, itemScorerIds = scorerIdsByMatch[item.id] || [], itemActive = activeByMatch[item.id] !== false;
+            const itemAvailableScorers = simulationPlayers.filter(player => scoringCodesFor(item, itemScore).includes(player.team_fifa_code) && !itemScorerIds.includes(player.id));
+            return <article className={itemActive ? "simulation-match-slide active" : "simulation-match-slide inactive"} key={item.id}>
+              <label className="simulation-active-toggle"><span>{itemActive ? "Activo" : "Inactivo"}</span><input type="checkbox" checked={itemActive} onChange={event => setActiveByMatch(current => ({ ...current, [item.id]: event.target.checked }))}/></label>
+              <div className="detail-score-picker horizontal simulation-score-editor">
+                <HorizontalScoreControl team={item.team1} value={itemScore.g1} onChange={value => updateScore(item.id, "g1", value)} onAdjust={delta => adjustScore(item.id, "g1", delta)}/>
+                <b>–</b>
+                <HorizontalScoreControl team={item.team2} value={itemScore.g2} onChange={value => updateScore(item.id, "g2", value)} onAdjust={delta => adjustScore(item.id, "g2", delta)}/>
+              </div>
+              {Boolean(Number(item.scorer_enabled)) && Number(itemScore.g1) + Number(itemScore.g2) > 0 && <div className="simulation-scorers scorer-pick"><strong>Goleadores que marcarían</strong><ScorerPicker players={itemAvailableScorers} value={null} onChange={playerId => addScorer(item.id, playerId)} buttonLabel="Añadir goleador" matchLabel={`${item.team1} - ${item.team2}`}/><div className="selected-scorers">{itemScorerIds.map(playerId => { const player = simulationPlayers.find(row => row.id === playerId); return player && <button type="button" key={playerId} onClick={() => removeScorer(item.id, playerId)}>{player.name} ×</button>; })}</div></div>}
+            </article>;
+          })}
+        </div>
+        {orderedMatches.length > 1 && <div className="simulation-dots">{orderedMatches.map((item, index) => <button type="button" key={item.id} className={index === currentIndex ? "active" : ""} onClick={() => setCurrentIndex(index)} aria-label={`Ver partido ${index + 1}`}/>)}</div>}
         {simulationError && <div className="alert error">{simulationError}</div>}
         {simulation && <>
           <div className="movement-points simulation-points"><div className={Number(points?.total_points) > 0 ? "has-points" : ""}><small>Sumarías</small><strong>+{points?.total_points || 0}</strong><span>puntos</span></div><div className="movement-reasons"><small>¿Qué acertarías?</small>{[["Ganador", points?.winner_points], ["Resultado exacto", points?.exact_result_points], ["Goleador", points?.scorer_points]].map(([label, value]) => <span className={Number(value) > 0 ? "earned" : ""} key={label}>{Number(value) > 0 ? <Check size={13}/> : <X size={13}/>}<b>{label}</b><em>+{value || 0}</em></span>)}</div></div>
@@ -1976,7 +2036,7 @@ export function MatchDetailPage() {
     [players, setPlayers] = useState([]),
     [savingPick, setSavingPick] = useState(false),
     [pickMessage, setPickMessage] = useState(""),
-    [knockoutInfoOpen, setKnockoutInfoOpen] = useState(false),
+    [pickSavedPulse, setPickSavedPulse] = useState(0),
     [simulationOpen, setSimulationOpen] = useState(false);
   const hydratedPickMatchId = useRef(null), commentFileRef = useRef(null), selectedImageRef = useRef(null);
   useEffect(() => { selectedImageRef.current = selectedImage; }, [selectedImage]);
@@ -2016,7 +2076,6 @@ export function MatchDetailPage() {
   useEffect(() => {
     load();
     setCommentsPage(1);
-    setKnockoutInfoOpen(false);
   }, [id]);
   useEffect(() => {
     const query = text.match(/(?:^|\s)@([^\s@]{2,})$/)?.[1];
@@ -2264,7 +2323,8 @@ export function MatchDetailPage() {
           },
         },
       );
-      setPickMessage("Pronóstico guardado.");
+      setPickMessage("Resultado guardado!");
+      setPickSavedPulse((value) => value + 1);
       await load();
     } catch (err) {
       setPickMessage(err.message);
@@ -2374,32 +2434,6 @@ export function MatchDetailPage() {
         {m.betting_open && (
           <div className="detail-countdown">
             <Countdown date={m.effective_close_at} />
-          </div>
-        )}
-        {Number(m.is_knockout) === 1 && (
-          <div className="knockout-mode-panel">
-            <button
-              type="button"
-              className="knockout-mode-trigger"
-              aria-expanded={knockoutInfoOpen}
-              onClick={() => setKnockoutInfoOpen((open) => !open)}
-            >
-              Modo eliminatoria
-            </button>
-            {knockoutInfoOpen && (
-              <div className="knockout-mode-banner" role="status">
-                <button
-                  type="button"
-                  className="knockout-mode-close"
-                  aria-label="Cerrar explicación del modo eliminatoria"
-                  onClick={() => setKnockoutInfoOpen(false)}
-                >
-                  <X size={16} />
-                </button>
-                <strong>Cómo funcionan las eliminatorias</strong>
-                <p>{knockoutDetails}</p>
-              </div>
-            )}
           </div>
         )}
         {user.role === "admin" && (
@@ -2636,13 +2670,19 @@ export function MatchDetailPage() {
               {pickMessage && (
                 <small
                   className={
-                    pickMessage.startsWith("Pronóstico")
+                    pickMessage.startsWith("Resultado")
                       ? "success-text"
                       : "error-text"
                   }
                 >
                   {pickMessage}
                 </small>
+              )}
+              {pickMessage.startsWith("Resultado") && (
+                <div className="saved-result-burst detail-saved-result-burst" key={pickSavedPulse} role="status" aria-live="polite">
+                  <Check size={22} />
+                  <strong>Resultado guardado!</strong>
+                </div>
               )}
             </>
           ) : (
