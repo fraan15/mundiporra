@@ -1975,6 +1975,7 @@ export function MatchDetailPage() {
     [players, setPlayers] = useState([]),
     [savingPick, setSavingPick] = useState(false),
     [pickMessage, setPickMessage] = useState(""),
+    [knockoutInfoOpen, setKnockoutInfoOpen] = useState(false),
     [simulationOpen, setSimulationOpen] = useState(false);
   const hydratedPickMatchId = useRef(null), commentFileRef = useRef(null), selectedImageRef = useRef(null);
   useEffect(() => { selectedImageRef.current = selectedImage; }, [selectedImage]);
@@ -2014,6 +2015,7 @@ export function MatchDetailPage() {
   useEffect(() => {
     load();
     setCommentsPage(1);
+    setKnockoutInfoOpen(false);
   }, [id]);
   useEffect(() => {
     const query = text.match(/(?:^|\s)@([^\s@]{2,})$/)?.[1];
@@ -2525,6 +2527,22 @@ export function MatchDetailPage() {
           <div className="detail-prediction-heading"><h2>{user.is_read_only ? "Vista de espectador" : "Mi pronóstico"}</h2>{m.status === "closed" && Boolean(m.in_play) && <button type="button" className="simulation-trigger" onClick={() => setSimulationOpen(true)}><Calculator size={17}/><span>Simular</span></button>}</div>
           {m.betting_open && !user.is_read_only ? (
             <>
+              {Number(m.is_knockout) === 1 && (
+                <div className="knockout-mode-help">
+                  <span>Modo eliminatoria</span>
+                  <button
+                    type="button"
+                    aria-label="Información del modo eliminatoria"
+                    aria-expanded={knockoutInfoOpen}
+                    onClick={() => setKnockoutInfoOpen((open) => !open)}
+                  >
+                    <Info size={16} />
+                  </button>
+                  {knockoutInfoOpen && (
+                    <p>{knockoutNotice}</p>
+                  )}
+                </div>
+              )}
               <div className="detail-winner-picks">
                 <button
                   className={pick.winner === "team1" ? "selected" : ""}

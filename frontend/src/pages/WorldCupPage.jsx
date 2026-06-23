@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ChevronRight, GitBranch, Grid3X3, ListTree, MapPin, Shield } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
@@ -102,6 +102,48 @@ const buildKnockoutRounds = (matches) => {
     });
 };
 
+function buildMobileStageLines(activeRound, visibleMatches, shellRect) {
+  const label = roundLabel(activeRound).toLowerCase();
+  if (label.includes("final")) return [];
+  const paths = [];
+  const center = (node) => {
+    const rect = node.getBoundingClientRect();
+    return {
+      x: rect.right - shellRect.left,
+      y: rect.top + rect.height / 2 - shellRect.top
+    };
+  };
+  const shortExit = (node) => {
+    const start = center(node), endX = start.x + 32;
+    paths.push(`M ${start.x} ${start.y} H ${endX}`);
+  };
+  if (label.includes("dieciseisavos") || label.includes("octavos") || visibleMatches.length < 2) {
+    visibleMatches.forEach(shortExit);
+    return paths;
+  }
+  for (let index = 0; index < visibleMatches.length; index += 2) {
+    const top = visibleMatches[index], bottom = visibleMatches[index + 1];
+    if (!top || !bottom) {
+      if (top) shortExit(top);
+      continue;
+    }
+    const a = center(top), b = center(bottom);
+    const midX = Math.max(a.x, b.x) + 32;
+    const outX = midX + 30;
+    const midY = (a.y + b.y) / 2;
+    paths.push(`M ${a.x} ${a.y} H ${midX} V ${b.y} H ${b.x}`);
+    paths.push(`M ${midX} ${midY} H ${outX}`);
+  }
+  return paths;
+}
+
+const compactRoundLabel = (round) => {
+  const label = roundLabel(round);
+  if (label === "Semifinales") return "Semis";
+  if (label === "Dieciseisavos") return "Diec...";
+  return label;
+};
+
 function useInitialTab() {
   const location = useLocation();
   return useMemo(() => {
@@ -186,14 +228,23 @@ function KnockoutPanelsView({ rounds, matchById }) {
 
 function KnockoutTreeView({ rounds }) {
   const treeRef = useRef(null);
+  const scrollContentRef = useRef(null);
   const wheelLockRef = useRef(false);
   const [activeRound, setActiveRound] = useState(rounds[0]?.[0] || "");
+  const [isMobileTree, setIsMobileTree] = useState(false);
+  const [treeLines, setTreeLines] = useState([]);
+  const [treeCanvas, setTreeCanvas] = useState({ width: 0, height: 0 });
+  const [treeHeight, setTreeHeight] = useState(null);
   const activeIndex = Math.max(0, rounds.findIndex(([round]) => round === activeRound));
   const previousRound = rounds[activeIndex - 1]?.[0] || null;
   const nextRound = rounds[activeIndex + 1]?.[0] || null;
   const jumpToRound = (index) => {
     const bounded = Math.max(0, Math.min(rounds.length - 1, index));
     const round = rounds[bounded]?.[0];
+    if (isMobileTree) {
+      if (round) setActiveRound(round);
+      return;
+    }
     const node = treeRef.current?.querySelector(`[data-round-index="${bounded}"]`);
     if (round) setActiveRound(round);
     node?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
@@ -221,39 +272,108 @@ function KnockoutTreeView({ rounds }) {
     const index = Number(current?.section?.dataset.roundIndex);
     if (Number.isFinite(index) && rounds[index]?.[0] !== activeRound) setActiveRound(rounds[index][0]);
   };
+  const refreshTreeGeometry = () => {
+    const container = treeRef.current;
+    const content = scrollContentRef.current;
+    if (!container || !content) return;
+    const contentRect = content.getBoundingClientRect();
+    const activeSection = content.querySelector(`[data-round-index="${activeIndex}"]`);
+    const activeStack = activeSection?.querySelector(".worldcup-round-stack");
+    if (activeSection && activeStack) {
+      setTreeHeight(activeSection.offsetTop + activeStack.offsetTop + activeStack.scrollHeight + 24);
+    }
+    setTreeCanvas({ width: content.scrollWidth, height: content.scrollHeight });
+    if (isMobileTree && activeSection) {
+      const visibleMatches = [...activeSection.querySelectorAll("[data-match-id]")];
+      setTreeLines(buildMobileStageLines(activeRound, visibleMatches, contentRect));
+      return;
+    }
+    const nextLines = [];
+    rounds.forEach(([round, items], roundIndex) => {
+      const nextRound = rounds[roundIndex + 1];
+      if (!nextRound) return;
+      const nextMatches = nextRound[1];
+      items.forEach((match) => {
+        const nextMatch = nextMatches.find((candidate) => dependencyRefs(candidate).includes(match.reference_id));
+        if (!nextMatch) return;
+        const from = content.querySelector(`[data-match-id="${match.reference_id}"]`);
+        const to = content.querySelector(`[data-match-id="${nextMatch.reference_id}"]`);
+        if (!from || !to) return;
+        const fromRect = from.getBoundingClientRect();
+        const toRect = to.getBoundingClientRect();
+        const x1 = fromRect.right - contentRect.left;
+        const y1 = fromRect.top + fromRect.height / 2 - contentRect.top;
+        const x2 = toRect.left - contentRect.left;
+        const y2 = toRect.top + toRect.height / 2 - contentRect.top;
+        const midX = x1 + Math.max(22, (x2 - x1) / 2);
+        nextLines.push(`M ${x1} ${y1} H ${midX} V ${y2} H ${x2}`);
+      });
+    });
+    setTreeLines(nextLines);
+  };
+  useLayoutEffect(() => {
+    refreshTreeGeometry();
+    const onResize = () => refreshTreeGeometry();
+    const images = scrollContentRef.current?.querySelectorAll("img") || [];
+    images.forEach((image) => image.addEventListener("load", refreshTreeGeometry));
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      images.forEach((image) => image.removeEventListener("load", refreshTreeGeometry));
+    };
+  }, [rounds, activeIndex, isMobileTree]);
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 640px)");
+    const syncMobile = () => setIsMobileTree(media.matches);
+    syncMobile();
+    media.addEventListener("change", syncMobile);
+    return () => media.removeEventListener("change", syncMobile);
+  }, []);
+  useEffect(() => {
+    const id = window.setTimeout(refreshTreeGeometry, 260);
+    return () => window.clearTimeout(id);
+  }, [activeRound, isMobileTree]);
+  const visibleRounds = isMobileTree ? rounds.filter(([round]) => round === activeRound) : rounds;
   return <section className="worldcup-tree-mode">
     <div className="worldcup-tree-toolbar">
       <button className="worldcup-phase-side previous" disabled={!previousRound} onClick={() => jumpToRound(activeIndex - 1)}>
-        {previousRound ? roundLabel(previousRound) : ""}
+        {previousRound ? compactRoundLabel(previousRound) : ""}
       </button>
       <div className="worldcup-phase-current">
         <span><ListTree size={14}/> Vista en arbol</span>
         <h2>{roundLabel(activeRound)}</h2>
       </div>
       <button className="worldcup-phase-side next" disabled={!nextRound} onClick={() => jumpToRound(activeIndex + 1)}>
-        {nextRound ? roundLabel(nextRound) : ""}
+        {nextRound ? compactRoundLabel(nextRound) : ""}
       </button>
     </div>
-    <div className="worldcup-tree compact" ref={treeRef} onScroll={handleScroll} onWheel={handleWheel}>
-      {rounds.map(([round, items], roundIndex) => <section className={`worldcup-round ${round === activeRound ? "is-active" : ""}`} data-round-index={roundIndex} key={round}>
-        <header><span>{roundLabel(round)}</span><strong>{items.length} partidos</strong></header>
-        <div className="worldcup-round-stack" style={{ "--match-count": items.length }}>
-          {items.map((match, matchIndex) => {
-            const refs = dependencyRefs(match);
-            const pairSide = matchIndex % 2 === 0 ? "pair-top" : "pair-bottom";
-            const hasNextRound = roundIndex < rounds.length - 1;
-            return <article className={`worldcup-bracket-match ${refs.length ? "has-parents" : ""} ${hasNextRound ? "has-next" : ""} ${pairSide}`} style={{ "--match-index": matchIndex }} key={match.reference_id}>
-              <div className="worldcup-match-meta"><span>#{match.reference_id}</span><time>{dateText(match)} {timeText(match)}</time></div>
-              <div className="worldcup-bracket-teams">
-                <span><Flag team={match.team1}/><strong>{match.team1}</strong></span>
-                <b>{scoreText(match)}</b>
-                <span><Flag team={match.team2}/><strong>{match.team2}</strong></span>
-              </div>
-              <small><MapPin size={12}/>{match.stadium?.city || match.stadium?.name || "Sede pendiente"}</small>
-            </article>;
-          })}
-        </div>
-      </section>)}
+    <div className="worldcup-tree compact knockout-stage-shell" ref={treeRef} onScroll={handleScroll} onWheel={handleWheel} style={treeHeight ? { "--tree-height": `${treeHeight}px` } : undefined}>
+      <div className="worldcup-tree-scroll-content knockout-matches" ref={scrollContentRef}>
+        <svg className="worldcup-tree-lines knockout-lines-svg" aria-hidden="true" width={treeCanvas.width} height={treeCanvas.height} viewBox={`0 0 ${treeCanvas.width || 1} ${treeCanvas.height || 1}`}>
+          {treeLines.map((path, index) => <path d={path} key={`${path}-${index}`}/>)}
+        </svg>
+        {visibleRounds.map(([round, items]) => {
+          const roundIndex = rounds.findIndex(([candidate]) => candidate === round);
+          const nextRound = rounds[roundIndex + 1]?.[1] || [];
+          return <section className={`worldcup-round ${round === activeRound ? "is-active" : ""}`} data-round-index={roundIndex} key={round}>
+          <header><span>{roundLabel(round)}</span><strong>{items.length} partidos</strong></header>
+          <div className="worldcup-round-stack" style={{ "--match-count": items.length }}>
+            {items.map((match, matchIndex) => {
+              const nextMatch = nextRound.find((candidate) => dependencyRefs(candidate).includes(match.reference_id));
+              return <article className="worldcup-bracket-match" data-match-id={match.reference_id} data-next-match-id={nextMatch?.reference_id || ""} data-round={round} data-match-index={matchIndex} style={{ "--match-index": matchIndex }} key={match.reference_id}>
+                <div className="worldcup-match-meta"><span>#{match.reference_id}</span><time>{dateText(match)} {timeText(match)}</time></div>
+                <div className="worldcup-bracket-teams">
+                  <span><Flag team={match.team1}/><strong>{match.team1}</strong></span>
+                  <b>{scoreText(match)}</b>
+                  <span><Flag team={match.team2}/><strong>{match.team2}</strong></span>
+                </div>
+                <small><MapPin size={12}/>{match.stadium?.city || match.stadium?.name || "Sede pendiente"}</small>
+              </article>;
+            })}
+          </div>
+        </section>;
+        })}
+      </div>
     </div>
   </section>;
 }
