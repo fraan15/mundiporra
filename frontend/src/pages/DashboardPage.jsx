@@ -104,7 +104,7 @@ function DashboardPredictionValue({ match, user, emptyText }) {
   </span>;
 }
 
-function NewsDrawer({ open, items, onOpen, onClose }) {
+function NewsDrawer({ open, items, unreadCount, onOpen, onClose, onMarkRead, onMarkAllRead }) {
   const swipeRef = useRef(null);
   const start = (event) => {
     if (event.pointerType === "mouse") return;
@@ -120,7 +120,7 @@ function NewsDrawer({ open, items, onOpen, onClose }) {
   };
   return <>
     <button className="news-edge-tab" type="button" aria-label="Abrir novedades" title="Novedades" onClick={onOpen}>
-      <Megaphone size={18}/>{items.length > 0 && <span>{items.length > 9 ? "9+" : items.length}</span>}
+      <Megaphone size={18}/>{unreadCount > 0 && <span>{unreadCount > 9 ? "9+" : unreadCount}</span>}
     </button>
     {open && <div className="news-drawer-backdrop" onPointerDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <aside className="news-drawer" aria-label="Novedades" onPointerDown={start} onPointerUp={end} onPointerCancel={() => { swipeRef.current = null; }}>
@@ -128,11 +128,13 @@ function NewsDrawer({ open, items, onOpen, onClose }) {
           <div><span className="eyebrow"><Megaphone size={14}/> NOVEDADES</span><h2>Últimas noticias</h2></div>
           <button type="button" aria-label="Cerrar novedades" title="Cerrar" onClick={onClose}><X size={18}/></button>
         </header>
+        {unreadCount > 0 && <button className="news-read-all" type="button" onClick={onMarkAllRead}>Marcar todas como leídas</button>}
         <div className="news-drawer-list">
-          {items.length ? items.map((item) => <article key={item.id}>
-            <time>{new Date(item.created_at).toLocaleString("es-ES", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</time>
+          {items.length ? items.map((item) => <article key={item.id} className={item.read ? "read" : "unread"}>
+            <div className="news-item-meta"><time>{new Date(item.created_at).toLocaleString("es-ES", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</time>{!item.read && <span>Nueva</span>}</div>
             <h3>{item.title}</h3>
             <p>{item.body}</p>
+            {!item.read && <button type="button" onClick={() => onMarkRead(item.id)}>Marcar como leída</button>}
           </article>) : <p className="empty-state">Todavía no hay novedades publicadas.</p>}
         </div>
       </aside>
@@ -224,11 +226,12 @@ function DashboardCalendar({ matches, onOpenMatch, restoreScrollTop, user, curre
 
 export function DashboardPage() {
   const [calendarReturnInfo]=useState(()=>sessionStorage.getItem("dashboardCalendarReturn")==="1"?{scrollTop:Number(sessionStorage.getItem("dashboardCalendarScrollTop")||0)}:null);
-  const {user}=useAuth(),navigate=useNavigate(),location=useLocation(),[data,setData]=useState(null),[activity,setActivity]=useState([]),[calendarMatches,setCalendarMatches]=useState([]),[news,setNews]=useState([]),[newsOpen,setNewsOpen]=useState(false),[tick,setTick]=useState(Date.now()),[matchIndex,setMatchIndex]=useState(0),[liveMatchIndex,setLiveMatchIndex]=useState(0),[knockoutInfoOpen,setKnockoutInfoOpen]=useState(false);
+  const {user}=useAuth(),navigate=useNavigate(),location=useLocation(),[data,setData]=useState(null),[activity,setActivity]=useState([]),[calendarMatches,setCalendarMatches]=useState([]),[newsData,setNewsData]=useState({items:[],unread_count:0}),[newsOpen,setNewsOpen]=useState(false),[tick,setTick]=useState(Date.now()),[matchIndex,setMatchIndex]=useState(0),[liveMatchIndex,setLiveMatchIndex]=useState(0),[knockoutInfoOpen,setKnockoutInfoOpen]=useState(false);
   const calendarRestoreScrollTop=calendarReturnInfo ? calendarReturnInfo.scrollTop : null;
   const swipeStart=useRef(null),liveSwipeStart=useRef(null),dashboardSwipeStart=useRef(null),suppressNextClick=useRef(false),suppressLiveClick=useRef(false);
   const loadDashboard=()=>api("/dashboard").then(setData);
-  useEffect(()=>{api("/activity?page=1&page_size=5").then(a=>setActivity(Array.isArray(a)?a.slice(0,5):a.items));api("/news").then(setNews).catch(()=>{});const tickTimer=setInterval(()=>setTick(Date.now()),1000);const stopDashboard=startVisiblePolling(loadDashboard,15000);const stopMatches=startVisiblePolling(()=>api("/dashboard/calendar").then(setCalendarMatches),30000);const stopNews=startVisiblePolling(()=>api("/news").then(setNews),60000);return()=>{clearInterval(tickTimer);stopDashboard();stopMatches();stopNews()}},[]);
+  const loadNews=()=>api("/news").then((result)=>setNewsData(Array.isArray(result)?{items:result,unread_count:result.length}:result)).catch(()=>{});
+  useEffect(()=>{api("/activity?page=1&page_size=5").then(a=>setActivity(Array.isArray(a)?a.slice(0,5):a.items));loadNews();const tickTimer=setInterval(()=>setTick(Date.now()),1000);const stopDashboard=startVisiblePolling(loadDashboard,15000);const stopMatches=startVisiblePolling(()=>api("/dashboard/calendar").then(setCalendarMatches),30000);const stopNews=startVisiblePolling(loadNews,60000,{immediate:false});return()=>{clearInterval(tickTimer);stopDashboard();stopMatches();stopNews()}},[]);
   useEffect(()=>{if(!newsOpen)return;const onKeyDown=(event)=>{if(event.key==="Escape")setNewsOpen(false)};document.addEventListener("keydown",onKeyDown);return()=>document.removeEventListener("keydown",onKeyDown)},[newsOpen]);
   useEffect(()=>{if(location.pathname==="/")sessionStorage.removeItem("dashboardCalendarReturn")},[location.pathname]);
   if(!data)return <div className="page-loader"><span/></div>;
@@ -265,6 +268,14 @@ export function DashboardPage() {
     navigate(`/match/${match.id}`);
   };
   const openCalendarMatch=(match)=>navigate(`/match/${match.id}`,{state:{fromDashboardCalendar:true}});
+  const markNewsRead=async(id)=>{
+    await api(`/news/${id}/read`,{method:"POST"});
+    setNewsData((current)=>({items:current.items.map((item)=>item.id===id?{...item,read:true,read_at:new Date().toISOString()}:item),unread_count:Math.max(0,current.unread_count-1)}));
+  };
+  const markAllNewsRead=async()=>{
+    await api("/news/read-all",{method:"POST"});
+    setNewsData((current)=>({items:current.items.map((item)=>({...item,read:true,read_at:item.read_at||new Date().toISOString()})),unread_count:0}));
+  };
   const openMatchOnKey=(event, match, suppressRef)=>{
     if(event.key==="Enter"||event.key===" "){
       event.preventDefault();
@@ -273,7 +284,7 @@ export function DashboardPage() {
   };
   const liveMatch=inPlayMatches[liveMatchIndex]||inPlayMatches[0];
   return <div className="page dashboard-page" onPointerDown={startDashboardSwipe} onPointerUp={endDashboardSwipe} onPointerCancel={()=>{dashboardSwipeStart.current=null}}>
-  <NewsDrawer open={newsOpen} items={news} onOpen={()=>setNewsOpen(true)} onClose={()=>setNewsOpen(false)}/>
+  <NewsDrawer open={newsOpen} items={newsData.items} unreadCount={newsData.unread_count} onOpen={()=>setNewsOpen(true)} onClose={()=>setNewsOpen(false)} onMarkRead={markNewsRead} onMarkAllRead={markAllNewsRead}/>
   <section className="hero-panel dashboard-hero"><div><span className="eyebrow"><Sparkles size={14}/> TU CENTRO DE JUEGO</span><h1>Hola, {user.display_name||user.username}</h1><p>{user.is_read_only?"Modo solo lectura: puedes consultar toda la porra sin participar.":s.pending?`Tienes ${s.pending} partidos pendientes de pronosticar.`:"Todo al día. A disfrutar de la jornada."}</p></div><button className="hero-rank" onClick={()=>navigate("/clasificacion")} title="Ver clasificación"><small>POSICIÓN</small><strong>#{s.position}</strong><span>{s.total_points} puntos</span></button></section>
   {knockoutInfoOpen&&<KnockoutInfoDialog onClose={()=>setKnockoutInfoOpen(false)}/>}
   <div className="dashboard-overview">

@@ -793,16 +793,42 @@ app.get("/api/dashboard/calendar", requireAuth, (req, res) => {
   res.json(serializeMatches(matches));
 });
 
-app.get("/api/news", requireAuth, (_req, res) => {
+app.get("/api/news", requireAuth, (req, res) => {
   const rows = db.prepare(`
     SELECT n.id,n.title,n.body,n.created_at,n.updated_at,
+      r.read_at,
       COALESCE(NULLIF(u.display_name,''),u.username) created_by_name
     FROM news_items n LEFT JOIN users u ON u.id=n.created_by
+    LEFT JOIN news_reads r ON r.news_id=n.id AND r.user_id=?
     WHERE n.published=1
     ORDER BY n.created_at DESC,n.id DESC
     LIMIT 30
-  `).all();
-  res.json(rows);
+  `).all(req.user.id);
+  res.json({
+    items: rows.map((row) => ({ ...row, read: Boolean(row.read_at) })),
+    unread_count: rows.filter((row) => !row.read_at).length
+  });
+});
+
+app.post("/api/news/:id/read", requireAuth, (req, res) => {
+  const item = db.prepare("SELECT id FROM news_items WHERE id=? AND published=1").get(req.params.id);
+  if (!item) return res.status(404).json({ error: "Novedad no encontrada." });
+  db.prepare(`
+    INSERT INTO news_reads(news_id,user_id,read_at) VALUES(?,?,?)
+    ON CONFLICT(news_id,user_id) DO UPDATE SET read_at=excluded.read_at
+  `).run(item.id, req.user.id, now());
+  res.json({ ok: true });
+});
+
+app.post("/api/news/read-all", requireAuth, (req, res) => {
+  const stamp = now();
+  const rows = db.prepare("SELECT id FROM news_items WHERE published=1").all();
+  const insert = db.prepare(`
+    INSERT INTO news_reads(news_id,user_id,read_at) VALUES(?,?,?)
+    ON CONFLICT(news_id,user_id) DO UPDATE SET read_at=excluded.read_at
+  `);
+  db.transaction(() => rows.forEach((item) => insert.run(item.id, req.user.id, stamp)))();
+  res.json({ ok: true, count: rows.length });
 });
 
 app.get("/api/worldcup/overview", requireAuth, (_req, res) => {
