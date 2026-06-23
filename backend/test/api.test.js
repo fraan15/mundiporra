@@ -5,7 +5,7 @@ import sharp from "sharp";
 import { app } from "../src/app.js";
 import { db } from "../src/db/database.js";
 import { remindNextNightMissingPredictions } from "../src/services/matches.js";
-import { normalizeWorldCupReference } from "../src/services/worldcupReference.js";
+import { normalizeWorldCupReference, worldCupOverview } from "../src/services/worldcupReference.js";
 
 test("sirve el frontend compilado desde la ruta raíz", async () => {
   const response = await request(app).get("/");
@@ -376,6 +376,15 @@ test("el calendario worldcup marca eliminatorias desde round", () => {
   assert.equal(catalog.matches[0].is_knockout, false);
   assert.equal(catalog.matches[1].is_knockout, true);
   assert.equal(catalog.matches[2].is_knockout, true);
+});
+
+test("el grupo E enlaza Curazao con su bandera", () => {
+  const overview = worldCupOverview();
+  const groupE = overview.groups.find((group) => group.name === "Group E");
+  const curazao = groupE.standings.find((team) => team.fifa_code === "CUW");
+  assert.equal(curazao.name, "Curazao");
+  assert.equal(curazao.source_name, "Curaçao");
+  assert.equal(curazao.flag_icon, "🇨🇼");
 });
 
 test("las eliminatorias guardan penaltis informativos sin cambiar el signo puntuable", async () => {

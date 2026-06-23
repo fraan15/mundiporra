@@ -26,12 +26,17 @@ const teamAliases = new Map([
   ["England", "ENG"], ["Croatia", "CRO"], ["Ghana", "GHA"], ["Panama", "PAN"]
 ]);
 
+const teamNameFixes = new Map([
+  ["CuraÃ§ao", "Curaçao"],
+  ["Curacao", "Curaçao"]
+]);
+
 export const worldCupGroups = [
   { name: "Group A", teams: ["Mexico", "South Africa", "South Korea", "Czech Republic"] },
   { name: "Group B", teams: ["Canada", "Bosnia & Herzegovina", "Qatar", "Switzerland"] },
   { name: "Group C", teams: ["Brazil", "Morocco", "Haiti", "Scotland"] },
   { name: "Group D", teams: ["USA", "Paraguay", "Australia", "Turkey"] },
-  { name: "Group E", teams: ["Germany", "CuraÃ§ao", "Ivory Coast", "Ecuador"] },
+  { name: "Group E", teams: ["Germany", "Curaçao", "Ivory Coast", "Ecuador"] },
   { name: "Group F", teams: ["Netherlands", "Japan", "Sweden", "Tunisia"] },
   { name: "Group G", teams: ["Belgium", "Egypt", "Iran", "New Zealand"] },
   { name: "Group H", teams: ["Spain", "Cape Verde", "Saudi Arabia", "Uruguay"] },
@@ -53,9 +58,10 @@ function readCatalog(filename) {
 }
 
 function normalizeTeam(name, teamByCode) {
-  const fifaCode = teamAliases.get(name) || null;
+  const fixedName = teamNameFixes.get(name) || name;
+  const fifaCode = teamAliases.get(fixedName) || null;
   const team = fifaCode ? teamByCode.get(fifaCode) : null;
-  return { source_name: name, fifa_code: fifaCode, name_es: team?.name || name };
+  return { source_name: fixedName, fifa_code: fifaCode, name_es: team?.name || fixedName };
 }
 
 function normalizeDateTime(date, time) {
