@@ -184,18 +184,19 @@ function KnockoutPanelsView({ rounds, matchById }) {
   </section>;
 }
 
-function KnockoutTreeView({ rounds, matchById }) {
+function KnockoutTreeView({ rounds }) {
   const treeRef = useRef(null);
   const wheelLockRef = useRef(false);
   const [activeRound, setActiveRound] = useState(rounds[0]?.[0] || "");
-  const [previewMatchId, setPreviewMatchId] = useState(null);
   const activeIndex = Math.max(0, rounds.findIndex(([round]) => round === activeRound));
+  const previousRound = rounds[activeIndex - 1]?.[0] || null;
+  const nextRound = rounds[activeIndex + 1]?.[0] || null;
   const jumpToRound = (index) => {
     const bounded = Math.max(0, Math.min(rounds.length - 1, index));
     const round = rounds[bounded]?.[0];
     const node = treeRef.current?.querySelector(`[data-round-index="${bounded}"]`);
     if (round) setActiveRound(round);
-    node?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "start" });
+    node?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
   };
   const handleWheel = (event) => {
     if (Math.abs(event.deltaX) < 8 && Math.abs(event.deltaY) < 8) return;
@@ -211,8 +212,10 @@ function KnockoutTreeView({ rounds, matchById }) {
     const container = treeRef.current;
     if (!container) return;
     const sections = [...container.querySelectorAll("[data-round-index]")];
+    const containerCenter = container.scrollLeft + container.clientWidth / 2;
     const current = sections.reduce((closest, section) => {
-      const distance = Math.abs(section.offsetLeft - container.scrollLeft);
+      const sectionCenter = section.offsetLeft + section.clientWidth / 2;
+      const distance = Math.abs(sectionCenter - containerCenter);
       return !closest || distance < closest.distance ? { section, distance } : closest;
     }, null);
     const index = Number(current?.section?.dataset.roundIndex);
@@ -220,17 +223,16 @@ function KnockoutTreeView({ rounds, matchById }) {
   };
   return <section className="worldcup-tree-mode">
     <div className="worldcup-tree-toolbar">
-      <div>
-        <span className="eyebrow"><ListTree size={14}/> Vista en arbol</span>
+      <button className="worldcup-phase-side previous" disabled={!previousRound} onClick={() => jumpToRound(activeIndex - 1)}>
+        {previousRound ? roundLabel(previousRound) : ""}
+      </button>
+      <div className="worldcup-phase-current">
+        <span><ListTree size={14}/> Vista en arbol</span>
         <h2>{roundLabel(activeRound)}</h2>
       </div>
-      <div className="worldcup-tree-jumps" aria-label="Saltar fase">
-        {rounds.map(([round], index) => (
-          <button className={round === activeRound ? "active" : ""} key={round} onClick={() => jumpToRound(index)}>
-            {roundLabel(round)}
-          </button>
-        ))}
-      </div>
+      <button className="worldcup-phase-side next" disabled={!nextRound} onClick={() => jumpToRound(activeIndex + 1)}>
+        {nextRound ? roundLabel(nextRound) : ""}
+      </button>
     </div>
     <div className="worldcup-tree compact" ref={treeRef} onScroll={handleScroll} onWheel={handleWheel}>
       {rounds.map(([round, items], roundIndex) => <section className={`worldcup-round ${round === activeRound ? "is-active" : ""}`} data-round-index={roundIndex} key={round}>
@@ -238,12 +240,7 @@ function KnockoutTreeView({ rounds, matchById }) {
         <div className="worldcup-round-stack" style={{ "--match-count": items.length }}>
           {items.map((match, matchIndex) => {
             const refs = dependencyRefs(match);
-            const previewOpen = previewMatchId === match.reference_id;
-            return <article className={`worldcup-bracket-match ${refs.length ? "has-parents" : ""} ${previewOpen ? "preview-open" : ""}`} style={{ "--match-index": matchIndex }} key={match.reference_id}>
-              {refs.length > 0 && <button className="worldcup-parent-refs" aria-label={`Ver origen del partido ${match.reference_id}`} onClick={() => setPreviewMatchId(previewOpen ? null : match.reference_id)}>
-                <GitBranch size={13}/>
-                {refs.map((ref) => <span key={ref}>#{ref}</span>)}
-              </button>}
+            return <article className={`worldcup-bracket-match ${refs.length ? "has-parents" : ""}`} style={{ "--match-index": matchIndex }} key={match.reference_id}>
               <div className="worldcup-match-meta"><span>#{match.reference_id}</span><time>{dateText(match)} {timeText(match)}</time></div>
               <div className="worldcup-bracket-teams">
                 <span><Flag team={match.team1}/><strong>{match.team1}</strong></span>
@@ -251,7 +248,6 @@ function KnockoutTreeView({ rounds, matchById }) {
                 <span><Flag team={match.team2}/><strong>{match.team2}</strong></span>
               </div>
               <small><MapPin size={12}/>{match.stadium?.city || match.stadium?.name || "Sede pendiente"}</small>
-              {previewOpen && <MatchOrigins match={match} matchById={matchById}/>}
             </article>;
           })}
         </div>
@@ -275,7 +271,7 @@ function KnockoutView({ matches }) {
       </button>
     </div>
     {viewMode === "tree"
-      ? <KnockoutTreeView rounds={rounds} matchById={matchById}/>
+      ? <KnockoutTreeView rounds={rounds}/>
       : <KnockoutPanelsView rounds={rounds} matchById={matchById}/>}
   </>;
 }
