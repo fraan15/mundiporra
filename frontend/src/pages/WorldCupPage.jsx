@@ -233,14 +233,15 @@ function KnockoutTreeView({ rounds, matchById }) {
       </div>
     </div>
     <div className="worldcup-tree compact" ref={treeRef} onScroll={handleScroll} onWheel={handleWheel}>
-      {rounds.map(([round, items], roundIndex) => <section className="worldcup-round" data-round-index={roundIndex} key={round}>
+      {rounds.map(([round, items], roundIndex) => <section className={`worldcup-round ${round === activeRound ? "is-active" : ""}`} data-round-index={roundIndex} key={round}>
         <header><span>{roundLabel(round)}</span><strong>{items.length} partidos</strong></header>
-        <div>
-          {items.map((match) => {
+        <div className="worldcup-round-stack" style={{ "--match-count": items.length }}>
+          {items.map((match, matchIndex) => {
             const refs = dependencyRefs(match);
             const previewOpen = previewMatchId === match.reference_id;
-            return <article className={`worldcup-bracket-match ${refs.length ? "has-parents" : ""} ${previewOpen ? "preview-open" : ""}`} key={match.reference_id}>
+            return <article className={`worldcup-bracket-match ${refs.length ? "has-parents" : ""} ${previewOpen ? "preview-open" : ""}`} style={{ "--match-index": matchIndex }} key={match.reference_id}>
               {refs.length > 0 && <button className="worldcup-parent-refs" aria-label={`Ver origen del partido ${match.reference_id}`} onClick={() => setPreviewMatchId(previewOpen ? null : match.reference_id)}>
+                <GitBranch size={13}/>
                 {refs.map((ref) => <span key={ref}>#{ref}</span>)}
               </button>}
               <div className="worldcup-match-meta"><span>#{match.reference_id}</span><time>{dateText(match)} {timeText(match)}</time></div>
