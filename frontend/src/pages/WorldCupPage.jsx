@@ -375,6 +375,9 @@ function KnockoutPanelsView({ rounds, matchById }) {
 }
 
 function KnockoutTreeView({ rounds }) {
+  if (!rounds.length) {
+    return <div className="worldcup-origin-empty">No hay eliminatorias disponibles.</div>;
+  }
   const treeRef = useRef(null);
   const scrollContentRef = useRef(null);
   const wheelLockRef = useRef(false);
@@ -596,8 +599,6 @@ function KnockoutTreeView({ rounds }) {
       ref={treeRef}
       onScroll={handleScroll}
       onWheel={handleWheel}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
       style={treeHeight ? { "--tree-height": `${treeHeight}px` } : undefined}
     >
       <div className="worldcup-tree-scroll-content knockout-matches" ref={scrollContentRef}>
