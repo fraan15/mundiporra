@@ -70,13 +70,14 @@
 .bracket-compact-card .team-info{display:flex;align-items:center;gap:7px;min-width:0;font-size:14px;font-weight:800}
 .bracket-compact-card .team-flag{display:grid;place-items:center;flex:0 0 22px;width:22px;height:22px;overflow:hidden;border-radius:50%;background:var(--panel2)}
 .bracket-compact-card .team-flag img{width:100%;height:100%;object-fit:cover}
-.bracket-compact-card .team-seed{display:grid;place-items:center;flex:0 0 18px;width:18px;height:18px;border-radius:5px;background:color-mix(in srgb,var(--accent,var(--lime)) 10%,var(--panel2));color:var(--muted);font-size:10px;font-weight:950}
 .bracket-compact-card .team-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bracket-compact-card .team-score{flex:0 0 auto;color:var(--text);font-size:18px;line-height:1}
 .bracket-compact-card .match-status{margin-top:auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:11px;font-weight:800}
 [data-theme="dark"] .bracket-compact-card{background:#10243a;color:#f2f7ff;box-shadow:0 12px 28px rgba(0,0,0,.26)}
 @media(max-width:640px){
   .mobile-bracket-mode{scroll-margin-top:76px}
-  .mobile-bracket-scroll{margin-inline:-4px;padding-inline:0}
+  .worldcup-view-switch{display:none}
+  .mobile-bracket-scroll{margin-inline:-4px;padding-inline:0;scrollbar-width:none;-ms-overflow-style:none}
+  .mobile-bracket-scroll::-webkit-scrollbar{display:none;width:0;height:0}
   .mobile-bracket-lines path{stroke-width:2}
 }

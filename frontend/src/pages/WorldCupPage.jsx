@@ -122,6 +122,12 @@ const explicitNextMatchId = (match) => match.nextMatchId || match.next_match_id 
 const feedsInto = (sourceMatch, targetMatch) =>
   explicitNextMatchId(sourceMatch) === targetMatch.reference_id ||
   dependencyRefs(targetMatch).includes(sourceMatch.reference_id);
+const getCompressionFactor = (activeRoundIndex) => {
+  if (activeRoundIndex <= 1) return 1;
+  if (activeRoundIndex === 2) return 0.82;
+  if (activeRoundIndex === 3) return 0.72;
+  return 0.68;
+};
 
 const buildMobileProjectedLayout = (activeRoundIndex, rounds) => {
   const { cardWidth, cardHeight, roundWidth, activeGap, topPadding, sidePadding } = mobileBracketMetrics;
@@ -191,6 +197,25 @@ const buildMobileProjectedLayout = (activeRoundIndex, rounds) => {
     position.centerY += shiftY;
   });
 
+  const activePositions = activeItems
+    .map((match) => positionById.get(match.reference_id))
+    .filter(Boolean);
+  const compression = getCompressionFactor(activeRoundIndex);
+  if (activePositions.length && compression < 1) {
+    const anchorY = Math.min(...activePositions.map((position) => position.centerY));
+    positionById.forEach((position) => {
+      position.centerY = anchorY + (position.centerY - anchorY) * compression;
+      position.top = position.centerY - cardHeight / 2;
+    });
+    const compressedPositions = [...positionById.values()];
+    const compressedMinTop = compressedPositions.length ? Math.min(...compressedPositions.map((position) => position.top)) : topPadding;
+    const compressedShiftY = topPadding - compressedMinTop;
+    positionById.forEach((position) => {
+      position.top += compressedShiftY;
+      position.centerY += compressedShiftY;
+    });
+  }
+
   const linePaths = [];
   visibleRoundIndexes.forEach((roundIndex) => {
     getItems(roundIndex).forEach((sourceMatch) => {
@@ -249,8 +274,8 @@ function BracketCompactCard({ match }) {
     ? scores[0] === scores[1] ? null : (scores[0] > scores[1] ? 0 : 1)
     : null;
   const teams = [
-    { name: match.team1, code: match.team1_code, score: scores?.[0] ?? "-", seed: 1 },
-    { name: match.team2, code: match.team2_code, score: scores?.[1] ?? "-", seed: 2 }
+    { name: match.team1, code: match.team1_code, score: scores?.[0] ?? "-" },
+    { name: match.team2, code: match.team2_code, score: scores?.[1] ?? "-" }
   ];
   const status = scores ? "Final" : `${dateText(match)} ${timeText(match)}`.trim();
   return <article className="bracket-compact-card">
@@ -258,7 +283,6 @@ function BracketCompactCard({ match }) {
       <div className={`team-row ${winnerIndex === index ? "is-winner" : winnerIndex !== null ? "is-loser" : ""}`} key={`${match.reference_id}-${index}`}>
         <div className="team-info">
           <span className="team-flag"><Flag team={team.name} teamData={team.code ? { fifa_code: team.code, name: team.name } : null}/></span>
-          <span className="team-seed">{team.seed}</span>
           <span className="team-name">{team.name}</span>
         </div>
         <strong className="team-score">{team.score}</strong>
@@ -354,7 +378,6 @@ function KnockoutTreeView({ rounds }) {
   const treeRef = useRef(null);
   const scrollContentRef = useRef(null);
   const wheelLockRef = useRef(false);
-  const touchStartRef = useRef(null);
   const mobileModeRef = useRef(null);
   const mobileScrollDebounceRef = useRef(null);
   const programmaticScrollRef = useRef(false);
@@ -368,6 +391,14 @@ function KnockoutTreeView({ rounds }) {
   const previousRound = rounds[activeIndex - 1]?.[0] || null;
   const nextRound = rounds[activeIndex + 1]?.[0] || null;
   const mobileLayout = useMemo(() => buildMobileProjectedLayout(activeIndex, rounds), [activeIndex, rounds]);
+  const getMobileTargetLeft = () => {
+    const container = treeRef.current;
+    if (!container) return 0;
+    const activeColumnLeft = mobileBracketMetrics.sidePadding + mobileLayout.activeLocalIndex * mobileBracketMetrics.roundWidth;
+    const centeredLeft = activeColumnLeft - (container.clientWidth - mobileBracketMetrics.cardWidth) / 2;
+    const maxLeft = Math.max(0, container.scrollWidth - container.clientWidth);
+    return Math.max(0, Math.min(centeredLeft, maxLeft));
+  };
   const jumpToRound = (index) => {
     const bounded = Math.max(0, Math.min(rounds.length - 1, index));
     const round = rounds[bounded]?.[0];
@@ -397,12 +428,15 @@ function KnockoutTreeView({ rounds }) {
       if (programmaticScrollRef.current) return;
       window.clearTimeout(mobileScrollDebounceRef.current);
       mobileScrollDebounceRef.current = window.setTimeout(() => {
-        const localIndex = Math.round((container.scrollLeft + 72 - mobileBracketMetrics.sidePadding) / mobileBracketMetrics.roundWidth);
+        const localIndex = Math.round(
+          (container.scrollLeft + (container.clientWidth - mobileBracketMetrics.cardWidth) / 2 - mobileBracketMetrics.sidePadding) /
+          mobileBracketMetrics.roundWidth
+        );
         const nextRoundIndex = mobileLayout.visibleRoundIndexes[localIndex];
         if (Number.isFinite(nextRoundIndex) && rounds[nextRoundIndex]?.[0] !== activeRound) {
           setActiveRound(rounds[nextRoundIndex][0]);
         }
-      }, 280);
+      }, 110);
       return;
     }
     const sections = [...container.querySelectorAll("[data-round-index]")];
@@ -414,22 +448,6 @@ function KnockoutTreeView({ rounds }) {
     }, null);
     const index = Number(current?.section?.dataset.roundIndex);
     if (Number.isFinite(index) && rounds[index]?.[0] !== activeRound) setActiveRound(rounds[index][0]);
-  };
-  const handleTouchStart = (event) => {
-    if (!isMobileTree) return;
-    const touch = event.touches?.[0];
-    if (!touch) return;
-    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
-  };
-  const handleTouchEnd = (event) => {
-    if (!isMobileTree || !touchStartRef.current) return;
-    const touch = event.changedTouches?.[0];
-    if (!touch) return;
-    const deltaX = touch.clientX - touchStartRef.current.x;
-    const deltaY = touch.clientY - touchStartRef.current.y;
-    touchStartRef.current = null;
-    if (Math.abs(deltaX) < 44 || Math.abs(deltaX) < Math.abs(deltaY) * 1.15) return;
-    jumpToRound(activeIndex + (deltaX < 0 ? 1 : -1));
   };
   const refreshTreeGeometry = () => {
     const container = treeRef.current;
@@ -490,14 +508,14 @@ function KnockoutTreeView({ rounds }) {
   }, [activeRound, isMobileTree]);
   useEffect(() => {
     if (!isMobileTree) return;
-    const left = Math.max(0, mobileBracketMetrics.sidePadding + mobileLayout.activeLocalIndex * mobileBracketMetrics.roundWidth - 72);
     requestAnimationFrame(() => {
+      const left = getMobileTargetLeft();
       programmaticScrollRef.current = true;
-      treeRef.current?.scrollTo({ left, top: 0, behavior: "smooth" });
-      mobileModeRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+      mobileModeRef.current?.scrollIntoView({ block: "start", behavior: "auto" });
+      treeRef.current?.scrollTo({ left, top: 0, behavior: "auto" });
       window.setTimeout(() => {
         programmaticScrollRef.current = false;
-      }, 350);
+      }, 200);
     });
   }, [activeIndex, isMobileTree, mobileLayout.activeLocalIndex]);
   const visibleRounds = isMobileTree
@@ -611,7 +629,7 @@ function KnockoutTreeView({ rounds }) {
 }
 
 function KnockoutView({ matches }) {
-  const [viewMode, setViewMode] = useState("panels");
+  const [viewMode, setViewMode] = useState("tree");
   const rounds = useMemo(() => buildKnockoutRounds(matches), [matches]);
   const matchById = useMemo(() => new Map(matches.map((match) => [match.reference_id, match])), [matches]);
   return <>
