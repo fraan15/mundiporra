@@ -137,7 +137,8 @@ function MatchSimulationOverlay({ match, players, user, onClose }) {
     }, 180);
     return () => clearTimeout(timer);
   }, [orderedMatches.map(item => item.id).join(","), JSON.stringify(scores), JSON.stringify(scorerIdsByMatch), JSON.stringify(activeByMatch)]);
-  const mine = simulation?.mine, points = simulation?.points;
+  const mine = simulation?.mine,
+    points = simulation?.per_match_points?.find(item => String(item.match_id) === String(currentMatch.id))?.points || { winner_points: 0, exact_result_points: 0, scorer_points: 0, total_points: 0 };
   const addScorer = (matchId, playerId) => playerId && setScorerIdsByMatch(current => ({ ...current, [matchId]: [...(current[matchId] || []), playerId] }));
   const removeScorer = (matchId, playerId) => setScorerIdsByMatch(current => ({ ...current, [matchId]: (current[matchId] || []).filter(id => id !== playerId) }));
   const beginSwipe = (event) => {
@@ -164,7 +165,7 @@ function MatchSimulationOverlay({ match, players, user, onClose }) {
             const itemScore = scores[item.id] || { g1: "0", g2: "0" }, itemScorerIds = scorerIdsByMatch[item.id] || [], itemActive = activeByMatch[item.id] !== false;
             const itemAvailableScorers = simulationPlayers.filter(player => scoringCodesFor(item, itemScore).includes(player.team_fifa_code) && !itemScorerIds.includes(player.id));
             return <article className={itemActive ? "simulation-match-slide active" : "simulation-match-slide inactive"} key={item.id}>
-              <label className="simulation-active-toggle"><span>{itemActive ? "Activo" : "Inactivo"}</span><input type="checkbox" checked={itemActive} onChange={event => setActiveByMatch(current => ({ ...current, [item.id]: event.target.checked }))}/></label>
+              <label className="simulation-active-toggle" title={itemActive ? "Partido activo en la simulación" : "Partido fuera de la simulación"}><input type="checkbox" checked={itemActive} onChange={event => setActiveByMatch(current => ({ ...current, [item.id]: event.target.checked }))}/><span>{itemActive ? "Activo" : "Off"}</span></label>
               <div className="detail-score-picker horizontal simulation-score-editor">
                 <HorizontalScoreControl team={item.team1} value={itemScore.g1} onChange={value => updateScore(item.id, "g1", value)} onAdjust={delta => adjustScore(item.id, "g1", delta)}/>
                 <b>–</b>
@@ -174,7 +175,6 @@ function MatchSimulationOverlay({ match, players, user, onClose }) {
             </article>;
           })}
         </div>
-        {orderedMatches.length > 1 && <div className="simulation-dots" aria-hidden="true" onPointerDown={beginSwipe} onPointerUp={endSwipe} onPointerCancel={() => { swipeRef.current = null; }}>{orderedMatches.map((item, index) => <span key={item.id} className={index === currentIndex ? "active" : ""}/>)}</div>}
         </div>
         {simulationError && <div className="alert error">{simulationError}</div>}
         {simulation && <>
@@ -183,6 +183,10 @@ function MatchSimulationOverlay({ match, players, user, onClose }) {
           <div className="movement-ranking">{simulation.ranking.map(row => <div className={row.id === user.id ? "me" : ""} key={row.id}><b>#{row.position}<i className={row.movement > 0 ? "up" : row.movement < 0 ? "down" : "same"}>{row.movement > 0 ? <ArrowUp/> : row.movement < 0 ? <ArrowDown/> : <span>=</span>}</i></b><span>{row.username}{row.id === user.id && <small>Tú</small>}</span><strong>{row.match_points > 0 && <small className="movement-rank-earned">+{row.match_points}</small>}{row.points} pts</strong></div>)}</div>
         </>}
       </div>
+      {orderedMatches.length > 1 && <footer className="movement-pagination simulation-swipe-footer" onPointerDown={beginSwipe} onPointerUp={endSwipe} onPointerCancel={() => { swipeRef.current = null; }}>
+        <div aria-hidden="true">{orderedMatches.map((item, index) => <span key={item.id} className={index === currentIndex ? "active" : ""}/>)}</div>
+        <span>{currentIndex + 1} / {orderedMatches.length}</span>
+      </footer>}
     </section>
   </div>;
 }
