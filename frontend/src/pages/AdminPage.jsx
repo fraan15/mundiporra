@@ -892,9 +892,13 @@ function MatchReferencePanel({ data, onSelect }) {
 function AdminResultEditor({ match, onCancel, onSaved }) {
   const editorRef = useRef(null);
   const savingRef = useRef(false);
+  const initialScore = {
+    g1: String(match.result_team1 ?? 0),
+    g2: String(match.result_team2 ?? 0),
+  };
   const [score, setScore] = useState({
-      g1: match.result_team1 ?? "",
-      g2: match.result_team2 ?? "",
+      g1: initialScore.g1,
+      g2: initialScore.g2,
     }),
     [players, setPlayers] = useState([]),
     [scorerIds, setScorerIds] = useState(
