@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { Navigate, NavLink, Outlet, Route, Routes, useLocation, useNavigate } from "react-router-dom";
-import { Activity, ArrowDown, ArrowRight, ArrowUp, BarChart3, Bell, Check, CheckCheck, ChevronDown, ChevronLeft, ChevronRight, Goal, KeyRound, LayoutDashboard, LogOut, Megaphone, MessageCircle, Moon, Shield, Sparkles, Sun, Trophy, User, X } from "lucide-react";
+import { Activity, ArrowDown, ArrowRight, ArrowUp, BarChart3, Bell, Check, CheckCheck, ChevronDown, ChevronLeft, ChevronRight, Goal, Grid3X3, KeyRound, LayoutDashboard, LogOut, Megaphone, MessageCircle, Moon, Shield, Sparkles, Sun, Trophy, User, X } from "lucide-react";
 import { api } from "./api/client";
 import { LoginPage } from "./pages/LoginPage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -187,6 +187,7 @@ function ProfileMenu({ unreadNews = 0, onOpenNews }) {
       {!changingPassword ? <>
         <button onClick={() => { setOpen(false); onOpenNews(); }}><Megaphone size={17}/><span><strong>Novedades</strong><small>{unreadNews > 0 ? `${unreadNews} sin leer` : "Últimos avisos publicados"}</small></span></button>
         <button onClick={() => { setOpen(false); navigate("/perfil"); }}><User size={17}/><span><strong>Perfil</strong><small>Consulta tus estadísticas</small></span></button>
+        <button onClick={() => { setOpen(false); navigate("/mundial"); }}><Grid3X3 size={17}/><span><strong>Mundial</strong><small>Información equipos mundial</small></span></button>
         {!user.is_read_only && <button onClick={() => { setOpen(false); navigate("/notificaciones"); }}><Bell size={17}/><span><strong>Notificaciones</strong><small>Configura los avisos push</small></span></button>}
         {!user.is_read_only && <button onClick={() => { setChangingPassword(true); setMessage({ type: "", text: "" }); }}><KeyRound size={17}/><span><strong>Cambiar contraseña</strong><small>Actualiza tu clave de acceso</small></span></button>}
         <button className="sign-out" onClick={signOut}><LogOut size={17}/><span><strong>Cerrar sesión</strong><small>Volver a la pantalla de acceso</small></span></button>

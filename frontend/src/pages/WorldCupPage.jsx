@@ -3,6 +3,7 @@ import { ChevronRight, GitBranch, Grid3X3, ListTree, MapPin, Shield } from "luci
 import { useLocation, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { Flag } from "../components/SportsUI";
+import { TeamDetailOverlay } from "./SocialPages";
 import "../styles/worldcup.css";
 
 const roundLabels = {
@@ -54,7 +55,21 @@ const teamLabel = (match, side) => {
   return { name, code };
 };
 
-function SourceMatch({ match }) {
+function TeamOpenButton({ team, teamId, className = "" }) {
+  const disabled = !teamId || !team?.name || /^(?:[123][A-L](?:\/[A-L])*|[WL]\d+)$/i.test(String(team.name).trim());
+  return <button
+    type="button"
+    className={className}
+    disabled={disabled}
+    onClick={() => team.onOpenTeam(teamId)}
+    aria-label={`Ver información de ${team.name}`}
+  >
+    <Flag team={team.name} teamData={team.code ? { fifa_code: team.code, name: team.name } : null}/>
+    <strong>{team.name}</strong>
+  </button>;
+}
+
+function SourceMatch({ match, teamIdByCode, onOpenTeam }) {
   if (!match) return null;
   return <article className="worldcup-source-match">
     <div className="worldcup-source-head">
@@ -63,22 +78,24 @@ function SourceMatch({ match }) {
     </div>
     <div className="worldcup-source-teams">
       {[teamLabel(match, 1), teamLabel(match, 2)].map((team, index) => (
-        <span key={`${match.reference_id}-${index}`}>
-          <Flag team={team.name} teamData={team.code ? { fifa_code: team.code, name: team.name } : null}/>
-          <strong>{team.name}</strong>
-        </span>
+        <TeamOpenButton
+          className="worldcup-source-team-button"
+          key={`${match.reference_id}-${index}`}
+          team={{ ...team, onOpenTeam }}
+          teamId={teamIdByCode.get(team.code)}
+        />
       ))}
     </div>
   </article>;
 }
 
-function MatchOrigins({ match, matchById }) {
+function MatchOrigins({ match, matchById, teamIdByCode, onOpenTeam }) {
   const refs = dependencyRefs(match);
   if (!refs.length) return <div className="worldcup-origin-empty">Cruce definido desde la fase de grupos.</div>;
   return <div className="worldcup-origin-panel">
     <div className="worldcup-origin-title"><GitBranch size={15}/><span>Posibles equipos de la ronda anterior</span></div>
     <div className="worldcup-origin-grid">
-      {refs.map((ref) => <SourceMatch key={ref} match={matchById.get(ref)}/>)}
+      {refs.map((ref) => <SourceMatch key={ref} match={matchById.get(ref)} teamIdByCode={teamIdByCode} onOpenTeam={onOpenTeam}/>)}
     </div>
   </div>;
 }
@@ -358,7 +375,7 @@ const buildDesktopKnockoutLayout = (rounds) => {
   };
 };
 
-function BracketCompactCard({ match }) {
+function BracketCompactCard({ match, teamIdByCode, onOpenTeam }) {
   const scores = match.score?.ft?.length === 2 ? match.score.ft : null;
   const winnerIndex = scores
     ? scores[0] === scores[1] ? null : (scores[0] > scores[1] ? 0 : 1)
@@ -369,15 +386,25 @@ function BracketCompactCard({ match }) {
   ];
   const status = scores ? "Final" : `${dateText(match)} ${timeText(match)}`.trim();
   return <article className="bracket-compact-card">
-    {teams.map((team, index) => (
-      <div className={`team-row ${winnerIndex === index ? "is-winner" : winnerIndex !== null ? "is-loser" : ""}`} key={`${match.reference_id}-${index}`}>
-        <div className="team-info">
+    {teams.map((team, index) => {
+      const disabled = !teamIdByCode.get(team.code) || !team.name || /^(?:[123][A-L](?:\/[A-L])*|[WL]\d+)$/i.test(String(team.name).trim());
+      return (
+      <button
+        type="button"
+        className={`team-row ${winnerIndex === index ? "is-winner" : winnerIndex !== null ? "is-loser" : ""}`}
+        disabled={disabled}
+        key={`${match.reference_id}-${index}`}
+        onClick={() => onOpenTeam(teamIdByCode.get(team.code))}
+        aria-label={`Ver información de ${team.name}`}
+      >
+        <span className="team-info">
           <span className="team-flag"><Flag team={team.name} teamData={team.code ? { fifa_code: team.code, name: team.name } : null}/></span>
           <span className="team-name">{team.name}</span>
-        </div>
+        </span>
         <strong className="team-score">{team.score}</strong>
-      </div>
-    ))}
+      </button>
+    );
+    })}
     <div className="match-status">#{match.reference_id} · {status || match.stadium?.city || "Pendiente"}</div>
   </article>;
 }
@@ -390,7 +417,7 @@ function useInitialTab() {
   }, [location.search]);
 }
 
-function GroupsView({ groups }) {
+function GroupsView({ groups, teamIdByCode, onOpenTeam }) {
   return <div className="worldcup-groups-grid">
     {groups.map((group) => (
       <section className="worldcup-group-card" key={group.name}>
@@ -400,7 +427,7 @@ function GroupsView({ groups }) {
         <div className="worldcup-table">
           <div className="worldcup-table-head"><span>Equipo</span><span>PJ</span><span>DG</span><span>PTS</span></div>
           {group.standings.map((team, index) => <div className={index === 0 ? "leader" : ""} key={team.fifa_code || team.name}>
-            <span className="worldcup-team-cell"><b>{index + 1}</b><Flag team={team.name} teamData={team}/><strong>{team.name}</strong></span>
+            <button className="worldcup-team-cell worldcup-team-button" type="button" disabled={!teamIdByCode.get(team.fifa_code)} onClick={() => onOpenTeam(teamIdByCode.get(team.fifa_code))} aria-label={`Ver información de ${team.name}`}><b>{index + 1}</b><Flag team={team.name} teamData={team}/><strong>{team.name}</strong></button>
             <span>{team.played}</span>
             <span className={team.goal_difference > 0 ? "positive" : team.goal_difference < 0 ? "negative" : ""}>{team.goal_difference > 0 ? `+${team.goal_difference}` : team.goal_difference}</span>
             <span><b>{team.points}</b></span>
@@ -411,7 +438,7 @@ function GroupsView({ groups }) {
   </div>;
 }
 
-function KnockoutPanelsView({ rounds, matchById }) {
+function KnockoutPanelsView({ rounds, matchById, teamIdByCode, onOpenTeam }) {
   const [activeRound, setActiveRound] = useState("");
   const [previewMatchId, setPreviewMatchId] = useState(null);
   const selectedRound = activeRound && rounds.some(([round]) => round === activeRound) ? activeRound : rounds[0]?.[0];
@@ -444,9 +471,9 @@ function KnockoutPanelsView({ rounds, matchById }) {
           <div className="worldcup-match-card-main">
             <div className="worldcup-match-meta"><span>#{match.reference_id}</span><time>{dateText(match)} {timeText(match)}</time></div>
             <div className="worldcup-bracket-teams">
-              <span><Flag team={match.team1}/><strong>{match.team1}</strong></span>
+              <TeamOpenButton className="worldcup-bracket-team-button" team={{ name: match.team1, code: match.team1_code, onOpenTeam }} teamId={teamIdByCode.get(match.team1_code)}/>
               <b>{scoreText(match)}</b>
-              <span><Flag team={match.team2}/><strong>{match.team2}</strong></span>
+              <TeamOpenButton className="worldcup-bracket-team-button" team={{ name: match.team2, code: match.team2_code, onOpenTeam }} teamId={teamIdByCode.get(match.team2_code)}/>
             </div>
             <small><MapPin size={12}/>{match.stadium?.city || match.stadium?.name || "Sede pendiente"}</small>
           </div>
@@ -458,7 +485,7 @@ function KnockoutPanelsView({ rounds, matchById }) {
             <GitBranch size={16}/>
             {refs.length ? "Ver origen" : "Desde grupos"}
           </button>
-          {previewOpen && <MatchOrigins match={match} matchById={matchById}/>}
+          {previewOpen && <MatchOrigins match={match} matchById={matchById} teamIdByCode={teamIdByCode} onOpenTeam={onOpenTeam}/>}
         </article>;
       })}
     </div>
@@ -466,7 +493,7 @@ function KnockoutPanelsView({ rounds, matchById }) {
   </section>;
 }
 
-function DesktopKnockoutTree({ rounds }) {
+function DesktopKnockoutTree({ rounds, teamIdByCode, onOpenTeam }) {
   const layout = useMemo(() => buildDesktopKnockoutLayout(rounds), [rounds]);
   return <section className="desktop-bracket-scroll" aria-label="Arbol completo de eliminatorias">
     <div
@@ -499,14 +526,14 @@ function DesktopKnockoutTree({ rounds }) {
           key={match.reference_id}
           style={{ left: position.left, top: position.top, width: desktopBracketMetrics.cardWidth }}
         >
-          <BracketCompactCard match={match}/>
+          <BracketCompactCard match={match} teamIdByCode={teamIdByCode} onOpenTeam={onOpenTeam}/>
         </article>;
       }))}
     </div>
   </section>;
 }
 
-function KnockoutTreeView({ rounds }) {
+function KnockoutTreeView({ rounds, teamIdByCode, onOpenTeam }) {
   const treeRef = useRef(null);
   const mobileModeRef = useRef(null);
   const mobileScrollDebounceRef = useRef(null);
@@ -647,17 +674,17 @@ function KnockoutTreeView({ rounds }) {
               key={match.reference_id}
               style={{ left: position.left, top: position.top, width: mobileBracketMetrics.cardWidth }}
             >
-              <BracketCompactCard match={match}/>
+              <BracketCompactCard match={match} teamIdByCode={teamIdByCode} onOpenTeam={onOpenTeam}/>
             </article>;
           }))}
         </div>
       </div>
     </section>;
   }
-  return <DesktopKnockoutTree rounds={rounds}/>;
+  return <DesktopKnockoutTree rounds={rounds} teamIdByCode={teamIdByCode} onOpenTeam={onOpenTeam}/>;
 }
 
-function KnockoutView({ matches }) {
+function KnockoutView({ matches, teamIdByCode, onOpenTeam }) {
   const [viewMode, setViewMode] = useState("tree");
   const rounds = useMemo(() => buildKnockoutRounds(matches), [matches]);
   const matchById = useMemo(() => new Map(matches.map((match) => [match.reference_id, match])), [matches]);
@@ -674,8 +701,8 @@ function KnockoutView({ matches }) {
       </button>
     </div>
     {viewMode === "tree"
-      ? <KnockoutTreeView rounds={rounds}/>
-      : <KnockoutPanelsView rounds={rounds} matchById={matchById}/>}
+      ? <KnockoutTreeView rounds={rounds} teamIdByCode={teamIdByCode} onOpenTeam={onOpenTeam}/>
+      : <KnockoutPanelsView rounds={rounds} matchById={matchById} teamIdByCode={teamIdByCode} onOpenTeam={onOpenTeam}/>}
   </div>;
 }
 
@@ -685,6 +712,9 @@ export function WorldCupPage() {
   const [tab, setTab] = useState(initialTab);
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
+  const [teams, setTeams] = useState([]);
+  const [selectedTeamId, setSelectedTeamId] = useState(null);
+  const teamIdByCode = useMemo(() => new Map(teams.map((team) => [team.fifa_code, team.id])), [teams]);
   useEffect(() => setTab(initialTab), [initialTab]);
   useEffect(() => {
     let active = true;
@@ -698,8 +728,16 @@ export function WorldCupPage() {
     });
     return () => { active = false; };
   }, []);
+  useEffect(() => {
+    let active = true;
+    api("/teams").then((payload) => {
+      if (active) setTeams(payload || []);
+    }).catch(() => {});
+    return () => { active = false; };
+  }, []);
   const syncedAt = data?.synced_at ? new Date(data.synced_at).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "Pendiente";
   return <div className="page worldcup-page">
+    {selectedTeamId && <TeamDetailOverlay teamId={selectedTeamId} onClose={() => setSelectedTeamId(null)}/>}
     <section className="worldcup-hero">
       <button className="back-btn" onClick={() => navigate("/")}><ChevronRight className="worldcup-back-icon" size={17}/> Volver al inicio</button>
       <div>
@@ -714,7 +752,7 @@ export function WorldCupPage() {
       <button className={tab === "knockout" ? "active" : ""} onClick={() => setTab("knockout")}><ListTree size={17}/><span className="desktop-label">Cuadro eliminatorias</span><span className="mobile-label">Eliminatorias</span></button>
     </div>
     {error ? <div className="alert error">{error}</div> : !data ? <div className="page-loader"><span/></div> : tab === "groups"
-      ? <GroupsView groups={data.groups || []}/>
-      : <KnockoutView matches={data.knockout_matches || []}/>}
+      ? <GroupsView groups={data.groups || []} teamIdByCode={teamIdByCode} onOpenTeam={setSelectedTeamId}/>
+      : <KnockoutView matches={data.knockout_matches || []} teamIdByCode={teamIdByCode} onOpenTeam={setSelectedTeamId}/>}
   </div>;
 }

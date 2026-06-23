@@ -1627,7 +1627,7 @@ function MatchScorers({ match, teamName }) {
     </div>
   );
 }
-function TeamDetailOverlay({ teamId, onClose }) {
+export function TeamDetailOverlay({ teamId, onClose }) {
   const [detail, setDetail] = useState(null),
     [error, setError] = useState(""),
     [recentOpen, setRecentOpen] = useState(false),
