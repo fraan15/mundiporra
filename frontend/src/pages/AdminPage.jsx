@@ -1010,14 +1010,13 @@ function AdminResultEditor({ match, onCancel, onSaved }) {
           onAdjust={(delta) => adjustScore("g2", delta)}
         />
       </div>
-      {isKnockout && (
+      {isKnockout && scoreIsDraw && (
         <div className="knockout-admin-box">
           <p>Selecciona solo goleadores hasta el 120. Los penaltis de la tanda no cuentan.</p>
           <label className="toggle">
             <input
               type="checkbox"
               checked={hasPenalties}
-              disabled={!scoreIsDraw}
               onChange={(e) => setHasPenalties(e.target.checked)}
             />
             Tanda de penaltis

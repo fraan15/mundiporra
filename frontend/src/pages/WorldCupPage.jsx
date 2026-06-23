@@ -22,7 +22,7 @@ const roundLabel = (round) => roundLabels[round] || round || "Eliminatoria";
 const scoreText = (match) => match.score?.ft?.length === 2 ? `${match.score.ft[0]} - ${match.score.ft[1]}` : "VS";
 const dateText = (match) => match.match_date ? new Date(`${match.match_date}T12:00:00`).toLocaleDateString("es-ES", { day: "numeric", month: "short" }) : match.source_date;
 const timeText = (match) => match.match_time || match.source_time || "";
-const roundOrder = ["Round of 32", "Round of 16", "Quarter-final", "Quarter-finals", "Semi-final", "Semi-finals", "Final", "Match for third place", "Third-place match"];
+const roundOrder = ["Round of 32", "Round of 16", "Quarter-final", "Quarter-finals", "Semi-final", "Semi-finals", "Final"];
 const mainBracketRounds = ["Round of 32", "Round of 16", "Quarter-final", "Quarter-finals", "Semi-final", "Semi-finals", "Final"];
 const winnerRef = (value) => {
   const match = String(value || "").match(/^W(\d+)$/i);
@@ -240,7 +240,9 @@ function KnockoutTreeView({ rounds }) {
         <div className="worldcup-round-stack" style={{ "--match-count": items.length }}>
           {items.map((match, matchIndex) => {
             const refs = dependencyRefs(match);
-            return <article className={`worldcup-bracket-match ${refs.length ? "has-parents" : ""}`} style={{ "--match-index": matchIndex }} key={match.reference_id}>
+            const pairSide = matchIndex % 2 === 0 ? "pair-top" : "pair-bottom";
+            const hasNextRound = roundIndex < rounds.length - 1;
+            return <article className={`worldcup-bracket-match ${refs.length ? "has-parents" : ""} ${hasNextRound ? "has-next" : ""} ${pairSide}`} style={{ "--match-index": matchIndex }} key={match.reference_id}>
               <div className="worldcup-match-meta"><span>#{match.reference_id}</span><time>{dateText(match)} {timeText(match)}</time></div>
               <div className="worldcup-bracket-teams">
                 <span><Flag team={match.team1}/><strong>{match.team1}</strong></span>

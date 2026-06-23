@@ -2408,14 +2408,13 @@ export function MatchDetailPage() {
                 />
               </label>
             </div>
-            {Number(m.is_knockout) === 1 && (
+            {Number(m.is_knockout) === 1 && resultScoreIsDraw && (
               <div className="knockout-admin-box">
                 <p>Selecciona solo goleadores hasta el 120. Los penaltis de la tanda no cuentan.</p>
                 <label className="toggle">
                   <input
                     type="checkbox"
                     checked={resultHasPenalties}
-                    disabled={!resultScoreIsDraw}
                     onChange={(e) => setResultHasPenalties(e.target.checked)}
                   />
                   Tanda de penaltis
@@ -2524,7 +2523,6 @@ export function MatchDetailPage() {
           className={`content-card detail-prediction ${!m.betting_open ? "detail-prediction-locked" : ""}`}
         >
           <div className="detail-prediction-heading"><h2>{user.is_read_only ? "Vista de espectador" : "Mi pronóstico"}</h2>{m.status === "closed" && Boolean(m.in_play) && <button type="button" className="simulation-trigger" onClick={() => setSimulationOpen(true)}><Calculator size={17}/><span>Simular</span></button>}</div>
-          {Number(m.is_knockout) === 1 && <p className="knockout-notice compact">{knockoutNotice}</p>}
           {m.betting_open && !user.is_read_only ? (
             <>
               <div className="detail-winner-picks">
