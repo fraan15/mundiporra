@@ -23,6 +23,11 @@ import "../styles/json-sync.css";
 
 export function AdminPage() {
   const [tab, setTab] = useState("matches");
+  const changeTab = (id) => {
+    if (id === tab) return;
+    setTab(id);
+    requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
+  };
   const tabs = [
     ["matches", "Partidos", Shield],
     ["messages", "Mensajes y encuestas", MessageSquareText],
@@ -43,7 +48,7 @@ export function AdminPage() {
         {tabs.map(([id, label, Icon]) => (
           <button
             className={tab === id ? "active" : ""}
-            onClick={() => setTab(id)}
+            onClick={() => changeTab(id)}
             key={id}
           >
             <Icon size={16} />

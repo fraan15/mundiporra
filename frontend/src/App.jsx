@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { Navigate, NavLink, Outlet, Route, Routes, useLocation, useNavigate } from "react-router-dom";
-import { Activity, ArrowDown, ArrowRight, ArrowUp, BarChart3, Bell, Check, CheckCheck, ChevronDown, ChevronLeft, ChevronRight, Goal, Grid3X3, KeyRound, LayoutDashboard, LogOut, Megaphone, MessageCircle, Moon, Shield, Sparkles, Sun, Trophy, User, X } from "lucide-react";
+import { Activity, ArrowDown, ArrowRight, ArrowUp, BarChart3, Bell, Check, CheckCheck, ChevronDown, ChevronLeft, ChevronRight, Goal, House, KeyRound, LogOut, Megaphone, MessageCircle, Moon, Shield, Sparkles, Sun, Trophy, User, X } from "lucide-react";
 import { api } from "./api/client";
 import { LoginPage } from "./pages/LoginPage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -44,6 +44,17 @@ function ProtectedRoute() {
 function AdminRoute() {
   const { user } = useAuth();
   return user?.role === "admin" ? <Outlet /> : <Navigate to="/" replace />;
+}
+function ScrollToTopOnNavigation() {
+  const location = useLocation();
+  const previousKey = useRef(location.key);
+  useEffect(() => {
+    if (previousKey.current === location.key) return;
+    previousKey.current = location.key;
+    if (location.hash || location.pathname === "/chat") return;
+    requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
+  }, [location.hash, location.key, location.pathname]);
+  return null;
 }
 function NotificationsBell() {
   const { user } = useAuth();
@@ -185,9 +196,9 @@ function ProfileMenu({ unreadNews = 0, onOpenNews }) {
     </button>
     {open && <div className="profile-dropdown">
       {!changingPassword ? <>
-        <button onClick={() => { setOpen(false); onOpenNews(); }}><Megaphone size={17}/><span><strong>Novedades</strong><small>{unreadNews > 0 ? `${unreadNews} sin leer` : "Últimos avisos publicados"}</small></span></button>
+        <button className={unreadNews > 0 ? "has-news-dot" : ""} onClick={() => { setOpen(false); onOpenNews(); }}><span className="profile-dropdown-icon"><Megaphone size={17}/>{unreadNews > 0 && <i className="profile-news-dot" aria-label={`${unreadNews} novedades pendientes`}/>}</span><span><strong>Novedades</strong><small>{unreadNews > 0 ? `${unreadNews} sin leer` : "Últimos avisos publicados"}</small></span></button>
         <button onClick={() => { setOpen(false); navigate("/perfil"); }}><User size={17}/><span><strong>Perfil</strong><small>Consulta tus estadísticas</small></span></button>
-        <button onClick={() => { setOpen(false); navigate("/mundial"); }}><Grid3X3 size={17}/><span><strong>Mundial</strong><small>Información equipos mundial</small></span></button>
+        <button onClick={() => { setOpen(false); navigate("/mundial"); }}><Goal size={17}/><span><strong>Mundial</strong><small>Información equipos mundial</small></span></button>
         {!user.is_read_only && <button onClick={() => { setOpen(false); navigate("/notificaciones"); }}><Bell size={17}/><span><strong>Notificaciones</strong><small>Configura los avisos push</small></span></button>}
         {!user.is_read_only && <button onClick={() => { setChangingPassword(true); setMessage({ type: "", text: "" }); }}><KeyRound size={17}/><span><strong>Cambiar contraseña</strong><small>Actualiza tu clave de acceso</small></span></button>}
         <button className="sign-out" onClick={signOut}><LogOut size={17}/><span><strong>Cerrar sesión</strong><small>Volver a la pantalla de acceso</small></span></button>
@@ -418,7 +429,7 @@ function MainLayout() {
     }));
   };
   const items = [
-    ["/", "Inicio", LayoutDashboard],
+    ["/", "Inicio", House],
     ["/partidos", "Partidos", Trophy],
     ["/clasificacion", "Clasificación", BarChart3],
     ["/actividad", "Actividad", Activity],
@@ -426,6 +437,7 @@ function MainLayout() {
     ...(user.role === "admin" ? [["/gestion", "Gestión", Shield]] : [])
   ];
   return <div className="app-shell">
+    <ScrollToTopOnNavigation/>
     <NewsDrawer open={newsOpen} items={newsData.items} unreadCount={newsData.unread_count} onClose={()=>setNewsOpen(false)} onMarkRead={markNewsRead} onMarkAllRead={markAllNewsRead}/>
     <MovementSummaryPanel enabled={!adminMessage}/>
     {adminMessage&&<div className="mandatory-message-overlay" role="dialog" aria-modal="true" aria-labelledby="mandatory-message-title">

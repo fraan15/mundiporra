@@ -716,6 +716,11 @@ export function WorldCupPage() {
   const [selectedTeamId, setSelectedTeamId] = useState(null);
   const teamIdByCode = useMemo(() => new Map(teams.map((team) => [team.fifa_code, team.id])), [teams]);
   useEffect(() => setTab(initialTab), [initialTab]);
+  const changeTab = (nextTab) => {
+    if (nextTab === tab) return;
+    setTab(nextTab);
+    requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
+  };
   useEffect(() => {
     let active = true;
     api("/worldcup/overview").then((payload) => {
@@ -748,8 +753,8 @@ export function WorldCupPage() {
       <aside><span>Fecha actualizacion</span><strong>{syncedAt}</strong></aside>
     </section>
     <div className="worldcup-tabs" role="tablist" aria-label="Vista del Mundial">
-      <button className={tab === "groups" ? "active" : ""} onClick={() => setTab("groups")}><Grid3X3 size={17}/>Grupos</button>
-      <button className={tab === "knockout" ? "active" : ""} onClick={() => setTab("knockout")}><ListTree size={17}/><span className="desktop-label">Cuadro eliminatorias</span><span className="mobile-label">Eliminatorias</span></button>
+      <button className={tab === "groups" ? "active" : ""} onClick={() => changeTab("groups")}><Grid3X3 size={17}/>Grupos</button>
+      <button className={tab === "knockout" ? "active" : ""} onClick={() => changeTab("knockout")}><ListTree size={17}/><span className="desktop-label">Cuadro eliminatorias</span><span className="mobile-label">Eliminatorias</span></button>
     </div>
     {error ? <div className="alert error">{error}</div> : !data ? <div className="page-loader"><span/></div> : tab === "groups"
       ? <GroupsView groups={data.groups || []} teamIdByCode={teamIdByCode} onOpenTeam={setSelectedTeamId}/>
