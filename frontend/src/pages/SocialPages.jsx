@@ -776,7 +776,8 @@ function AvatarPreview({ user, onClose }) {
 function PredictionHistoryRow({ prediction, detail, open, onToggle }) {
   const match = detail,
     p = prediction;
-  if (!match)
+  if (!match) {
+    const unavailableFinished = p.status === "finished";
     return (
       <article id={`prediction-match-${p.id}`} className="prediction-history-card unavailable">
         <div className="prediction-history-summary">
@@ -790,13 +791,19 @@ function PredictionHistoryRow({ prediction, detail, open, onToggle }) {
             {p.team2}
             <Flag team={p.team2} />
           </strong>
-          <em>
-            {Number(p.total_points) > 0 ? "+" : ""}
-            {p.total_points} pts
-          </em>
+          <footer>
+            <em>
+              {Number(p.total_points) > 0 ? "+" : ""}
+              {p.total_points} pts
+            </em>
+            <i className={unavailableFinished ? "finished" : "live"}>
+              {unavailableFinished ? "Finalizado" : "En juego"}
+            </i>
+          </footer>
         </div>
       </article>
     );
+  }
   const earnedRules = match.rules.filter((rule) => rule.points > 0),
     missedRules = match.rules.filter((rule) => rule.points === 0);
   const finished = p.status === "finished";
@@ -1120,7 +1127,7 @@ function PointsMatchRow({ match, open, onToggle }) {
               {match.match_time ? ` · ${match.match_time.slice(0, 5)}` : ""}
             </time>
             <i className={match.status === "finished" ? "finished" : "live"}>
-              {match.status === "finished" ? "Finalizado" : "En juego"}
+              {match.status === "finished" ? "Finalizado" : "En vivo"}
             </i>
           </header>
           <strong>
