@@ -93,7 +93,9 @@ app.use(hydrateUser);
 let lastRequestAutoCloseCheck = 0;
 app.use("/api", (req, _res, next) => {
   const currentTime = Date.now();
-  if (!req.path.startsWith("/auth") && currentTime - lastRequestAutoCloseCheck >= 1000) {
+  const shouldCheckAutoClose = req.method === "GET" && !req.path.startsWith("/auth") &&
+    (req.path === "/dashboard" || req.path === "/matches" || currentTime - lastRequestAutoCloseCheck >= 1000);
+  if (shouldCheckAutoClose) {
     lastRequestAutoCloseCheck = currentTime;
     autoCloseExpired();
   }
