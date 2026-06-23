@@ -104,35 +104,47 @@ const buildKnockoutRounds = (matches) => {
 
 function buildMobileStageLines(activeRound, visibleMatches, shellRect) {
   const label = roundLabel(activeRound).toLowerCase();
-  if (label.includes("final")) return [];
   const paths = [];
-  const center = (node) => {
+  const point = (node, side = "right") => {
     const rect = node.getBoundingClientRect();
     return {
-      x: rect.right - shellRect.left,
+      x: (side === "left" ? rect.left : rect.right) - shellRect.left,
       y: rect.top + rect.height / 2 - shellRect.top
     };
   };
-  const shortExit = (node) => {
-    const start = center(node), endX = start.x + 32;
+  const shortExit = (node, side = "right") => {
+    const start = point(node, side);
+    const endX = start.x + (side === "left" ? -32 : 32);
     paths.push(`M ${start.x} ${start.y} H ${endX}`);
   };
-  if (label.includes("dieciseisavos") || label.includes("octavos") || visibleMatches.length < 2) {
-    visibleMatches.forEach(shortExit);
+  const pairBracket = (top, bottom, side = "right") => {
+    const a = point(top, side), b = point(bottom, side);
+    const direction = side === "left" ? -1 : 1;
+    const elbowX = (side === "left" ? Math.min(a.x, b.x) : Math.max(a.x, b.x)) + direction * 30;
+    const outX = elbowX + direction * 26;
+    const midY = (a.y + b.y) / 2;
+    paths.push(`M ${a.x} ${a.y} H ${elbowX} V ${b.y} H ${b.x}`);
+    paths.push(`M ${elbowX} ${midY} H ${outX}`);
+  };
+  if (label.includes("final")) {
+    visibleMatches.forEach((match) => shortExit(match, "left"));
+    return paths;
+  }
+  if (label.includes("dieciseisavos") || visibleMatches.length < 2) {
+    visibleMatches.forEach((match) => shortExit(match, "right"));
     return paths;
   }
   for (let index = 0; index < visibleMatches.length; index += 2) {
     const top = visibleMatches[index], bottom = visibleMatches[index + 1];
     if (!top || !bottom) {
-      if (top) shortExit(top);
+      if (top) {
+        shortExit(top, "left");
+        shortExit(top, "right");
+      }
       continue;
     }
-    const a = center(top), b = center(bottom);
-    const midX = Math.max(a.x, b.x) + 32;
-    const outX = midX + 30;
-    const midY = (a.y + b.y) / 2;
-    paths.push(`M ${a.x} ${a.y} H ${midX} V ${b.y} H ${b.x}`);
-    paths.push(`M ${midX} ${midY} H ${outX}`);
+    pairBracket(top, bottom, "left");
+    pairBracket(top, bottom, "right");
   }
   return paths;
 }
@@ -143,6 +155,85 @@ const compactRoundLabel = (round) => {
   if (label === "Dieciseisavos") return "Diec...";
   return label;
 };
+
+const mobileBracketMetrics = {
+  cardWidth: 260,
+  cardHeight: 102,
+  roundWidth: 282,
+  baseStepY: 130,
+  topPadding: 48,
+  sidePadding: 16
+};
+
+const buildMobileBracketLayout = (rounds) => {
+  const { cardWidth, cardHeight, roundWidth, baseStepY, topPadding, sidePadding } = mobileBracketMetrics;
+  const positionById = new Map();
+  const linePaths = [];
+  let boardHeight = topPadding + cardHeight;
+
+  rounds.forEach(([round, items], roundIndex) => {
+    items.forEach((match, matchIndex) => {
+      const parentCenters = dependencyRefs(match)
+        .map((ref) => positionById.get(ref)?.centerY)
+        .filter((value) => Number.isFinite(value));
+      const centerY = parentCenters.length
+        ? parentCenters.reduce((sum, value) => sum + value, 0) / parentCenters.length
+        : topPadding + matchIndex * baseStepY + cardHeight / 2;
+      const left = sidePadding + roundIndex * roundWidth;
+      const top = centerY - cardHeight / 2;
+      positionById.set(match.reference_id, { left, top, centerY, round, roundIndex, matchIndex });
+      boardHeight = Math.max(boardHeight, top + cardHeight + topPadding);
+    });
+  });
+
+  rounds.forEach(([, items], roundIndex) => {
+    const nextRound = rounds[roundIndex + 1]?.[1] || [];
+    items.forEach((match) => {
+      const nextMatch = nextRound.find((candidate) => dependencyRefs(candidate).includes(match.reference_id));
+      const origin = positionById.get(match.reference_id);
+      const target = nextMatch ? positionById.get(nextMatch.reference_id) : null;
+      if (!origin || !target) return;
+      const startX = origin.left + cardWidth;
+      const startY = origin.centerY;
+      const endX = target.left;
+      const endY = target.centerY;
+      const midX = startX + (endX - startX) / 2;
+      linePaths.push(`M ${startX} ${startY} H ${midX} V ${endY} H ${endX}`);
+    });
+  });
+
+  return {
+    positionById,
+    linePaths,
+    width: sidePadding * 2 + Math.max(1, rounds.length) * roundWidth - (roundWidth - cardWidth),
+    height: boardHeight
+  };
+};
+
+function BracketCompactCard({ match }) {
+  const scores = match.score?.ft?.length === 2 ? match.score.ft : null;
+  const winnerIndex = scores
+    ? scores[0] === scores[1] ? null : (scores[0] > scores[1] ? 0 : 1)
+    : null;
+  const teams = [
+    { name: match.team1, code: match.team1_code, score: scores?.[0] ?? "-", seed: 1 },
+    { name: match.team2, code: match.team2_code, score: scores?.[1] ?? "-", seed: 2 }
+  ];
+  const status = scores ? "Final" : `${dateText(match)} ${timeText(match)}`.trim();
+  return <article className="bracket-compact-card">
+    {teams.map((team, index) => (
+      <div className={`team-row ${winnerIndex === index ? "is-winner" : winnerIndex !== null ? "is-loser" : ""}`} key={`${match.reference_id}-${index}`}>
+        <div className="team-info">
+          <span className="team-flag"><Flag team={team.name} teamData={team.code ? { fifa_code: team.code, name: team.name } : null}/></span>
+          <span className="team-seed">{team.seed}</span>
+          <span className="team-name">{team.name}</span>
+        </div>
+        <strong className="team-score">{team.score}</strong>
+      </div>
+    ))}
+    <div className="match-status">#{match.reference_id} · {status || match.stadium?.city || "Pendiente"}</div>
+  </article>;
+}
 
 function useInitialTab() {
   const location = useLocation();
@@ -230,19 +321,24 @@ function KnockoutTreeView({ rounds }) {
   const treeRef = useRef(null);
   const scrollContentRef = useRef(null);
   const wheelLockRef = useRef(false);
+  const touchStartRef = useRef(null);
   const [activeRound, setActiveRound] = useState(rounds[0]?.[0] || "");
   const [isMobileTree, setIsMobileTree] = useState(false);
   const [treeLines, setTreeLines] = useState([]);
   const [treeCanvas, setTreeCanvas] = useState({ width: 0, height: 0 });
   const [treeHeight, setTreeHeight] = useState(null);
   const activeIndex = Math.max(0, rounds.findIndex(([round]) => round === activeRound));
+  const activeItems = rounds[activeIndex]?.[1] || [];
   const previousRound = rounds[activeIndex - 1]?.[0] || null;
   const nextRound = rounds[activeIndex + 1]?.[0] || null;
+  const mobileLayout = useMemo(() => buildMobileBracketLayout(rounds), [rounds]);
   const jumpToRound = (index) => {
     const bounded = Math.max(0, Math.min(rounds.length - 1, index));
     const round = rounds[bounded]?.[0];
     if (isMobileTree) {
       if (round) setActiveRound(round);
+      const node = treeRef.current?.querySelector(`[data-mobile-round-index="${bounded}"]`);
+      node?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "start" });
       return;
     }
     const node = treeRef.current?.querySelector(`[data-round-index="${bounded}"]`);
@@ -262,6 +358,16 @@ function KnockoutTreeView({ rounds }) {
   const handleScroll = () => {
     const container = treeRef.current;
     if (!container) return;
+    if (isMobileTree) {
+      const sections = [...container.querySelectorAll("[data-mobile-round-index]")];
+      const current = sections.reduce((closest, section) => {
+        const distance = Math.abs(section.offsetLeft - container.scrollLeft);
+        return !closest || distance < closest.distance ? { section, distance } : closest;
+      }, null);
+      const index = Number(current?.section?.dataset.mobileRoundIndex);
+      if (Number.isFinite(index) && rounds[index]?.[0] !== activeRound) setActiveRound(rounds[index][0]);
+      return;
+    }
     const sections = [...container.querySelectorAll("[data-round-index]")];
     const containerCenter = container.scrollLeft + container.clientWidth / 2;
     const current = sections.reduce((closest, section) => {
@@ -271,6 +377,22 @@ function KnockoutTreeView({ rounds }) {
     }, null);
     const index = Number(current?.section?.dataset.roundIndex);
     if (Number.isFinite(index) && rounds[index]?.[0] !== activeRound) setActiveRound(rounds[index][0]);
+  };
+  const handleTouchStart = (event) => {
+    if (!isMobileTree) return;
+    const touch = event.touches?.[0];
+    if (!touch) return;
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+  };
+  const handleTouchEnd = (event) => {
+    if (!isMobileTree || !touchStartRef.current) return;
+    const touch = event.changedTouches?.[0];
+    if (!touch) return;
+    const deltaX = touch.clientX - touchStartRef.current.x;
+    const deltaY = touch.clientY - touchStartRef.current.y;
+    touchStartRef.current = null;
+    if (Math.abs(deltaX) < 44 || Math.abs(deltaX) < Math.abs(deltaY) * 1.15) return;
+    jumpToRound(activeIndex + (deltaX < 0 ? 1 : -1));
   };
   const refreshTreeGeometry = () => {
     const container = treeRef.current;
@@ -334,20 +456,75 @@ function KnockoutTreeView({ rounds }) {
     return () => window.clearTimeout(id);
   }, [activeRound, isMobileTree]);
   const visibleRounds = isMobileTree ? rounds.filter(([round]) => round === activeRound) : rounds;
-  return <section className="worldcup-tree-mode">
-    <div className="worldcup-tree-toolbar">
-      <button className="worldcup-phase-side previous" disabled={!previousRound} onClick={() => jumpToRound(activeIndex - 1)}>
-        {previousRound ? compactRoundLabel(previousRound) : ""}
-      </button>
-      <div className="worldcup-phase-current">
-        <span><ListTree size={14}/> Vista en arbol</span>
-        <h2>{roundLabel(activeRound)}</h2>
-      </div>
-      <button className="worldcup-phase-side next" disabled={!nextRound} onClick={() => jumpToRound(activeIndex + 1)}>
-        {nextRound ? compactRoundLabel(nextRound) : ""}
-      </button>
+  const toolbar = <div className="worldcup-tree-toolbar">
+    <button className="worldcup-phase-side previous" disabled={!previousRound} onClick={() => jumpToRound(activeIndex - 1)}>
+      {previousRound ? compactRoundLabel(previousRound) : ""}
+    </button>
+    <div className="worldcup-phase-current">
+      <h2>{roundLabel(activeRound)}</h2>
+      <small>{activeItems.length} partidos</small>
     </div>
-    <div className="worldcup-tree compact knockout-stage-shell" ref={treeRef} onScroll={handleScroll} onWheel={handleWheel} style={treeHeight ? { "--tree-height": `${treeHeight}px` } : undefined}>
+    <button className="worldcup-phase-side next" disabled={!nextRound} onClick={() => jumpToRound(activeIndex + 1)}>
+      {nextRound ? compactRoundLabel(nextRound) : ""}
+    </button>
+  </div>;
+  if (isMobileTree) {
+    return <section className="worldcup-tree-mode mobile-bracket-mode">
+      {toolbar}
+      <div
+        className="mobile-bracket-scroll knockout-stage-shell"
+        ref={treeRef}
+        onScroll={handleScroll}
+        onWheel={handleWheel}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        <div className="mobile-bracket-board" style={{ width: mobileLayout.width, height: mobileLayout.height }}>
+          <svg className="mobile-bracket-lines" aria-hidden="true" width={mobileLayout.width} height={mobileLayout.height} viewBox={`0 0 ${mobileLayout.width} ${mobileLayout.height}`}>
+            {mobileLayout.linePaths.map((path, index) => <path d={path} key={`${path}-${index}`}/>)}
+          </svg>
+          {rounds.map(([round], roundIndex) => (
+            <section
+              className="mobile-bracket-round"
+              data-mobile-round-index={roundIndex}
+              key={round}
+              style={{ left: mobileBracketMetrics.sidePadding + roundIndex * mobileBracketMetrics.roundWidth }}
+            >
+              <span>{compactRoundLabel(round)}</span>
+            </section>
+          ))}
+          {rounds.flatMap(([, items]) => items.map((match) => {
+            const position = mobileLayout.positionById.get(match.reference_id);
+            if (!position) return null;
+            const nextRoundItems = rounds[position.roundIndex + 1]?.[1] || [];
+            const nextMatch = nextRoundItems.find((candidate) => dependencyRefs(candidate).includes(match.reference_id));
+            return <article
+              className="mobile-bracket-match"
+              data-match-id={match.reference_id}
+              data-next-match-id={nextMatch?.reference_id || ""}
+              data-round={position.round}
+              data-match-index={position.matchIndex}
+              key={match.reference_id}
+              style={{ left: position.left, top: position.top }}
+            >
+              <BracketCompactCard match={match}/>
+            </article>;
+          }))}
+        </div>
+      </div>
+    </section>;
+  }
+  return <section className="worldcup-tree-mode">
+    {toolbar}
+    <div
+      className="worldcup-tree compact knockout-stage-shell"
+      ref={treeRef}
+      onScroll={handleScroll}
+      onWheel={handleWheel}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      style={treeHeight ? { "--tree-height": `${treeHeight}px` } : undefined}
+    >
       <div className="worldcup-tree-scroll-content knockout-matches" ref={scrollContentRef}>
         <svg className="worldcup-tree-lines knockout-lines-svg" aria-hidden="true" width={treeCanvas.width} height={treeCanvas.height} viewBox={`0 0 ${treeCanvas.width || 1} ${treeCanvas.height || 1}`}>
           {treeLines.map((path, index) => <path d={path} key={`${path}-${index}`}/>)}
@@ -356,7 +533,6 @@ function KnockoutTreeView({ rounds }) {
           const roundIndex = rounds.findIndex(([candidate]) => candidate === round);
           const nextRound = rounds[roundIndex + 1]?.[1] || [];
           return <section className={`worldcup-round ${round === activeRound ? "is-active" : ""}`} data-round-index={roundIndex} key={round}>
-          <header><span>{roundLabel(round)}</span><strong>{items.length} partidos</strong></header>
           <div className="worldcup-round-stack" style={{ "--match-count": items.length }}>
             {items.map((match, matchIndex) => {
               const nextMatch = nextRound.find((candidate) => dependencyRefs(candidate).includes(match.reference_id));

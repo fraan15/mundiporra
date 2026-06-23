@@ -37,3 +37,45 @@
 
 .knockout-stage-shell{padding-bottom:calc(110px + env(safe-area-inset-bottom))}
 @media(max-width:640px){.worldcup-tree-toolbar{grid-template-columns:96px minmax(0,1fr) 96px}.worldcup-phase-current{min-width:0;overflow:hidden}.worldcup-phase-current h2{min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:clamp(38px,12vw,64px)}.worldcup-phase-side{max-width:92px}.worldcup-tree.compact{height:var(--tree-height,auto);min-height:0;padding-bottom:calc(110px + env(safe-area-inset-bottom));overflow-y:hidden}.worldcup-tree-scroll-content{width:max-content}.knockout-lines-svg{height:100%}}
+
+.worldcup-tree-mode .worldcup-tree-toolbar{grid-template-columns:96px minmax(0,1fr) 96px;align-items:center;padding:12px 14px}
+.worldcup-tree-mode .worldcup-phase-current{display:grid;justify-items:center;gap:4px;min-width:0;overflow:hidden}
+.worldcup-tree-mode .worldcup-phase-current h2{margin:0;max-width:100%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:clamp(30px,6.2vw,44px);line-height:1;letter-spacing:0}
+.worldcup-tree-mode .worldcup-phase-current small{color:var(--muted);font-size:12px;font-weight:900}
+.worldcup-tree-mode .worldcup-phase-side{width:96px;max-width:96px;justify-self:center;text-align:center}
+.worldcup-tree.compact .worldcup-round>header{display:none!important}
+.worldcup-tree.compact .worldcup-tree-lines{height:100%;max-height:100%}
+@media(max-width:640px){
+  .worldcup-tree-mode .worldcup-tree-toolbar{grid-template-columns:82px minmax(0,1fr) 82px;padding:10px 8px}
+  .worldcup-tree-mode .worldcup-phase-current h2{font-size:clamp(28px,8.4vw,38px)}
+  .worldcup-tree-mode .worldcup-phase-current small{font-size:11px}
+  .worldcup-tree-mode .worldcup-phase-side{width:78px;max-width:78px;min-height:34px;padding-inline:6px;font-size:10px}
+  .worldcup-tree.compact{touch-action:pan-y;height:var(--tree-height,auto);min-height:0;padding-bottom:calc(110px + env(safe-area-inset-bottom));overflow-y:hidden}
+  .worldcup-tree-scroll-content{width:max-content}
+  .knockout-lines-svg{height:100%}
+}
+
+.mobile-bracket-mode{gap:10px}
+.mobile-bracket-scroll{position:relative;overflow-x:auto;overflow-y:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding:4px 0 calc(110px + env(safe-area-inset-bottom));overscroll-behavior-x:contain}
+.mobile-bracket-board{position:relative;min-height:360px}
+.mobile-bracket-lines{position:absolute;inset:0;z-index:1;pointer-events:none;overflow:visible}
+.mobile-bracket-lines path{fill:none;stroke:color-mix(in srgb,var(--accent,var(--lime)) 40%,var(--line));stroke-width:2.25;stroke-linecap:square;stroke-linejoin:miter}
+.mobile-bracket-round{position:absolute;top:0;width:260px;height:28px;scroll-snap-align:start;scroll-margin-left:0;z-index:3;color:var(--muted);font-size:11px;font-weight:950;text-transform:uppercase;letter-spacing:.06em}
+.mobile-bracket-round span{display:inline-flex;align-items:center;height:24px;padding:0 9px;border:1px solid var(--line);border-radius:999px;background:color-mix(in srgb,var(--panel) 92%,transparent);box-shadow:0 6px 16px rgba(117,44,56,.06)}
+.mobile-bracket-match{position:absolute;z-index:2;width:260px}
+.bracket-compact-card{width:260px;min-height:96px;display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid color-mix(in srgb,var(--line) 86%,transparent);border-radius:10px;background:color-mix(in srgb,var(--panel) 96%,#fff 4%);box-shadow:0 9px 22px rgba(117,44,56,.08)}
+.bracket-compact-card .team-row{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:25px;color:var(--text)}
+.bracket-compact-card .team-row.is-loser{opacity:.52}
+.bracket-compact-card .team-row.is-winner .team-name,.bracket-compact-card .team-row.is-winner .team-score{font-weight:950}
+.bracket-compact-card .team-info{display:flex;align-items:center;gap:7px;min-width:0;font-size:14px;font-weight:800}
+.bracket-compact-card .team-flag{display:grid;place-items:center;flex:0 0 22px;width:22px;height:22px;overflow:hidden;border-radius:50%;background:var(--panel2)}
+.bracket-compact-card .team-flag img{width:100%;height:100%;object-fit:cover}
+.bracket-compact-card .team-seed{display:grid;place-items:center;flex:0 0 18px;width:18px;height:18px;border-radius:5px;background:color-mix(in srgb,var(--accent,var(--lime)) 10%,var(--panel2));color:var(--muted);font-size:10px;font-weight:950}
+.bracket-compact-card .team-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bracket-compact-card .team-score{flex:0 0 auto;color:var(--text);font-size:18px;line-height:1}
+.bracket-compact-card .match-status{margin-top:auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:11px;font-weight:800}
+[data-theme="dark"] .bracket-compact-card{background:#10243a;color:#f2f7ff;box-shadow:0 12px 28px rgba(0,0,0,.26)}
+@media(max-width:640px){
+  .mobile-bracket-scroll{margin-inline:-4px;padding-inline:0}
+  .mobile-bracket-lines path{stroke-width:2}
+}
