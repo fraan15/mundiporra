@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, ChevronRight, Goal, Grid3X3, ListTree, MapPin, Medal, RefreshCw, Shield } from "lucide-react";
+import { ChevronRight, Grid3X3, ListTree, MapPin, Shield } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { Flag } from "../components/SportsUI";
@@ -19,6 +19,12 @@ const roundLabel = (round) => roundLabels[round] || round || "Eliminatoria";
 const scoreText = (match) => match.score?.ft?.length === 2 ? `${match.score.ft[0]} - ${match.score.ft[1]}` : "VS";
 const dateText = (match) => match.match_date ? new Date(`${match.match_date}T12:00:00`).toLocaleDateString("es-ES", { day: "numeric", month: "short" }) : match.source_date;
 const timeText = (match) => match.match_time || match.source_time || "";
+const roundOrder = ["Round of 32", "Round of 16", "Quarter-finals", "Semi-finals", "Final", "Third-place match"];
+const winnerRef = (value) => {
+  const match = String(value || "").match(/^W(\d+)$/i);
+  return match ? Number(match[1]) : null;
+};
+const dependencyRefs = (match) => [winnerRef(match.team1), winnerRef(match.team2)].filter(Boolean);
 
 function useInitialTab() {
   const location = useLocation();
@@ -30,12 +36,10 @@ function useInitialTab() {
 
 function GroupsView({ groups }) {
   return <div className="worldcup-groups-grid">
-    {groups.map((group) => {
-      const leader = group.standings[0];
-      return <section className="worldcup-group-card" key={group.name}>
+    {groups.map((group) => (
+      <section className="worldcup-group-card" key={group.name}>
         <header>
-          <div><span>{groupLabel(group.name)}</span><strong>{leader?.played ? `${leader.name} lidera` : "Clasificacion inicial"}</strong></div>
-          <Medal size={20}/>
+          <div><span>{groupLabel(group.name)}</span></div>
         </header>
         <div className="worldcup-table">
           <div className="worldcup-table-head"><span>Equipo</span><span>PJ</span><span>DG</span><span>PTS</span></div>
@@ -46,26 +50,28 @@ function GroupsView({ groups }) {
             <span><b>{team.points}</b></span>
           </div>)}
         </div>
-        <footer>
-          <span><Goal size={13}/> GF-GC</span>
-          {group.standings.map((team) => <em key={team.fifa_code || team.name}>{team.goals_for}-{team.goals_against}</em>)}
-        </footer>
-      </section>;
-    })}
+      </section>
+    ))}
   </div>;
 }
 
 function KnockoutView({ matches }) {
-  const rounds = Object.entries(matches.reduce((acc, match) => {
+  const roundsByName = matches.reduce((acc, match) => {
     acc[match.round] = acc[match.round] || [];
     acc[match.round].push(match);
     return acc;
-  }, {}));
-  return <div className="worldcup-bracket">
+  }, {});
+  const rounds = roundOrder
+    .filter((round) => roundsByName[round]?.length)
+    .map((round) => [round, [...roundsByName[round]].sort((a, b) => a.reference_id - b.reference_id)]);
+  return <div className="worldcup-tree">
     {rounds.map(([round, items]) => <section className="worldcup-round" key={round}>
       <header><span>{roundLabel(round)}</span><strong>{items.length} partidos</strong></header>
       <div>
-        {items.map((match) => <article className="worldcup-bracket-match" key={match.reference_id}>
+        {items.map((match) => {
+          const refs = dependencyRefs(match);
+          return <article className={`worldcup-bracket-match ${refs.length ? "has-parents" : ""}`} key={match.reference_id}>
+          {refs.length > 0 && <div className="worldcup-parent-refs" aria-label={`Sale de los partidos ${refs.join(" y ")}`}>{refs.map((ref) => <span key={ref}>#{ref}</span>)}</div>}
           <div className="worldcup-match-meta"><span>#{match.reference_id}</span><time>{dateText(match)} {timeText(match)}</time></div>
           <div className="worldcup-bracket-teams">
             <span><Flag team={match.team1}/><strong>{match.team1}</strong></span>
@@ -73,7 +79,8 @@ function KnockoutView({ matches }) {
             <span><Flag team={match.team2}/><strong>{match.team2}</strong></span>
           </div>
           <small><MapPin size={12}/>{match.stadium?.city || match.stadium?.name || "Sede pendiente"}</small>
-        </article>)}
+        </article>;
+        })}
       </div>
     </section>)}
   </div>;
@@ -98,7 +105,7 @@ export function WorldCupPage() {
     });
     return () => { active = false; };
   }, []);
-  const syncedAt = data?.synced_at ? new Date(data.synced_at).toLocaleString("es-ES") : "Pendiente";
+  const syncedAt = data?.synced_at ? new Date(data.synced_at).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "Pendiente";
   return <div className="page worldcup-page">
     <section className="worldcup-hero">
       <button className="back-btn" onClick={() => navigate("/")}><ChevronRight className="worldcup-back-icon" size={17}/> Volver al inicio</button>
@@ -107,7 +114,7 @@ export function WorldCupPage() {
         <h1>Grupos y eliminatorias</h1>
         <p>Consulta la situacion del torneo con datos sincronizados desde el calendario oficial que usa la porra.</p>
       </div>
-      <aside><RefreshCw size={18}/><span>Ultima sync</span><strong>{syncedAt}</strong></aside>
+      <aside><span>Fecha actualizacion</span><strong>{syncedAt}</strong></aside>
     </section>
     <div className="worldcup-tabs" role="tablist" aria-label="Vista del Mundial">
       <button className={tab === "groups" ? "active" : ""} onClick={() => setTab("groups")}><Grid3X3 size={17}/>Grupos</button>
@@ -115,6 +122,6 @@ export function WorldCupPage() {
     </div>
     {error ? <div className="alert error">{error}</div> : !data ? <div className="page-loader"><span/></div> : tab === "groups"
       ? <GroupsView groups={data.groups || []}/>
-      : <><div className="worldcup-bracket-note"><CalendarDays size={15}/> Los cruces muestran equipos cerrados o placeholders como 2A y 3A/B/C/D/F cuando el JSON aun no los ha resuelto.</div><KnockoutView matches={data.knockout_matches || []}/></>}
+      : <KnockoutView matches={data.knockout_matches || []}/>}
   </div>;
 }
