@@ -82,6 +82,7 @@ function MatchSimulationOverlay({ match, players, user, onClose }) {
   const [simulationPlayers, setSimulationPlayers] = useState(players);
   const [simulation, setSimulation] = useState(null);
   const [simulationError, setSimulationError] = useState("");
+  const swipeRef = useRef(null);
   const orderedMatches = useMemo(() => [...matches].sort((a, b) =>
     String(b.match_date || "").localeCompare(String(a.match_date || "")) ||
     String(b.match_time || "").localeCompare(String(a.match_time || "")) ||
@@ -139,16 +140,25 @@ function MatchSimulationOverlay({ match, players, user, onClose }) {
   const mine = simulation?.mine, points = simulation?.points;
   const addScorer = (matchId, playerId) => playerId && setScorerIdsByMatch(current => ({ ...current, [matchId]: [...(current[matchId] || []), playerId] }));
   const removeScorer = (matchId, playerId) => setScorerIdsByMatch(current => ({ ...current, [matchId]: (current[matchId] || []).filter(id => id !== playerId) }));
+  const beginSwipe = (event) => {
+    if (orderedMatches.length < 2) return;
+    swipeRef.current = { x: event.clientX, y: event.clientY };
+  };
+  const endSwipe = (event) => {
+    const start = swipeRef.current;
+    swipeRef.current = null;
+    if (!start || orderedMatches.length < 2) return;
+    const deltaX = event.clientX - start.x, deltaY = event.clientY - start.y;
+    if (Math.abs(deltaX) < 45 || Math.abs(deltaX) < Math.abs(deltaY) * 1.2) return;
+    setCurrentIndex(index => deltaX < 0 ? Math.min(orderedMatches.length - 1, index + 1) : Math.max(0, index - 1));
+  };
   return <div className="movement-overlay simulation-overlay" role="dialog" aria-modal="true" aria-labelledby="simulation-title">
     <section className="movement-card simulation-card">
       <header className="movement-head"><div><span><Calculator size={13}/> SIMULACIÓN PRIVADA</span><h2 id="simulation-title">Cálculo del resultado</h2></div><button onClick={onClose} aria-label="Cerrar cálculo"><X size={21}/></button></header>
       <div className="movement-scroll">
         <p className="simulation-disclaimer">Vista informativa. Nada de lo que introduzcas aquí se guarda.</p>
-        <div className="simulation-carousel-head">
-          <button type="button" onClick={() => setCurrentIndex(index => Math.max(0, index - 1))} disabled={currentIndex === 0} aria-label="Partido anterior"><ChevronLeft size={18}/></button>
-          <div><strong>{currentMatch.team1} - {currentMatch.team2}</strong><span>{currentMatch.match_date} · {currentMatch.match_time}</span></div>
-          <button type="button" onClick={() => setCurrentIndex(index => Math.min(orderedMatches.length - 1, index + 1))} disabled={currentIndex >= orderedMatches.length - 1} aria-label="Partido siguiente"><ChevronRight size={18}/></button>
-        </div>
+        {orderedMatches.length > 1 && <div className="simulation-current-match"><strong>{currentMatch.team1} - {currentMatch.team2}</strong><span>{currentIndex + 1} de {orderedMatches.length}</span></div>}
+        <div className="simulation-gesture-area">
         <div className="simulation-track" style={{ transform: `translateX(-${currentIndex * 100}%)` }}>
           {orderedMatches.map(item => {
             const itemScore = scores[item.id] || { g1: "0", g2: "0" }, itemScorerIds = scorerIdsByMatch[item.id] || [], itemActive = activeByMatch[item.id] !== false;
@@ -164,7 +174,8 @@ function MatchSimulationOverlay({ match, players, user, onClose }) {
             </article>;
           })}
         </div>
-        {orderedMatches.length > 1 && <div className="simulation-dots">{orderedMatches.map((item, index) => <button type="button" key={item.id} className={index === currentIndex ? "active" : ""} onClick={() => setCurrentIndex(index)} aria-label={`Ver partido ${index + 1}`}/>)}</div>}
+        {orderedMatches.length > 1 && <div className="simulation-dots" aria-hidden="true" onPointerDown={beginSwipe} onPointerUp={endSwipe} onPointerCancel={() => { swipeRef.current = null; }}>{orderedMatches.map((item, index) => <span key={item.id} className={index === currentIndex ? "active" : ""}/>)}</div>}
+        </div>
         {simulationError && <div className="alert error">{simulationError}</div>}
         {simulation && <>
           <div className="movement-points simulation-points"><div className={Number(points?.total_points) > 0 ? "has-points" : ""}><small>Sumarías</small><strong>+{points?.total_points || 0}</strong><span>puntos</span></div><div className="movement-reasons"><small>¿Qué acertarías?</small>{[["Ganador", points?.winner_points], ["Resultado exacto", points?.exact_result_points], ["Goleador", points?.scorer_points]].map(([label, value]) => <span className={Number(value) > 0 ? "earned" : ""} key={label}>{Number(value) > 0 ? <Check size={13}/> : <X size={13}/>}<b>{label}</b><em>+{value || 0}</em></span>)}</div></div>
