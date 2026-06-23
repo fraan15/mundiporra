@@ -282,6 +282,15 @@ export function initDatabase() {
       responded_at TEXT NOT NULL,
       PRIMARY KEY(message_id, user_id)
     );
+    CREATE TABLE IF NOT EXISTS news_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL,
+      published INTEGER NOT NULL DEFAULT 1 CHECK(published IN (0,1)),
+      created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
     CREATE INDEX IF NOT EXISTS idx_matches_date ON matches(match_date, match_time);
     CREATE INDEX IF NOT EXISTS idx_matches_status_close ON matches(status, auto_close_at);
     CREATE INDEX IF NOT EXISTS idx_predictions_match ON predictions(match_id);
@@ -298,6 +307,7 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_reactions_user ON reactions(user_id);
     CREATE INDEX IF NOT EXISTS idx_chat_created ON chat_messages(created_at);
     CREATE INDEX IF NOT EXISTS idx_admin_message_responses_user ON admin_message_responses(user_id, message_id);
+    CREATE INDEX IF NOT EXISTS idx_news_items_published ON news_items(published, created_at);
     CREATE INDEX IF NOT EXISTS idx_movement_summaries_pending ON movement_summaries(user_id,seen_at,created_at);
     CREATE INDEX IF NOT EXISTS idx_sessions_expire ON sessions(expire);
     CREATE INDEX IF NOT EXISTS idx_points_adjustments_user ON points_adjustments(user_id);

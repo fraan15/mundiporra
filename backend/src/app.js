@@ -793,6 +793,18 @@ app.get("/api/dashboard/calendar", requireAuth, (req, res) => {
   res.json(serializeMatches(matches));
 });
 
+app.get("/api/news", requireAuth, (_req, res) => {
+  const rows = db.prepare(`
+    SELECT n.id,n.title,n.body,n.created_at,n.updated_at,
+      COALESCE(NULLIF(u.display_name,''),u.username) created_by_name
+    FROM news_items n LEFT JOIN users u ON u.id=n.created_by
+    WHERE n.published=1
+    ORDER BY n.created_at DESC,n.id DESC
+    LIMIT 30
+  `).all();
+  res.json(rows);
+});
+
 app.get("/api/worldcup/overview", requireAuth, (_req, res) => {
   try {
     res.json(worldCupOverview());
@@ -2355,6 +2367,51 @@ app.delete("/api/admin/admin-messages/:id", requireAdmin, (req, res) => {
   if (!message) return res.status(404).json({ error: "Comunicado no encontrado." });
   db.prepare("DELETE FROM admin_messages WHERE id=?").run(message.id);
   logAction(req.user.id, "delete_admin_message", "admin_message", message.id, `Comunicado eliminado: ${message.title}`, message, null);
+  res.json({ ok: true });
+});
+
+app.get("/api/admin/news", requireAdmin, (_req, res) => {
+  const rows = db.prepare(`
+    SELECT n.*,COALESCE(NULLIF(u.display_name,''),u.username) created_by_name
+    FROM news_items n LEFT JOIN users u ON u.id=n.created_by
+    ORDER BY n.created_at DESC,n.id DESC
+  `).all();
+  res.json(rows);
+});
+
+app.post("/api/admin/news", requireAdmin, (req, res) => {
+  const title = String(req.body.title || "").trim().slice(0, 120);
+  const body = String(req.body.body || "").trim().slice(0, 2000);
+  const published = req.body.published === false || req.body.published === 0 || req.body.published === "0" ? 0 : 1;
+  if (!title || !body) return res.status(400).json({ error: "Título y contenido son obligatorios." });
+  const stamp = now();
+  const result = db.prepare(`
+    INSERT INTO news_items(title,body,published,created_by,created_at,updated_at)
+    VALUES(?,?,?,?,?,?)
+  `).run(title, body, published, req.user.id, stamp, stamp);
+  logAction(req.user.id, "create_news", "news_item", Number(result.lastInsertRowid), `Novedad creada: ${title}`);
+  res.status(201).json({ id: Number(result.lastInsertRowid) });
+});
+
+app.patch("/api/admin/news/:id", requireAdmin, (req, res) => {
+  const current = db.prepare("SELECT * FROM news_items WHERE id=?").get(req.params.id);
+  if (!current) return res.status(404).json({ error: "Novedad no encontrada." });
+  const title = req.body.title === undefined ? current.title : String(req.body.title || "").trim().slice(0, 120);
+  const body = req.body.body === undefined ? current.body : String(req.body.body || "").trim().slice(0, 2000);
+  const published = req.body.published === undefined ? current.published : (req.body.published === false || req.body.published === 0 || req.body.published === "0" ? 0 : 1);
+  if (!title || !body) return res.status(400).json({ error: "Título y contenido son obligatorios." });
+  const next = { ...current, title, body, published, updated_at: now() };
+  db.prepare("UPDATE news_items SET title=?,body=?,published=?,updated_at=? WHERE id=?")
+    .run(next.title, next.body, next.published, next.updated_at, current.id);
+  logAction(req.user.id, "edit_news", "news_item", current.id, `Novedad actualizada: ${title}`, current, next);
+  res.json({ ok: true });
+});
+
+app.delete("/api/admin/news/:id", requireAdmin, (req, res) => {
+  const current = db.prepare("SELECT * FROM news_items WHERE id=?").get(req.params.id);
+  if (!current) return res.status(404).json({ error: "Novedad no encontrada." });
+  db.prepare("DELETE FROM news_items WHERE id=?").run(current.id);
+  logAction(req.user.id, "delete_news", "news_item", current.id, `Novedad eliminada: ${current.title}`, current, null);
   res.json({ ok: true });
 });
 

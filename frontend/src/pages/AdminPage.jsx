@@ -6,6 +6,7 @@ import {
   Check,
   Download,
   Eye,
+  Megaphone,
   MessageSquareText,
   Plus,
   Settings,
@@ -25,6 +26,7 @@ export function AdminPage() {
   const tabs = [
     ["matches", "Partidos", Shield],
     ["messages", "Mensajes y encuestas", MessageSquareText],
+    ["news", "Novedades", Megaphone],
     ["users", "Usuarios", Users],
     ["points", "Ajustes", Plus],
     ["recalculate", "Recálculo", Calculator],
@@ -51,6 +53,7 @@ export function AdminPage() {
       </div>
       {tab === "matches" && <AdminMatches />}
       {tab === "messages" && <AdminMessages />}
+      {tab === "news" && <AdminNews />}
       {tab === "users" && <AdminUsers />}
       {tab === "points" && <AdminPoints />}
       {tab === "recalculate" && <AdminRecalculate />}
@@ -61,6 +64,77 @@ export function AdminPage() {
 }
 const Notice = ({ text }) =>
   text ? <div className="alert success">{text}</div> : null;
+
+function AdminNews() {
+  const blank = { title: "", body: "", published: true };
+  const [form, setForm] = useState(blank);
+  const [items, setItems] = useState([]);
+  const [editing, setEditing] = useState(null);
+  const [notice, setNotice] = useState("");
+  const load = () => api("/admin/news").then(setItems);
+  useEffect(() => { load(); }, []);
+  const save = async (event) => {
+    event.preventDefault();
+    if (editing) {
+      await api(`/admin/news/${editing.id}`, { method: "PATCH", body: form });
+      setNotice("Novedad actualizada.");
+    } else {
+      await api("/admin/news", { method: "POST", body: form });
+      setNotice(form.published ? "Novedad publicada." : "Novedad guardada como oculta.");
+    }
+    setForm(blank);
+    setEditing(null);
+    load();
+  };
+  const beginEdit = (item) => {
+    setEditing(item);
+    setForm({ title: item.title, body: item.body, published: Boolean(item.published) });
+    setNotice("");
+  };
+  const toggle = async (item) => {
+    await api(`/admin/news/${item.id}`, { method: "PATCH", body: { published: !item.published } });
+    load();
+  };
+  const remove = async (item) => {
+    if (!window.confirm(`¿Eliminar "${item.title}"?`)) return;
+    await api(`/admin/news/${item.id}`, { method: "DELETE" });
+    if (editing?.id === item.id) {
+      setEditing(null);
+      setForm(blank);
+    }
+    load();
+  };
+  return <section className="admin-section">
+    <Notice text={notice}/>
+    <form className="admin-form admin-news-form" onSubmit={save}>
+      <h3>{editing ? "Editar novedad" : "Nueva novedad"}</h3>
+      <div className="form-grid">
+        <label className="message-title-field">Título<input required maxLength={120} value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })}/></label>
+        <label className="toggle"><input type="checkbox" checked={form.published} onChange={(event) => setForm({ ...form, published: event.target.checked })}/> Visible</label>
+      </div>
+      <label>Contenido<textarea required maxLength={2000} rows={5} value={form.body} onChange={(event) => setForm({ ...form, body: event.target.value })}/></label>
+      <div className="admin-news-actions">
+        <button className="primary">{editing ? "Guardar cambios" : "Publicar"}</button>
+        {editing && <button type="button" className="secondary" onClick={() => { setEditing(null); setForm(blank); }}>Cancelar</button>}
+      </div>
+    </form>
+    <div className="admin-news-list">
+      {items.length ? items.map((item) => <article key={item.id}>
+        <div>
+          <span className={`news-status ${item.published ? "published" : "hidden"}`}>{item.published ? "Visible" : "Oculta"}</span>
+          <h3>{item.title}</h3>
+          <p>{item.body}</p>
+          <small>{new Date(item.created_at).toLocaleString("es-ES")}</small>
+        </div>
+        <div className="actions">
+          <button type="button" className="accent" onClick={() => beginEdit(item)}>Editar</button>
+          <button type="button" onClick={() => toggle(item)}>{item.published ? "Ocultar" : "Mostrar"}</button>
+          <button type="button" className="danger" onClick={() => remove(item)}><Trash2 size={15}/></button>
+        </div>
+      </article>) : <div className="admin-list-empty">Todavía no hay novedades.</div>}
+    </div>
+  </section>;
+}
 
 function AdminMessages() {
   const blank = { type: "message", title: "", body: "", options: ["", ""] };

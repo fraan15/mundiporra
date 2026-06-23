@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertCircle, ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, Clock3, Eye, Grid3X3, Info, ListTree, Radio, Sparkles, Star, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, Clock3, Eye, Grid3X3, Info, ListTree, Megaphone, Radio, Sparkles, Star, X } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../App";
@@ -104,6 +104,42 @@ function DashboardPredictionValue({ match, user, emptyText }) {
   </span>;
 }
 
+function NewsDrawer({ open, items, onOpen, onClose }) {
+  const swipeRef = useRef(null);
+  const start = (event) => {
+    if (event.pointerType === "mouse") return;
+    swipeRef.current = { x: event.clientX, y: event.clientY };
+  };
+  const end = (event) => {
+    if (!swipeRef.current) return;
+    const deltaX = event.clientX - swipeRef.current.x;
+    const deltaY = event.clientY - swipeRef.current.y;
+    swipeRef.current = null;
+    if (Math.abs(deltaX) < 45 || Math.abs(deltaX) <= Math.abs(deltaY)) return;
+    if (deltaX < 0) onClose();
+  };
+  return <>
+    <button className="news-edge-tab" type="button" aria-label="Abrir novedades" title="Novedades" onClick={onOpen}>
+      <Megaphone size={18}/>{items.length > 0 && <span>{items.length > 9 ? "9+" : items.length}</span>}
+    </button>
+    {open && <div className="news-drawer-backdrop" onPointerDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <aside className="news-drawer" aria-label="Novedades" onPointerDown={start} onPointerUp={end} onPointerCancel={() => { swipeRef.current = null; }}>
+        <header>
+          <div><span className="eyebrow"><Megaphone size={14}/> NOVEDADES</span><h2>Últimas noticias</h2></div>
+          <button type="button" aria-label="Cerrar novedades" title="Cerrar" onClick={onClose}><X size={18}/></button>
+        </header>
+        <div className="news-drawer-list">
+          {items.length ? items.map((item) => <article key={item.id}>
+            <time>{new Date(item.created_at).toLocaleString("es-ES", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</time>
+            <h3>{item.title}</h3>
+            <p>{item.body}</p>
+          </article>) : <p className="empty-state">Todavía no hay novedades publicadas.</p>}
+        </div>
+      </aside>
+    </div>}
+  </>;
+}
+
 function DashboardCalendar({ matches, onOpenMatch, restoreScrollTop, user, currentTime }) {
   const daysRef = useRef(null);
   const pointerRef = useRef(null);
@@ -188,16 +224,24 @@ function DashboardCalendar({ matches, onOpenMatch, restoreScrollTop, user, curre
 
 export function DashboardPage() {
   const [calendarReturnInfo]=useState(()=>sessionStorage.getItem("dashboardCalendarReturn")==="1"?{scrollTop:Number(sessionStorage.getItem("dashboardCalendarScrollTop")||0)}:null);
-  const {user}=useAuth(),navigate=useNavigate(),location=useLocation(),[data,setData]=useState(null),[activity,setActivity]=useState([]),[calendarMatches,setCalendarMatches]=useState([]),[tick,setTick]=useState(Date.now()),[matchIndex,setMatchIndex]=useState(0),[liveMatchIndex,setLiveMatchIndex]=useState(0),[knockoutInfoOpen,setKnockoutInfoOpen]=useState(false);
+  const {user}=useAuth(),navigate=useNavigate(),location=useLocation(),[data,setData]=useState(null),[activity,setActivity]=useState([]),[calendarMatches,setCalendarMatches]=useState([]),[news,setNews]=useState([]),[newsOpen,setNewsOpen]=useState(false),[tick,setTick]=useState(Date.now()),[matchIndex,setMatchIndex]=useState(0),[liveMatchIndex,setLiveMatchIndex]=useState(0),[knockoutInfoOpen,setKnockoutInfoOpen]=useState(false);
   const calendarRestoreScrollTop=calendarReturnInfo ? calendarReturnInfo.scrollTop : null;
-  const swipeStart=useRef(null),liveSwipeStart=useRef(null),suppressNextClick=useRef(false),suppressLiveClick=useRef(false);
+  const swipeStart=useRef(null),liveSwipeStart=useRef(null),dashboardSwipeStart=useRef(null),suppressNextClick=useRef(false),suppressLiveClick=useRef(false);
   const loadDashboard=()=>api("/dashboard").then(setData);
-  useEffect(()=>{api("/activity?page=1&page_size=5").then(a=>setActivity(Array.isArray(a)?a.slice(0,5):a.items));const tickTimer=setInterval(()=>setTick(Date.now()),1000);const stopDashboard=startVisiblePolling(loadDashboard,15000);const stopMatches=startVisiblePolling(()=>api("/dashboard/calendar").then(setCalendarMatches),30000);return()=>{clearInterval(tickTimer);stopDashboard();stopMatches()}},[]);
+  useEffect(()=>{api("/activity?page=1&page_size=5").then(a=>setActivity(Array.isArray(a)?a.slice(0,5):a.items));api("/news").then(setNews).catch(()=>{});const tickTimer=setInterval(()=>setTick(Date.now()),1000);const stopDashboard=startVisiblePolling(loadDashboard,15000);const stopMatches=startVisiblePolling(()=>api("/dashboard/calendar").then(setCalendarMatches),30000);const stopNews=startVisiblePolling(()=>api("/news").then(setNews),60000);return()=>{clearInterval(tickTimer);stopDashboard();stopMatches();stopNews()}},[]);
+  useEffect(()=>{if(!newsOpen)return;const onKeyDown=(event)=>{if(event.key==="Escape")setNewsOpen(false)};document.addEventListener("keydown",onKeyDown);return()=>document.removeEventListener("keydown",onKeyDown)},[newsOpen]);
   useEffect(()=>{if(location.pathname==="/")sessionStorage.removeItem("dashboardCalendarReturn")},[location.pathname]);
   if(!data)return <div className="page-loader"><span/></div>;
   const s=data.summary,inPlayMatches=data.in_play_matches||[],nextMatches=data.next_matches||[],m=nextMatches[matchIndex]||data.next_match,remaining=m?Math.max(0,new Date(m.effective_close_at)-tick):0;
   const countdown=remaining?`${Math.floor(remaining/86400000)}d ${Math.floor(remaining%86400000/3600000)}h ${Math.floor(remaining%3600000/60000)}m`:"Cerrado";
   const startSwipe=(event)=>{if(event.pointerType==="mouse")return;swipeStart.current={x:event.clientX,y:event.clientY}};
+  const startDashboardSwipe=(event)=>{if(event.pointerType==="mouse"||newsOpen||event.clientX>34)return;dashboardSwipeStart.current={x:event.clientX,y:event.clientY}};
+  const endDashboardSwipe=(event)=>{
+    if(!dashboardSwipeStart.current)return;
+    const deltaX=event.clientX-dashboardSwipeStart.current.x,deltaY=event.clientY-dashboardSwipeStart.current.y;
+    dashboardSwipeStart.current=null;
+    if(deltaX>60&&Math.abs(deltaX)>Math.abs(deltaY)*1.4)setNewsOpen(true);
+  };
   const endSwipe=(event)=>{
     if(!swipeStart.current||nextMatches.length<2)return;
     const deltaX=event.clientX-swipeStart.current.x,deltaY=event.clientY-swipeStart.current.y;
@@ -228,7 +272,9 @@ export function DashboardPage() {
     }
   };
   const liveMatch=inPlayMatches[liveMatchIndex]||inPlayMatches[0];
-  return <div className="page dashboard-page"><section className="hero-panel dashboard-hero"><div><span className="eyebrow"><Sparkles size={14}/> TU CENTRO DE JUEGO</span><h1>Hola, {user.display_name||user.username}</h1><p>{user.is_read_only?"Modo solo lectura: puedes consultar toda la porra sin participar.":s.pending?`Tienes ${s.pending} partidos pendientes de pronosticar.`:"Todo al día. A disfrutar de la jornada."}</p></div><button className="hero-rank" onClick={()=>navigate("/clasificacion")} title="Ver clasificación"><small>POSICIÓN</small><strong>#{s.position}</strong><span>{s.total_points} puntos</span></button></section>
+  return <div className="page dashboard-page" onPointerDown={startDashboardSwipe} onPointerUp={endDashboardSwipe} onPointerCancel={()=>{dashboardSwipeStart.current=null}}>
+  <NewsDrawer open={newsOpen} items={news} onOpen={()=>setNewsOpen(true)} onClose={()=>setNewsOpen(false)}/>
+  <section className="hero-panel dashboard-hero"><div><span className="eyebrow"><Sparkles size={14}/> TU CENTRO DE JUEGO</span><h1>Hola, {user.display_name||user.username}</h1><p>{user.is_read_only?"Modo solo lectura: puedes consultar toda la porra sin participar.":s.pending?`Tienes ${s.pending} partidos pendientes de pronosticar.`:"Todo al día. A disfrutar de la jornada."}</p></div><button className="hero-rank" onClick={()=>navigate("/clasificacion")} title="Ver clasificación"><small>POSICIÓN</small><strong>#{s.position}</strong><span>{s.total_points} puntos</span></button></section>
   {knockoutInfoOpen&&<KnockoutInfoDialog onClose={()=>setKnockoutInfoOpen(false)}/>}
   <div className="dashboard-overview">
   {user.role!=="admin"&&!user.is_read_only&&<button className={`pending-bet-banner ${s.pending>0?"has-pending":"complete"}`} onClick={()=>navigate("/partidos#upcoming")}>{s.pending>0?<AlertCircle/>:<CheckCircle2/>}<span><small>PARTIDOS PENDIENTES DE APUESTA</small><strong>{s.pending}</strong><em>{s.pending>0?"Completa tus pronósticos":"Estás al día"}</em></span><ArrowRight/></button>}</div>
