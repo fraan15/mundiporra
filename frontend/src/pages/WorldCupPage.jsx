@@ -124,9 +124,9 @@ const feedsInto = (sourceMatch, targetMatch) =>
   dependencyRefs(targetMatch).includes(sourceMatch.reference_id);
 const getCompressionFactor = (activeRoundIndex) => {
   if (activeRoundIndex <= 1) return 1;
-  if (activeRoundIndex === 2) return 0.82;
-  if (activeRoundIndex === 3) return 0.72;
-  return 0.68;
+  if (activeRoundIndex === 2) return 0.88;
+  if (activeRoundIndex === 3) return 0.8;
+  return 0.82;
 };
 
 const buildMobileProjectedLayout = (activeRoundIndex, rounds) => {
@@ -215,6 +215,25 @@ const buildMobileProjectedLayout = (activeRoundIndex, rounds) => {
       position.centerY += compressedShiftY;
     });
   }
+
+  const ensureMinimumGap = (roundIndex) => {
+    const items = getItems(roundIndex)
+      .map((match) => positionById.get(match.reference_id))
+      .filter(Boolean)
+      .sort((a, b) => a.centerY - b.centerY);
+    const minStep = cardHeight + 14;
+    for (let index = 1; index < items.length; index += 1) {
+      const previous = items[index - 1];
+      const current = items[index];
+      const diff = current.centerY - previous.centerY;
+      if (diff < minStep) {
+        const delta = minStep - diff;
+        current.centerY += delta;
+        current.top = current.centerY - cardHeight / 2;
+      }
+    }
+  };
+  visibleRoundIndexes.forEach(ensureMinimumGap);
 
   const linePaths = [];
   visibleRoundIndexes.forEach((roundIndex) => {
@@ -375,9 +394,6 @@ function KnockoutPanelsView({ rounds, matchById }) {
 }
 
 function KnockoutTreeView({ rounds }) {
-  if (!rounds.length) {
-    return <div className="worldcup-origin-empty">No hay eliminatorias disponibles.</div>;
-  }
   const treeRef = useRef(null);
   const scrollContentRef = useRef(null);
   const wheelLockRef = useRef(false);
@@ -389,6 +405,7 @@ function KnockoutTreeView({ rounds }) {
   const [treeLines, setTreeLines] = useState([]);
   const [treeCanvas, setTreeCanvas] = useState({ width: 0, height: 0 });
   const [treeHeight, setTreeHeight] = useState(null);
+  const [isPhaseTransitioning, setIsPhaseTransitioning] = useState(false);
   const activeIndex = Math.max(0, rounds.findIndex(([round]) => round === activeRound));
   const activeItems = rounds[activeIndex]?.[1] || [];
   const previousRound = rounds[activeIndex - 1]?.[0] || null;
@@ -511,6 +528,7 @@ function KnockoutTreeView({ rounds }) {
   }, [activeRound, isMobileTree]);
   useEffect(() => {
     if (!isMobileTree) return;
+    setIsPhaseTransitioning(true);
     requestAnimationFrame(() => {
       const left = getMobileTargetLeft();
       programmaticScrollRef.current = true;
@@ -518,7 +536,10 @@ function KnockoutTreeView({ rounds }) {
       treeRef.current?.scrollTo({ left, top: 0, behavior: "auto" });
       window.setTimeout(() => {
         programmaticScrollRef.current = false;
-      }, 200);
+      }, 140);
+      window.setTimeout(() => {
+        setIsPhaseTransitioning(false);
+      }, 180);
     });
   }, [activeIndex, isMobileTree, mobileLayout.activeLocalIndex]);
   const visibleRounds = isMobileTree
@@ -541,7 +562,7 @@ function KnockoutTreeView({ rounds }) {
     </button>
   </div>;
   if (isMobileTree) {
-    return <section className="worldcup-tree-mode mobile-bracket-mode" ref={mobileModeRef}>
+    return <section className={`worldcup-tree-mode mobile-bracket-mode ${isPhaseTransitioning ? "is-phase-transitioning" : ""}`} ref={mobileModeRef}>
       {toolbar}
       <div
         className="mobile-bracket-scroll"
@@ -633,7 +654,10 @@ function KnockoutView({ matches }) {
   const [viewMode, setViewMode] = useState("tree");
   const rounds = useMemo(() => buildKnockoutRounds(matches), [matches]);
   const matchById = useMemo(() => new Map(matches.map((match) => [match.reference_id, match])), [matches]);
-  return <>
+  if (!rounds.length) {
+    return <div className="worldcup-origin-empty">No hay eliminatorias disponibles.</div>;
+  }
+  return <div className="worldcup-knockout-view">
     <div className="worldcup-view-switch" aria-label="Ver cuadro como">
       <span>Ver</span>
       <button className={viewMode === "tree" ? "active" : ""} onClick={() => setViewMode("tree")} aria-label="Vista en arbol">
@@ -646,7 +670,7 @@ function KnockoutView({ matches }) {
     {viewMode === "tree"
       ? <KnockoutTreeView rounds={rounds}/>
       : <KnockoutPanelsView rounds={rounds} matchById={matchById}/>}
-  </>;
+  </div>;
 }
 
 export function WorldCupPage() {
