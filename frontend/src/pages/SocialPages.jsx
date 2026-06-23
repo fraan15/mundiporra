@@ -1410,6 +1410,7 @@ const winnerFromScore = (g1, g2) => {
       : "team2";
 };
 const knockoutNotice = "Partido de eliminatoria: pronóstico válido hasta 120 minutos. La tanda de penaltis no cuenta para resultado, signo ni goleadores.";
+const knockoutDetails = "En las eliminatorias pronosticas el marcador al final de la prórroga, es decir, después de 90 minutos más 30 minutos extra si los hubiera. Si el partido llega a penaltis, la tanda solo decide quién avanza en el Mundial: no cambia el resultado de la porra, no cambia el signo acertado y no suma goleadores. Por ejemplo, un 1-1 tras la prórroga y victoria por penaltis sigue contando como empate 1-1 para puntuación.";
 function HorizontalScoreControl({ team, value, onChange, onAdjust }) {
   const dragRef = useRef(null);
   const score = value === "" ? 0 : Number(value);
@@ -2360,9 +2361,6 @@ export function MatchDetailPage() {
         {m.penalty_summary && (
           <p className="penalty-summary">{m.penalty_summary.text}</p>
         )}
-        {Number(m.is_knockout) === 1 && (
-          <p className="knockout-notice">{knockoutNotice}</p>
-        )}
         {m.status === "finished" && m.actual_scorers?.length > 0 && (
           <div className="match-result-scorers">
             <strong>Goleadores</strong>
@@ -2376,6 +2374,32 @@ export function MatchDetailPage() {
         {m.betting_open && (
           <div className="detail-countdown">
             <Countdown date={m.effective_close_at} />
+          </div>
+        )}
+        {Number(m.is_knockout) === 1 && (
+          <div className="knockout-mode-panel">
+            <button
+              type="button"
+              className="knockout-mode-trigger"
+              aria-expanded={knockoutInfoOpen}
+              onClick={() => setKnockoutInfoOpen((open) => !open)}
+            >
+              Modo eliminatoria
+            </button>
+            {knockoutInfoOpen && (
+              <div className="knockout-mode-banner" role="status">
+                <button
+                  type="button"
+                  className="knockout-mode-close"
+                  aria-label="Cerrar explicación del modo eliminatoria"
+                  onClick={() => setKnockoutInfoOpen(false)}
+                >
+                  <X size={16} />
+                </button>
+                <strong>Cómo funcionan las eliminatorias</strong>
+                <p>{knockoutDetails}</p>
+              </div>
+            )}
           </div>
         )}
         {user.role === "admin" && (
@@ -2527,22 +2551,6 @@ export function MatchDetailPage() {
           <div className="detail-prediction-heading"><h2>{user.is_read_only ? "Vista de espectador" : "Mi pronóstico"}</h2>{m.status === "closed" && Boolean(m.in_play) && <button type="button" className="simulation-trigger" onClick={() => setSimulationOpen(true)}><Calculator size={17}/><span>Simular</span></button>}</div>
           {m.betting_open && !user.is_read_only ? (
             <>
-              {Number(m.is_knockout) === 1 && (
-                <div className="knockout-mode-help">
-                  <span>Modo eliminatoria</span>
-                  <button
-                    type="button"
-                    aria-label="Información del modo eliminatoria"
-                    aria-expanded={knockoutInfoOpen}
-                    onClick={() => setKnockoutInfoOpen((open) => !open)}
-                  >
-                    <Info size={16} />
-                  </button>
-                  {knockoutInfoOpen && (
-                    <p>{knockoutNotice}</p>
-                  )}
-                </div>
-              )}
               <div className="detail-winner-picks">
                 <button
                   className={pick.winner === "team1" ? "selected" : ""}
