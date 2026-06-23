@@ -109,7 +109,8 @@ export function MatchCard({ match, onSaved, verticalScorePicker=false }) {
     try {
       const body = { match_id: match.id, predicted_winner: winner, predicted_team1_goals: Number(g1), predicted_team2_goals: Number(g2), predicted_scorer_id:isNilNil?NO_SCORER_ID:scorerId };
       await api(match.prediction_id ? `/predictions/${match.prediction_id}` : "/predictions", { method: match.prediction_id ? "PUT" : "POST", body });
-      setMessage("Resultado guardado!"); setSavedPulse((value) => value + 1); onSaved();
+      setMessage("Resultado guardado!"); setSavedPulse((value) => value + 1);
+      void Promise.resolve(onSaved?.()).catch((error) => console.error("No se pudo refrescar el partido tras guardar el pronóstico.", error));
     } catch (error) { setMessage(error.message); } finally { setSaving(false); }
   };
   const toggleReveal = async () => {

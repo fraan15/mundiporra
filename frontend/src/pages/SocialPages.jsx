@@ -2355,7 +2355,7 @@ export function MatchDetailPage() {
     setSavingPick(true);
     setPickMessage("");
     try {
-      await api(
+      const savedPrediction = await api(
         m.prediction_id ? `/predictions/${m.prediction_id}` : "/predictions",
         {
           method: m.prediction_id ? "PUT" : "POST",
@@ -2369,9 +2369,35 @@ export function MatchDetailPage() {
           },
         },
       );
+      const predictedScorer = players.find(
+        (player) => String(player.id) === String(savedPrediction.predicted_scorer_id),
+      );
+      setData((current) =>
+        current
+          ? {
+              ...current,
+              match: {
+                ...current.match,
+                prediction_id: savedPrediction.id,
+                predicted_winner: savedPrediction.predicted_winner,
+                predicted_team1_goals: savedPrediction.predicted_team1_goals,
+                predicted_team2_goals: savedPrediction.predicted_team2_goals,
+                predicted_scorer_id: savedPrediction.predicted_scorer_id,
+                predicted_scorer: predictedScorer
+                  ? {
+                      id: predictedScorer.id,
+                      name: predictedScorer.name,
+                      position: predictedScorer.position,
+                      team_fifa_code: predictedScorer.team_fifa_code,
+                    }
+                  : null,
+              },
+            }
+          : current,
+      );
       setPickMessage("Resultado guardado!");
       setPickSavedPulse((value) => value + 1);
-      await load();
+      void load();
     } catch (err) {
       setPickMessage(err.message);
     } finally {
