@@ -832,7 +832,7 @@ function PredictionHistoryRow({ prediction, detail, open, onToggle }) {
             {match.total_points} puntos
           </em>
           <i className={finished ? "finished" : "live"}>
-            {finished ? "Finalizado" : "En vivo"}
+            {finished ? "Finalizado" : "En juego"}
           </i>
         </footer>
         <ChevronDown className={open ? "open" : ""} />
@@ -1120,7 +1120,7 @@ function PointsMatchRow({ match, open, onToggle }) {
               {match.match_time ? ` · ${match.match_time.slice(0, 5)}` : ""}
             </time>
             <i className={match.status === "finished" ? "finished" : "live"}>
-              {match.status === "finished" ? "Finalizado" : "En vivo"}
+              {match.status === "finished" ? "Finalizado" : "En juego"}
             </i>
           </header>
           <strong>
