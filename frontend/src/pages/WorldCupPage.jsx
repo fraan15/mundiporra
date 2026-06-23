@@ -102,53 +102,6 @@ const buildKnockoutRounds = (matches) => {
     });
 };
 
-function buildMobileStageLines(activeRound, visibleMatches, shellRect) {
-  const label = roundLabel(activeRound).toLowerCase();
-  const paths = [];
-  const point = (node, side = "right") => {
-    const rect = node.getBoundingClientRect();
-    return {
-      x: (side === "left" ? rect.left : rect.right) - shellRect.left,
-      y: rect.top + rect.height / 2 - shellRect.top
-    };
-  };
-  const shortExit = (node, side = "right") => {
-    const start = point(node, side);
-    const endX = start.x + (side === "left" ? -32 : 32);
-    paths.push(`M ${start.x} ${start.y} H ${endX}`);
-  };
-  const pairBracket = (top, bottom, side = "right") => {
-    const a = point(top, side), b = point(bottom, side);
-    const direction = side === "left" ? -1 : 1;
-    const elbowX = (side === "left" ? Math.min(a.x, b.x) : Math.max(a.x, b.x)) + direction * 30;
-    const outX = elbowX + direction * 26;
-    const midY = (a.y + b.y) / 2;
-    paths.push(`M ${a.x} ${a.y} H ${elbowX} V ${b.y} H ${b.x}`);
-    paths.push(`M ${elbowX} ${midY} H ${outX}`);
-  };
-  if (label.includes("final")) {
-    visibleMatches.forEach((match) => shortExit(match, "left"));
-    return paths;
-  }
-  if (label.includes("dieciseisavos") || visibleMatches.length < 2) {
-    visibleMatches.forEach((match) => shortExit(match, "right"));
-    return paths;
-  }
-  for (let index = 0; index < visibleMatches.length; index += 2) {
-    const top = visibleMatches[index], bottom = visibleMatches[index + 1];
-    if (!top || !bottom) {
-      if (top) {
-        shortExit(top, "left");
-        shortExit(top, "right");
-      }
-      continue;
-    }
-    pairBracket(top, bottom, "left");
-    pairBracket(top, bottom, "right");
-  }
-  return paths;
-}
-
 const compactRoundLabel = (round) => {
   const label = roundLabel(round);
   if (label === "Semifinales") return "Semis";
@@ -162,91 +115,131 @@ const mobileBracketMetrics = {
   roundWidth: 282,
   activeGap: 32,
   topPadding: 36,
-  sidePadding: 16,
-  previousPairOffset: 72
+  sidePadding: 16
 };
 
+const explicitNextMatchId = (match) => match.nextMatchId || match.next_match_id || match.nextReferenceId || null;
+const feedsInto = (sourceMatch, targetMatch) =>
+  explicitNextMatchId(sourceMatch) === targetMatch.reference_id ||
+  dependencyRefs(targetMatch).includes(sourceMatch.reference_id);
+
 const buildMobileProjectedLayout = (activeRoundIndex, rounds) => {
-  const { cardWidth, cardHeight, roundWidth, activeGap, topPadding, sidePadding, previousPairOffset } = mobileBracketMetrics;
-  const positionById = new Map();
+  const { cardWidth, cardHeight, roundWidth, activeGap, topPadding, sidePadding } = mobileBracketMetrics;
   const visibleRoundIndexes = [activeRoundIndex - 1, activeRoundIndex, activeRoundIndex + 1]
     .filter((index) => index >= 0 && index < rounds.length);
   const visibleRoundSet = new Set(visibleRoundIndexes);
   const localIndexByRound = new Map(visibleRoundIndexes.map((roundIndex, localIndex) => [roundIndex, localIndex]));
+  const activeLocalIndex = localIndexByRound.get(activeRoundIndex) ?? 0;
+  const positionById = new Map();
+  const getItems = (roundIndex) => rounds[roundIndex]?.[1] || [];
   const activeItems = rounds[activeRoundIndex]?.[1] || [];
+  const baseGap = 18;
+  const baseStep = cardHeight + baseGap;
 
   const setPosition = (match, roundIndex, matchIndex, centerY) => {
-    const localIndex = localIndexByRound.get(roundIndex) ?? 0;
+    const localIndex = localIndexByRound.get(roundIndex);
+    if (localIndex === undefined) return;
     const left = sidePadding + localIndex * roundWidth;
     const top = centerY - cardHeight / 2;
     positionById.set(match.reference_id, { left, top, centerY, round: match.round, roundIndex, matchIndex });
   };
 
-  activeItems.forEach((match, matchIndex) => {
-    const centerY = topPadding + matchIndex * (cardHeight + activeGap) + cardHeight / 2;
-    setPosition(match, activeRoundIndex, matchIndex, centerY);
-  });
-
-  const previousRound = rounds[activeRoundIndex - 1]?.[1] || [];
-  activeItems.forEach((activeMatch) => {
-    const activePosition = positionById.get(activeMatch.reference_id);
-    const parents = previousRound.filter((candidate) => dependencyRefs(activeMatch).includes(candidate.reference_id));
-    parents.forEach((match, parentIndex) => {
-      const offset = parents.length === 1 ? 0 : (parentIndex === 0 ? -previousPairOffset : previousPairOffset);
-      setPosition(match, activeRoundIndex - 1, previousRound.indexOf(match), activePosition.centerY + offset);
+  const previousRoundIndex = activeRoundIndex - 1;
+  if (visibleRoundSet.has(previousRoundIndex)) {
+    const previousItems = getItems(previousRoundIndex);
+    previousItems.forEach((match, matchIndex) => {
+      const centerY = topPadding + matchIndex * baseStep + cardHeight / 2;
+      setPosition(match, previousRoundIndex, matchIndex, centerY);
     });
-  });
 
-  const nextRound = rounds[activeRoundIndex + 1]?.[1] || [];
-  nextRound.forEach((match, matchIndex) => {
-    const sourceCenters = activeItems
-      .filter((candidate) => dependencyRefs(match).includes(candidate.reference_id))
-      .map((candidate) => positionById.get(candidate.reference_id)?.centerY)
-      .filter((value) => Number.isFinite(value));
-    if (!sourceCenters.length) return;
-    const centerY = sourceCenters.reduce((sum, value) => sum + value, 0) / sourceCenters.length;
-    setPosition(match, activeRoundIndex + 1, matchIndex, centerY);
-  });
+    activeItems.forEach((activeMatch) => {
+      const feeders = previousItems.filter((previousMatch) => feedsInto(previousMatch, activeMatch));
+      const feederPositions = feeders
+        .map((feeder) => positionById.get(feeder.reference_id))
+        .filter(Boolean);
+      const centerY = feederPositions.length
+        ? feederPositions.reduce((sum, position) => sum + position.centerY, 0) / feederPositions.length
+        : topPadding + activeItems.indexOf(activeMatch) * baseStep + cardHeight / 2;
+      setPosition(activeMatch, activeRoundIndex, activeItems.indexOf(activeMatch), centerY);
+    });
+  } else {
+    activeItems.forEach((match, matchIndex) => {
+      const centerY = topPadding + matchIndex * (cardHeight + activeGap) + cardHeight / 2;
+      setPosition(match, activeRoundIndex, matchIndex, centerY);
+    });
+  }
 
-  const activePositions = activeItems
-    .map((match) => positionById.get(match.reference_id))
-    .filter(Boolean);
-  const activeMinTop = activePositions.length ? Math.min(...activePositions.map((position) => position.top)) : topPadding;
-  const shiftY = topPadding - activeMinTop;
+  const nextRoundIndex = activeRoundIndex + 1;
+  if (visibleRoundSet.has(nextRoundIndex)) {
+    const nextItems = getItems(nextRoundIndex);
+    nextItems.forEach((nextMatch, nextMatchIndex) => {
+      const feederPositions = activeItems
+        .filter((activeMatch) => feedsInto(activeMatch, nextMatch))
+        .map((feeder) => positionById.get(feeder.reference_id))
+        .filter(Boolean);
+      if (!feederPositions.length) return;
+      const centerY = feederPositions.reduce((sum, position) => sum + position.centerY, 0) / feederPositions.length;
+      setPosition(nextMatch, nextRoundIndex, nextMatchIndex, centerY);
+    });
+  }
+
+  const allPositions = [...positionById.values()];
+  const minTop = allPositions.length ? Math.min(...allPositions.map((position) => position.top)) : topPadding;
+  const shiftY = topPadding - minTop;
   positionById.forEach((position) => {
     position.top += shiftY;
     position.centerY += shiftY;
   });
 
-  const shiftedLinePaths = [];
+  const linePaths = [];
   visibleRoundIndexes.forEach((roundIndex) => {
-    const items = rounds[roundIndex]?.[1] || [];
-    const candidateNextRound = rounds[roundIndex + 1]?.[1] || [];
-    items.forEach((match) => {
-      const origin = positionById.get(match.reference_id);
-      if (!origin) return;
-      const nextMatch = candidateNextRound.find((candidate) => dependencyRefs(candidate).includes(match.reference_id));
-      const target = nextMatch ? positionById.get(nextMatch.reference_id) : null;
+    getItems(roundIndex).forEach((sourceMatch) => {
+      const source = positionById.get(sourceMatch.reference_id);
+      if (!source) return;
+      const targetMatch = getItems(roundIndex + 1).find((candidate) => feedsInto(sourceMatch, candidate));
+      const target = targetMatch ? positionById.get(targetMatch.reference_id) : null;
       if (!target || !visibleRoundSet.has(target.roundIndex)) return;
-      const startX = origin.left + cardWidth;
-      const startY = origin.centerY;
+      const startX = source.left + cardWidth;
+      const startY = source.centerY;
       const endX = target.left;
       const endY = target.centerY;
       const midX = startX + (endX - startX) / 2;
-      shiftedLinePaths.push(`M ${startX} ${startY} H ${midX} V ${endY} H ${endX}`);
+      linePaths.push(`M ${startX} ${startY} H ${midX} V ${endY} H ${endX}`);
     });
   });
 
   const positions = [...positionById.values()];
   const maxBottom = positions.length ? Math.max(...positions.map((position) => position.top + cardHeight)) : topPadding + cardHeight;
+  const width = sidePadding * 2 + visibleRoundIndexes.length * roundWidth - (roundWidth - cardWidth);
+  const height = maxBottom + 160;
+
+  if (import.meta.env.DEV) {
+    const usedCenters = new Map();
+    positionById.forEach((position, id) => {
+      const key = Math.round(position.centerY);
+      if (usedCenters.has(key)) console.warn("OVERLAP CENTER", key, usedCenters.get(key), id);
+      usedCenters.set(key, id);
+    });
+    console.log("MOBILE LAYOUT", {
+      activeRoundIndex,
+      visibleRoundIndexes,
+      activeLocalIndex,
+      activeMatches: activeItems.map((match) => ({
+        id: match.reference_id,
+        position: positionById.get(match.reference_id)
+      })),
+      width,
+      height
+    });
+  }
 
   return {
     positionById,
-    linePaths: shiftedLinePaths,
+    linePaths,
     visibleRoundIndexes,
-    activeLocalIndex: localIndexByRound.get(activeRoundIndex) ?? 0,
-    width: sidePadding * 2 + Math.max(1, visibleRoundIndexes.length) * roundWidth - (roundWidth - cardWidth),
-    height: maxBottom + 160
+    activeLocalIndex,
+    width,
+    height
   };
 };
 
@@ -362,6 +355,7 @@ function KnockoutTreeView({ rounds }) {
   const scrollContentRef = useRef(null);
   const wheelLockRef = useRef(false);
   const touchStartRef = useRef(null);
+  const mobileScrollDebounceRef = useRef(null);
   const [activeRound, setActiveRound] = useState(rounds[0]?.[0] || "");
   const [isMobileTree, setIsMobileTree] = useState(false);
   const [treeLines, setTreeLines] = useState([]);
@@ -397,9 +391,14 @@ function KnockoutTreeView({ rounds }) {
     const container = treeRef.current;
     if (!container) return;
     if (isMobileTree) {
-      const localIndex = Math.round((container.scrollLeft + 72 - mobileBracketMetrics.sidePadding) / mobileBracketMetrics.roundWidth);
-      const index = mobileLayout.visibleRoundIndexes[localIndex];
-      if (Number.isFinite(index) && rounds[index]?.[0] !== activeRound) setActiveRound(rounds[index][0]);
+      window.clearTimeout(mobileScrollDebounceRef.current);
+      mobileScrollDebounceRef.current = window.setTimeout(() => {
+        const localIndex = Math.round((container.scrollLeft + 72 - mobileBracketMetrics.sidePadding) / mobileBracketMetrics.roundWidth);
+        const nextRoundIndex = mobileLayout.visibleRoundIndexes[localIndex];
+        if (Number.isFinite(nextRoundIndex) && rounds[nextRoundIndex]?.[0] !== activeRound) {
+          setActiveRound(rounds[nextRoundIndex][0]);
+        }
+      }, 180);
       return;
     }
     const sections = [...container.querySelectorAll("[data-round-index]")];
@@ -439,11 +438,6 @@ function KnockoutTreeView({ rounds }) {
       setTreeHeight(activeSection.offsetTop + activeStack.offsetTop + activeStack.scrollHeight + 24);
     }
     setTreeCanvas({ width: content.scrollWidth, height: content.scrollHeight });
-    if (isMobileTree && activeSection) {
-      const visibleMatches = [...activeSection.querySelectorAll("[data-match-id]")];
-      setTreeLines(buildMobileStageLines(activeRound, visibleMatches, contentRect));
-      return;
-    }
     const nextLines = [];
     rounds.forEach(([round, items], roundIndex) => {
       const nextRound = rounds[roundIndex + 1];
@@ -476,6 +470,7 @@ function KnockoutTreeView({ rounds }) {
     return () => {
       window.removeEventListener("resize", onResize);
       images.forEach((image) => image.removeEventListener("load", refreshTreeGeometry));
+      window.clearTimeout(mobileScrollDebounceRef.current);
     };
   }, [rounds, activeIndex, isMobileTree]);
   useEffect(() => {
@@ -496,7 +491,13 @@ function KnockoutTreeView({ rounds }) {
       treeRef.current?.scrollTo({ left, top: 0, behavior: "auto" });
     });
   }, [activeIndex, isMobileTree, mobileLayout.activeLocalIndex]);
-  const visibleRounds = isMobileTree ? rounds.filter(([round]) => round === activeRound) : rounds;
+  const visibleRounds = isMobileTree
+    ? mobileLayout.visibleRoundIndexes.map((roundIndex) => ({
+        roundIndex,
+        round: rounds[roundIndex]?.[0],
+        matches: rounds[roundIndex]?.[1] || []
+      }))
+    : rounds.map(([round, matches], roundIndex) => ({ roundIndex, round, matches }));
   const toolbar = <div className="worldcup-tree-toolbar">
     <button className="worldcup-phase-side previous" disabled={!previousRound} onClick={() => jumpToRound(activeIndex - 1)}>
       {previousRound ? compactRoundLabel(previousRound) : ""}
@@ -513,19 +514,24 @@ function KnockoutTreeView({ rounds }) {
     return <section className="worldcup-tree-mode mobile-bracket-mode">
       {toolbar}
       <div
-        className="mobile-bracket-scroll knockout-stage-shell"
+        className="mobile-bracket-scroll"
         ref={treeRef}
         onScroll={handleScroll}
         onWheel={handleWheel}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <div className="mobile-bracket-board" style={{ width: mobileLayout.width, height: mobileLayout.height }}>
+        <div
+          className="mobile-bracket-board"
+          style={{
+            "--mobile-bracket-width": `${mobileLayout.width}px`,
+            "--mobile-bracket-height": `${mobileLayout.height}px`
+          }}
+        >
           <svg className="mobile-bracket-lines" aria-hidden="true" width={mobileLayout.width} height={mobileLayout.height} viewBox={`0 0 ${mobileLayout.width} ${mobileLayout.height}`}>
             {mobileLayout.linePaths.map((path, index) => <path d={path} key={`${path}-${index}`}/>)}
           </svg>
-          {mobileLayout.visibleRoundIndexes.map((roundIndex, localIndex) => {
-            const round = rounds[roundIndex]?.[0];
+          {visibleRounds.map(({ round, roundIndex }, localIndex) => {
             return (
             <section
               className="mobile-bracket-round"
@@ -537,9 +543,7 @@ function KnockoutTreeView({ rounds }) {
             </section>
           );
           })}
-          {mobileLayout.visibleRoundIndexes.flatMap((roundIndex) => {
-            const items = rounds[roundIndex]?.[1] || [];
-            return items.map((match) => {
+          {visibleRounds.flatMap(({ matches: items }) => items.map((match) => {
             const position = mobileLayout.positionById.get(match.reference_id);
             if (!position) return null;
             const nextRoundItems = rounds[position.roundIndex + 1]?.[1] || [];
@@ -551,12 +555,11 @@ function KnockoutTreeView({ rounds }) {
               data-round={position.round}
               data-match-index={position.matchIndex}
               key={match.reference_id}
-              style={{ left: position.left, top: position.top }}
+              style={{ left: position.left, top: position.top, width: mobileBracketMetrics.cardWidth }}
             >
               <BracketCompactCard match={match}/>
             </article>;
-          });
-          })}
+          }))}
         </div>
       </div>
     </section>;
@@ -576,8 +579,7 @@ function KnockoutTreeView({ rounds }) {
         <svg className="worldcup-tree-lines knockout-lines-svg" aria-hidden="true" width={treeCanvas.width} height={treeCanvas.height} viewBox={`0 0 ${treeCanvas.width || 1} ${treeCanvas.height || 1}`}>
           {treeLines.map((path, index) => <path d={path} key={`${path}-${index}`}/>)}
         </svg>
-        {visibleRounds.map(([round, items]) => {
-          const roundIndex = rounds.findIndex(([candidate]) => candidate === round);
+        {visibleRounds.map(({ round, matches: items, roundIndex }) => {
           const nextRound = rounds[roundIndex + 1]?.[1] || [];
           return <section className={`worldcup-round ${round === activeRound ? "is-active" : ""}`} data-round-index={roundIndex} key={round}>
           <div className="worldcup-round-stack" style={{ "--match-count": items.length }}>
