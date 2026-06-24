@@ -550,6 +550,21 @@ function PositionEvolution({ data = [] }) {
   );
 }
 function StatsSections({ stats: s, history = [], onDayClick }) {
+  const compactRows = [
+    [
+      ["Ganadores acertados", `${s.winner_percentage}%`],
+      ["Resultados exactos", `${s.exact_percentage}%`],
+    ],
+    [
+      ["Mejor jornada", s.best_day ? `${s.best_day.points} pts` : "—"],
+      ["Peor jornada", s.worst_day ? `${s.worst_day.points} pts` : "—"],
+    ],
+    [
+      ["Equipo más elegido", s.most_picked_team],
+      ["Equipo más rentable", s.best_team],
+    ],
+  ];
+
   return (
     <>
       <div className="insight-grid">
@@ -565,6 +580,19 @@ function StatsSections({ stats: s, history = [], onDayClick }) {
             <span>{k}</span>
             <strong>{v}</strong>
           </article>
+        ))}
+      </div>
+      <div className="mobile-insight-lines content-card">
+        {compactRows.map((row) => (
+          <div className="mobile-insight-row" key={row.map(([label]) => label).join("-")}>
+            {row.map(([label, value], index) => (
+              <span key={label}>
+                <small>{label}</small>
+                <strong>{value}</strong>
+                {index === 0 && <i aria-hidden="true">|</i>}
+              </span>
+            ))}
+          </div>
         ))}
       </div>
       <div className="chart-grid">

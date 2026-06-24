@@ -1,3 +1,6 @@
+import { X } from "lucide-react";
+import { useState } from "react";
+
 const flags = {
   "Alemania": "🇩🇪", "Arabia Saudí": "🇸🇦", "Argelia": "🇩🇿", "Argentina": "🇦🇷", "Australia": "🇦🇺",
   "Austria": "🇦🇹", "Bélgica": "🇧🇪", "Bosnia y Herzegovina": "🇧🇦", "Brasil": "🇧🇷", "Cabo Verde": "🇨🇻",
@@ -27,6 +30,36 @@ export function MiniChart({ data = [], field = "points", inverse = false }) {
   </div>;
 }
 
-export const Badges = ({ badges = [] }) => <div className="badges" aria-label="Medallas del jugador">
-  {badges.length ? badges.map((badge) => <div className={`badge-card ${badge.kind || ""}`} key={badge.name} title={badge.name}><span aria-hidden="true">{badge.icon}</span><strong>{badge.name}</strong></div>) : <p className="empty-state">Los logros se desbloquean jugando.</p>}
-</div>;
+export function Badges({ badges = [] }) {
+  const [selectedBadge, setSelectedBadge] = useState(null);
+  const activeBadge = badges.find((badge) => badge.name === selectedBadge);
+
+  return <div className="badges-wrap">
+    <div className="badges" aria-label="Medallas del jugador">
+      {badges.length ? badges.map((badge) => {
+        const isActive = selectedBadge === badge.name;
+        return <button
+          type="button"
+          className={`badge-card ${badge.kind || ""} ${isActive ? "active" : ""}`}
+          key={badge.name}
+          title={badge.description || badge.name}
+          aria-haspopup="dialog"
+          onClick={() => setSelectedBadge(badge.name)}
+        >
+          <span aria-hidden="true">{badge.icon}</span>
+          <strong>{badge.name}</strong>
+        </button>;
+      }) : <p className="empty-state">Los logros se desbloquean jugando.</p>}
+    </div>
+    {activeBadge && <div className="badge-popup-overlay" role="presentation" onClick={() => setSelectedBadge(null)}>
+      <div className={`badge-popup ${activeBadge.kind || ""}`} role="dialog" aria-modal="true" aria-labelledby="badge-popup-title" onClick={(event) => event.stopPropagation()}>
+        <button type="button" className="badge-popup-close" aria-label="Cerrar explicación de medalla" onClick={() => setSelectedBadge(null)}>
+          <X size={18} />
+        </button>
+        <span aria-hidden="true">{activeBadge.icon}</span>
+        <h3 id="badge-popup-title">{activeBadge.name}</h3>
+        <p>{activeBadge.description || "Medalla desbloqueada por sus méritos en la porra."}</p>
+      </div>
+    </div>}
+  </div>;
+}
