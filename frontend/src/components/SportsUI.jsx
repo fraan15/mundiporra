@@ -41,13 +41,75 @@ const holdersText = (holders = []) => {
   return `${holders.slice(0, -1).join(", ")} y ${holders.at(-1)}`;
 };
 
+const isDisputedBadge = (badge) => badge?.disputed || ["record", "leader"].includes(badge?.kind);
+
 export function BadgeCatalogDialog({ catalog = [], disputed = [], onClose }) {
-  const orderedCatalog = [...catalog].sort((a, b) => Number(a.order ?? 99) - Number(b.order ?? 99));
-  const orderedDisputed = [...disputed].sort((a, b) =>
+  const [activeCategory, setActiveCategory] = useState(0);
+  const [trackCategory, setTrackCategory] = useState(1);
+  const [categoryTransition, setCategoryTransition] = useState(true);
+  const catalogSwipeStart = useRef(null);
+  const orderedCatalog = useMemo(() => [...catalog].sort((a, b) => Number(a.order ?? 99) - Number(b.order ?? 99)), [catalog]);
+  const orderedDisputed = useMemo(() => [...disputed].sort((a, b) =>
     Number(a.order ?? 99) - Number(b.order ?? 99) ||
     Number(b.level ?? 0) - Number(a.level ?? 0) ||
     String(a.name).localeCompare(String(b.name), "es")
-  );
+  ), [disputed]);
+  const catalogPages = useMemo(() => [
+    { type: "disputed", key: "disputed", title: "Medallas en disputa", items: orderedDisputed },
+    ...orderedCatalog.map((group) => ({ ...group, type: "catalog", key: group.group, items: group.tiers || [] }))
+  ].filter((page) => page.type === "disputed" || page.items.length), [orderedCatalog, orderedDisputed]);
+  const categoryCount = catalogPages.length;
+  const carouselPages = categoryCount > 1 ? [catalogPages.at(-1), ...catalogPages, catalogPages[0]] : catalogPages;
+
+  const moveCategory = (direction) => {
+    if (categoryCount < 2) return;
+    setCategoryTransition(true);
+    setActiveCategory((index) => (index + direction + categoryCount) % categoryCount);
+    setTrackCategory((index) => index + direction);
+  };
+
+  const goToCategory = (index) => {
+    if (index === activeCategory || categoryCount < 2) return;
+    setCategoryTransition(true);
+    setActiveCategory(index);
+    setTrackCategory(index + 1);
+  };
+
+  const endCatalogSwipe = (event) => {
+    const start = catalogSwipeStart.current;
+    catalogSwipeStart.current = null;
+    if (!start) return;
+    const deltaX = event.clientX - start.x;
+    const deltaY = event.clientY - start.y;
+    if (Math.abs(deltaX) < 42 || Math.abs(deltaX) < Math.abs(deltaY) * 1.25) return;
+    moveCategory(deltaX < 0 ? 1 : -1);
+  };
+
+  const settleCategoryTrack = () => {
+    if (categoryCount < 2) return;
+    if (trackCategory === 0) {
+      setCategoryTransition(false);
+      setTrackCategory(categoryCount);
+      return;
+    }
+    if (trackCategory === categoryCount + 1) {
+      setCategoryTransition(false);
+      setTrackCategory(1);
+    }
+  };
+
+  useEffect(() => {
+    if (!categoryTransition) {
+      const frame = window.requestAnimationFrame(() => setCategoryTransition(true));
+      return () => window.cancelAnimationFrame(frame);
+    }
+  }, [categoryTransition]);
+
+  useEffect(() => {
+    setActiveCategory(0);
+    setTrackCategory(1);
+    setCategoryTransition(true);
+  }, [categoryCount]);
 
   return <div className="badge-popup-overlay" role="presentation" onClick={onClose}>
     <div className="badge-popup badge-catalog-popup" role="dialog" aria-modal="true" aria-labelledby="badge-catalog-title" onClick={(event) => event.stopPropagation()}>
@@ -56,35 +118,59 @@ export function BadgeCatalogDialog({ catalog = [], disputed = [], onClose }) {
       </button>
       <small className="badge-popup-type">Guía de medallas</small>
       <h3 id="badge-catalog-title">Todas las medallas</h3>
-      <div className="badge-catalog-list">
-        {orderedDisputed.length > 0 && <section className="badge-catalog-disputed">
-          <h4>Medallas en disputa</h4>
-          <div>
-            {orderedDisputed.map((badge) => <article className={badge.kind || ""} key={`${badge.name}-${badge.description}`}>
-              <span aria-hidden="true">{badge.icon}</span>
-              <div>
-                <strong>{badge.name}</strong>
-                <small>{badge.description || "Medalla disputada durante la porra."}</small>
-                <em>Ahora: {holdersText(badge.holders)}</em>
-              </div>
-              <Check size={16} />
-            </article>)}
-          </div>
-        </section>}
-        {orderedCatalog.map((group) => <section key={group.group}>
-          <h4>{group.title}</h4>
-          <div>
-            {group.tiers.map((tier) => <article className={tier.achieved ? "achieved" : ""} key={`${group.group}-${tier.level}`}>
-              <span aria-hidden="true">{tier.icon}</span>
-              <div>
-                <strong>{tier.name}</strong>
-                <small>{tier.description} Ahora: {group.value || 0}.</small>
-              </div>
-              {tier.achieved ? <Check size={16} /> : <Lock size={15} />}
-            </article>)}
-          </div>
-        </section>)}
+      <div
+        className="badge-catalog-carousel"
+        onPointerDown={(event) => { if (event.pointerType !== "mouse") catalogSwipeStart.current = { x: event.clientX, y: event.clientY }; }}
+        onPointerUp={endCatalogSwipe}
+        onPointerCancel={() => { catalogSwipeStart.current = null; }}
+      >
+        <div
+          className="badge-catalog-track"
+          onTransitionEnd={settleCategoryTrack}
+          style={{
+            transform: `translateX(-${(categoryCount > 1 ? trackCategory : 0) * 100}%)`,
+            transition: categoryTransition ? undefined : "none"
+          }}
+        >
+          {carouselPages.map((page, pageIndex) => <section className={page.type === "disputed" ? "badge-catalog-disputed" : ""} key={`${page.key}-${pageIndex}`}>
+            <header>
+              <h4>{page.title}</h4>
+              <small>{page.type === "disputed" ? `${page.items.length} en juego ahora` : `${page.value || 0} conseguidas`}</small>
+            </header>
+            <div>
+              {page.type === "disputed" ? (
+                page.items.length ? page.items.map((badge) => <article className={badge.kind || ""} key={`${badge.name}-${badge.description}`}>
+                  <span aria-hidden="true">{badge.icon}</span>
+                  <div>
+                    <strong>{badge.name}</strong>
+                    <small>{badge.description || "Medalla disputada durante la porra."}</small>
+                    <em>Ahora: {holdersText(badge.holders)}</em>
+                  </div>
+                  <Check size={16} />
+                </article>) : <p className="badge-catalog-empty">Ahora mismo no hay medallas en disputa.</p>
+              ) : page.items.map((tier) => <article className={tier.achieved ? "achieved" : ""} key={`${page.group}-${tier.level}`}>
+                <span aria-hidden="true">{tier.icon}</span>
+                <div>
+                  <strong>{tier.name}</strong>
+                  <small>{tier.description} Ahora: {page.value || 0}. {levelStatusText(page.value, tier.threshold)}.</small>
+                </div>
+                {tier.achieved ? <Check size={16} /> : <Lock size={15} />}
+              </article>)}
+            </div>
+          </section>)}
+        </div>
       </div>
+      {categoryCount > 1 && <div className="badge-catalog-pagination" aria-label="Categorías de medallas">
+        {catalogPages.map((page, index) => (
+          <button
+            type="button"
+            className={index === activeCategory ? "active" : ""}
+            key={`badge-catalog-dot-${page.key}`}
+            aria-label={`Ver ${page.title}`}
+            onClick={() => goToCategory(index)}
+          />
+        ))}
+      </div>}
     </div>
   </div>;
 }
@@ -97,6 +183,7 @@ export function Badges({ badges = [], catalog = [], disputed = [] }) {
   const ignoreBadgeClick = useRef(false);
   const activeBadge = badges.find((badge) => badge.name === selectedBadge);
   const orderedBadges = useMemo(() => [...badges].sort((a, b) =>
+    Number(isDisputedBadge(b) || 0) - Number(isDisputedBadge(a) || 0) ||
     Number(a.order ?? 99) - Number(b.order ?? 99) ||
     Number(b.level ?? 0) - Number(a.level ?? 0) ||
     String(a.name).localeCompare(String(b.name), "es")
