@@ -128,7 +128,8 @@ export function BadgeCatalogDialog({ catalog = [], disputed = [], onClose }) {
           className="badge-catalog-track"
           onTransitionEnd={settleCategoryTrack}
           style={{
-            transform: `translateX(-${(categoryCount > 1 ? trackCategory : 0) * 100}%)`,
+            "--badge-catalog-pages": carouselPages.length || 1,
+            transform: `translateX(-${(categoryCount > 1 ? trackCategory : 0) * (100 / (carouselPages.length || 1))}%)`,
             transition: categoryTransition ? undefined : "none"
           }}
         >
