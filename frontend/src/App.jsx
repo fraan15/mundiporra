@@ -321,7 +321,30 @@ function MainLayout() {
   const [adminMessage,setAdminMessage]=useState(null);
   const [messageError,setMessageError]=useState("");
   const [answering,setAnswering]=useState(false);
+  const [navExpanded,setNavExpanded]=useState(false);
   useEffect(()=>{document.documentElement.dataset.theme=theme;localStorage.setItem("theme",theme)},[theme]);
+  useEffect(()=>{
+    let lastY=window.scrollY;
+    let ticking=false;
+    let restTimer;
+    const onScroll=()=>{
+      if(ticking)return;
+      ticking=true;
+      window.requestAnimationFrame(()=>{
+        const currentY=window.scrollY;
+        if(currentY>lastY&&currentY>20)setNavExpanded(true);
+        lastY=currentY;
+        ticking=false;
+        window.clearTimeout(restTimer);
+        restTimer=window.setTimeout(()=>setNavExpanded(false),260);
+      });
+    };
+    window.addEventListener("scroll",onScroll,{passive:true});
+    return()=>{
+      window.removeEventListener("scroll",onScroll);
+      window.clearTimeout(restTimer);
+    };
+  },[]);
   useEffect(()=>{
     let frame;
     const repairMobileNav=()=>{
@@ -439,7 +462,7 @@ function MainLayout() {
       </button>
       <div className="user-area"><button className="icon-btn" title="Cambiar tema" onClick={()=>setTheme(theme==="dark"?"light":"dark")}>{theme==="dark"?<Sun size={18}/>:<Moon size={18}/>}</button><NotificationsBell/><ProfileMenu unreadNews={newsData.unread_count} onOpenNews={()=>setNewsOpen(true)}/></div>
     </header>
-    <nav className="main-nav" style={{ "--nav-items": items.length }}>{items.map(([to, label, Icon]) => <NavLink key={to} to={to} end={to==="/"} className={({isActive})=>isActive?"active":""}><span className="nav-icon"><Icon size={18}/>{to==="/chat"&&unreadChat>0&&<i className="chat-unread-dot" aria-label={`${unreadChat} mensajes sin leer`}/>}</span><span>{label}</span></NavLink>)}</nav>
+    <nav className={`main-nav app-bottom-nav bottom-nav-glass${navExpanded?" is-expanded":""}`} style={{ "--nav-items": items.length }}>{items.map(([to, label, Icon]) => <NavLink key={to} to={to} end={to==="/"} className={({isActive})=>isActive?"active":""}><span className="nav-icon"><Icon size={18}/>{to==="/chat"&&unreadChat>0&&<i className="chat-unread-dot" aria-label={`${unreadChat} mensajes sin leer`}/>}</span><span>{label}</span></NavLink>)}</nav>
     <main><Outlet /></main>
   </div>;
 }
