@@ -326,7 +326,7 @@ function MainLayout() {
   const navItemRefs=useRef([]);
   const dragStateRef=useRef(null);
   const suppressNavClickRef=useRef(false);
-  const [bubbleX,setBubbleX]=useState(0);
+  const [bubble,setBubble]=useState({x:0,width:58,height:52});
   const [isNavDragging,setIsNavDragging]=useState(false);
   useEffect(()=>{document.documentElement.dataset.theme=theme;localStorage.setItem("theme",theme)},[theme]);
   useEffect(()=>{
@@ -437,20 +437,22 @@ function MainLayout() {
   ];
   const activeNavIndex=items.findIndex(([to])=>to==="/" ? location.pathname==="/" : location.pathname===to || location.pathname.startsWith(`${to}/`));
   const clamp=(value,min,max)=>Math.min(Math.max(value,min),max);
-  const getBubbleXForIndex=useCallback(index=>{
+  const getBubbleForIndex=useCallback(index=>{
     const nav=navRef.current;
     const item=navItemRefs.current[index];
-    if(!nav||!item)return 0;
+    if(!nav||!item)return null;
     const navRect=nav.getBoundingClientRect();
     const itemRect=item.getBoundingClientRect();
-    const bubbleWidth=Math.min(42,itemRect.width);
-    const itemCenter=itemRect.left-navRect.left+itemRect.width/2;
-    return clamp(itemCenter-bubbleWidth/2,0,Math.max(0,navRect.width-bubbleWidth));
+    const width=itemRect.width;
+    const height=itemRect.height;
+    const x=clamp(itemRect.left-navRect.left,0,Math.max(0,navRect.width-width));
+    return {x,width,height};
   },[]);
   const moveBubbleToActive=useCallback(()=>{
     if(activeNavIndex<0)return;
-    setBubbleX(getBubbleXForIndex(activeNavIndex));
-  },[activeNavIndex,getBubbleXForIndex]);
+    const nextBubble=getBubbleForIndex(activeNavIndex);
+    if(nextBubble)setBubble(nextBubble);
+  },[activeNavIndex,getBubbleForIndex]);
   useLayoutEffect(()=>{
     if(isNavDragging)return;
     moveBubbleToActive();
@@ -466,11 +468,11 @@ function MainLayout() {
       window.visualViewport?.removeEventListener("resize",reposition);
     };
   },[moveBubbleToActive]);
-  const getNearestNavIndex=useCallback(x=>{
+  const getNearestNavIndex=useCallback((x,width)=>{
     const nav=navRef.current;
     if(!nav)return -1;
     const navRect=nav.getBoundingClientRect();
-    const bubbleCenter=x+21;
+    const bubbleCenter=x+width/2;
     let nearestIndex=-1;
     let nearestDistance=Infinity;
     navItemRefs.current.forEach((item,index)=>{
@@ -492,7 +494,7 @@ function MainLayout() {
     if(event.button!==undefined&&event.button!==0)return;
     const nav=navRef.current;
     if(!nav||activeNavIndex<0||!window.matchMedia("(max-width: 800px)").matches)return;
-    dragStateRef.current={pointerId:event.pointerId,startX:event.clientX,startBubbleX:bubbleX,currentBubbleX:bubbleX,hasMoved:false};
+    dragStateRef.current={pointerId:event.pointerId,startX:event.clientX,startBubbleX:bubble.x,currentBubbleX:bubble.x,bubbleWidth:bubble.width,hasMoved:false};
     event.currentTarget.setPointerCapture?.(event.pointerId);
   };
   const handleNavPointerMove=event=>{
@@ -506,9 +508,9 @@ function MainLayout() {
     setIsNavDragging(true);
     event.preventDefault();
     const navRect=nav.getBoundingClientRect();
-    const nextX=clamp(drag.startBubbleX+deltaX,0,Math.max(0,navRect.width-42));
+    const nextX=clamp(drag.startBubbleX+deltaX,0,Math.max(0,navRect.width-drag.bubbleWidth));
     drag.currentBubbleX=nextX;
-    setBubbleX(nextX);
+    setBubble(current=>({...current,x:nextX}));
   };
   const finishNavDrag=event=>{
     const drag=dragStateRef.current;
@@ -522,7 +524,7 @@ function MainLayout() {
     event.preventDefault();
     setIsNavDragging(false);
     window.setTimeout(()=>{suppressNavClickRef.current=false;},0);
-    const nearestIndex=getNearestNavIndex(drag.currentBubbleX);
+    const nearestIndex=getNearestNavIndex(drag.currentBubbleX,drag.bubbleWidth);
     if(nearestIndex>=0&&nearestIndex!==activeNavIndex){
       navigate(items[nearestIndex][0]);
       return;
@@ -567,7 +569,7 @@ function MainLayout() {
       </button>
       <div className="user-area"><button className="icon-btn" title="Cambiar tema" onClick={()=>setTheme(theme==="dark"?"light":"dark")}>{theme==="dark"?<Sun size={18}/>:<Moon size={18}/>}</button><NotificationsBell/><ProfileMenu unreadNews={newsData.unread_count} onOpenNews={()=>setNewsOpen(true)}/></div>
     </header>
-    <nav ref={navRef} className={`main-nav app-bottom-nav bottom-nav-glass${navExpanded?" is-expanded":""}${isNavDragging?" is-dragging":""}`} style={{ "--nav-items": items.length, "--bubble-x": `${bubbleX}px` }} onPointerDown={handleNavPointerDown} onPointerMove={handleNavPointerMove} onPointerUp={finishNavDrag} onPointerCancel={finishNavDrag} onClickCapture={handleNavClickCapture}>
+    <nav ref={navRef} className={`main-nav app-bottom-nav bottom-nav-glass${navExpanded?" is-expanded":""}${isNavDragging?" is-dragging":""}`} style={{ "--nav-items": items.length, "--bubble-x": `${bubble.x}px`, "--bubble-width": `${bubble.width}px`, "--bubble-height": `${bubble.height}px` }} onPointerDown={handleNavPointerDown} onPointerMove={handleNavPointerMove} onPointerUp={finishNavDrag} onPointerCancel={finishNavDrag} onClickCapture={handleNavClickCapture}>
       {activeNavIndex>=0&&<span className="bottom-nav-bubble" aria-hidden="true"/>}
       {items.map(([to, label, Icon],index) => <NavLink ref={node=>{navItemRefs.current[index]=node;}} key={to} to={to} end={to==="/"} aria-label={label} title={label} className={({isActive})=>isActive?"active":""}><span className="nav-icon"><Icon size={18}/>{to==="/chat"&&unreadChat>0&&<i className="chat-unread-dot" aria-label={`${unreadChat} mensajes sin leer`}/>}</span><span className="nav-label">{label}</span></NavLink>)}
     </nav>
