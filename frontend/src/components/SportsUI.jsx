@@ -45,8 +45,8 @@ const isDisputedBadge = (badge) => badge?.disputed || ["record", "leader"].inclu
 
 export function BadgeCatalogDialog({ catalog = [], disputed = [], onClose }) {
   const [activeCategory, setActiveCategory] = useState(0);
-  const [trackCategory, setTrackCategory] = useState(1);
-  const [categoryTransition, setCategoryTransition] = useState(true);
+  const [categoryDirection, setCategoryDirection] = useState(1);
+  const [categoryAnimation, setCategoryAnimation] = useState(0);
   const catalogSwipeStart = useRef(null);
   const orderedCatalog = useMemo(() => [...catalog].sort((a, b) => Number(a.order ?? 99) - Number(b.order ?? 99)), [catalog]);
   const orderedDisputed = useMemo(() => [...disputed].sort((a, b) =>
@@ -59,20 +59,20 @@ export function BadgeCatalogDialog({ catalog = [], disputed = [], onClose }) {
     ...orderedCatalog.map((group) => ({ ...group, type: "catalog", key: group.group, items: group.tiers || [] }))
   ].filter((page) => page.type === "disputed" || page.items.length), [orderedCatalog, orderedDisputed]);
   const categoryCount = catalogPages.length;
-  const carouselPages = categoryCount > 1 ? [catalogPages[categoryCount - 1], ...catalogPages, catalogPages[0]] : catalogPages;
+  const activePage = catalogPages[activeCategory];
 
   const moveCategory = (direction) => {
     if (categoryCount < 2) return;
-    setCategoryTransition(true);
+    setCategoryDirection(direction);
+    setCategoryAnimation((value) => value + 1);
     setActiveCategory((index) => (index + direction + categoryCount) % categoryCount);
-    setTrackCategory((index) => index + direction);
   };
 
   const goToCategory = (index) => {
     if (index === activeCategory || categoryCount < 2) return;
-    setCategoryTransition(true);
+    setCategoryDirection(index > activeCategory ? 1 : -1);
+    setCategoryAnimation((value) => value + 1);
     setActiveCategory(index);
-    setTrackCategory(index + 1);
   };
 
   const endCatalogSwipe = (event) => {
@@ -85,31 +85,10 @@ export function BadgeCatalogDialog({ catalog = [], disputed = [], onClose }) {
     moveCategory(deltaX < 0 ? 1 : -1);
   };
 
-  const settleCategoryTrack = (event) => {
-    if (event.target !== event.currentTarget) return;
-    if (categoryCount < 2) return;
-    if (trackCategory === 0) {
-      setCategoryTransition(false);
-      setTrackCategory(categoryCount);
-      return;
-    }
-    if (trackCategory === categoryCount + 1) {
-      setCategoryTransition(false);
-      setTrackCategory(1);
-    }
-  };
-
-  useEffect(() => {
-    if (!categoryTransition) {
-      const frame = window.requestAnimationFrame(() => setCategoryTransition(true));
-      return () => window.cancelAnimationFrame(frame);
-    }
-  }, [categoryTransition]);
-
   useEffect(() => {
     setActiveCategory(0);
-    setTrackCategory(1);
-    setCategoryTransition(true);
+    setCategoryDirection(1);
+    setCategoryAnimation(0);
   }, [categoryCount]);
 
   return <div className="badge-popup-overlay" role="presentation" onClick={onClose}>
@@ -125,22 +104,17 @@ export function BadgeCatalogDialog({ catalog = [], disputed = [], onClose }) {
         onPointerUp={endCatalogSwipe}
         onPointerCancel={() => { catalogSwipeStart.current = null; }}
       >
-        <div
-          className="badge-catalog-track"
-          onTransitionEnd={settleCategoryTrack}
-          style={{
-            transform: `translateX(-${(categoryCount > 1 ? trackCategory : 0) * 100}%)`,
-            transition: categoryTransition ? undefined : "none"
-          }}
+        {activePage && <section
+          className={`badge-catalog-page ${activePage.type === "disputed" ? "badge-catalog-disputed" : ""} ${categoryDirection < 0 ? "from-left" : "from-right"}`}
+          key={`${activePage.key}-${categoryAnimation}`}
         >
-          {carouselPages.map((page, pageIndex) => <section className={page.type === "disputed" ? "badge-catalog-disputed" : ""} key={`${page.key}-${pageIndex}`}>
             <header>
-              <h4>{page.title}</h4>
-              <small>{page.type === "disputed" ? `${page.items.length} en juego ahora` : `${page.value || 0} conseguidas`}</small>
+              <h4>{activePage.title}</h4>
+              <small>{activePage.type === "disputed" ? `${activePage.items.length} en juego ahora` : `${activePage.value || 0} conseguidas`}</small>
             </header>
             <div>
-              {page.type === "disputed" ? (
-                page.items.length ? page.items.map((badge) => <article className={badge.kind || ""} key={`${badge.name}-${badge.description}`}>
+              {activePage.type === "disputed" ? (
+                activePage.items.length ? activePage.items.map((badge) => <article className={badge.kind || ""} key={`${badge.name}-${badge.description}`}>
                   <span aria-hidden="true">{badge.icon}</span>
                   <div>
                     <strong>{badge.name}</strong>
@@ -149,17 +123,16 @@ export function BadgeCatalogDialog({ catalog = [], disputed = [], onClose }) {
                   </div>
                   <Check size={16} />
                 </article>) : <p className="badge-catalog-empty">Ahora mismo no hay medallas en disputa.</p>
-              ) : page.items.map((tier) => <article className={tier.achieved ? "achieved" : ""} key={`${page.group}-${tier.level}`}>
+              ) : activePage.items.map((tier) => <article className={tier.achieved ? "achieved" : ""} key={`${activePage.group}-${tier.level}`}>
                 <span aria-hidden="true">{tier.icon}</span>
                 <div>
                   <strong>{tier.name}</strong>
-                  <small>{tier.description} Ahora: {page.value || 0}. {levelStatusText(page.value, tier.threshold)}.</small>
+                  <small>{tier.description} Ahora: {activePage.value || 0}. {levelStatusText(activePage.value, tier.threshold)}.</small>
                 </div>
                 {tier.achieved ? <Check size={16} /> : <Lock size={15} />}
               </article>)}
             </div>
-          </section>)}
-        </div>
+          </section>}
       </div>
       {categoryCount > 1 && <div className="badge-catalog-pagination" aria-label="Categorías de medallas">
         {catalogPages.map((page, index) => (
