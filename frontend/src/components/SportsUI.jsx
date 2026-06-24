@@ -41,6 +41,54 @@ const holdersText = (holders = []) => {
   return `${holders.slice(0, -1).join(", ")} y ${holders.at(-1)}`;
 };
 
+export function BadgeCatalogDialog({ catalog = [], disputed = [], onClose }) {
+  const orderedCatalog = [...catalog].sort((a, b) => Number(a.order ?? 99) - Number(b.order ?? 99));
+  const orderedDisputed = [...disputed].sort((a, b) =>
+    Number(a.order ?? 99) - Number(b.order ?? 99) ||
+    Number(b.level ?? 0) - Number(a.level ?? 0) ||
+    String(a.name).localeCompare(String(b.name), "es")
+  );
+
+  return <div className="badge-popup-overlay" role="presentation" onClick={onClose}>
+    <div className="badge-popup badge-catalog-popup" role="dialog" aria-modal="true" aria-labelledby="badge-catalog-title" onClick={(event) => event.stopPropagation()}>
+      <button type="button" className="badge-popup-close" aria-label="Cerrar información de medallas" onClick={onClose}>
+        <X size={18} />
+      </button>
+      <small className="badge-popup-type">Guía de medallas</small>
+      <h3 id="badge-catalog-title">Todas las medallas</h3>
+      <div className="badge-catalog-list">
+        {orderedDisputed.length > 0 && <section className="badge-catalog-disputed">
+          <h4>Medallas en disputa</h4>
+          <div>
+            {orderedDisputed.map((badge) => <article className={badge.kind || ""} key={`${badge.name}-${badge.description}`}>
+              <span aria-hidden="true">{badge.icon}</span>
+              <div>
+                <strong>{badge.name}</strong>
+                <small>{badge.description || "Medalla disputada durante la porra."}</small>
+                <em>Ahora: {holdersText(badge.holders)}</em>
+              </div>
+              <Check size={16} />
+            </article>)}
+          </div>
+        </section>}
+        {orderedCatalog.map((group) => <section key={group.group}>
+          <h4>{group.title}</h4>
+          <div>
+            {group.tiers.map((tier) => <article className={tier.achieved ? "achieved" : ""} key={`${group.group}-${tier.level}`}>
+              <span aria-hidden="true">{tier.icon}</span>
+              <div>
+                <strong>{tier.name}</strong>
+                <small>{tier.description} Ahora: {group.value || 0}.</small>
+              </div>
+              {tier.achieved ? <Check size={16} /> : <Lock size={15} />}
+            </article>)}
+          </div>
+        </section>)}
+      </div>
+    </div>
+  </div>;
+}
+
 export function Badges({ badges = [], catalog = [], disputed = [] }) {
   const [selectedBadge, setSelectedBadge] = useState(null);
   const [catalogOpen, setCatalogOpen] = useState(false);
@@ -51,11 +99,6 @@ export function Badges({ badges = [], catalog = [], disputed = [] }) {
     String(a.name).localeCompare(String(b.name), "es")
   );
   const orderedCatalog = [...catalog].sort((a, b) => Number(a.order ?? 99) - Number(b.order ?? 99));
-  const orderedDisputed = [...disputed].sort((a, b) =>
-    Number(a.order ?? 99) - Number(b.order ?? 99) ||
-    Number(b.level ?? 0) - Number(a.level ?? 0) ||
-    String(a.name).localeCompare(String(b.name), "es")
-  );
   const hasCatalog = orderedCatalog.some((group) => group.tiers?.length);
 
   return <div className="badges-wrap">
@@ -107,43 +150,6 @@ export function Badges({ badges = [], catalog = [], disputed = [] }) {
         </div>}
       </div>
     </div>}
-    {catalogOpen && <div className="badge-popup-overlay" role="presentation" onClick={() => setCatalogOpen(false)}>
-      <div className="badge-popup badge-catalog-popup" role="dialog" aria-modal="true" aria-labelledby="badge-catalog-title" onClick={(event) => event.stopPropagation()}>
-        <button type="button" className="badge-popup-close" aria-label="Cerrar información de medallas" onClick={() => setCatalogOpen(false)}>
-          <X size={18} />
-        </button>
-        <small className="badge-popup-type">Guía de medallas</small>
-        <h3 id="badge-catalog-title">Todas las medallas</h3>
-        <div className="badge-catalog-list">
-          {orderedDisputed.length > 0 && <section className="badge-catalog-disputed">
-            <h4>Medallas en disputa</h4>
-            <div>
-              {orderedDisputed.map((badge) => <article className={badge.kind || ""} key={`${badge.name}-${badge.description}`}>
-                <span aria-hidden="true">{badge.icon}</span>
-                <div>
-                  <strong>{badge.name}</strong>
-                  <small>{badge.description || "Medalla disputada durante la porra."}</small>
-                  <em>Ahora: {holdersText(badge.holders)}</em>
-                </div>
-                <Check size={16} />
-              </article>)}
-            </div>
-          </section>}
-          {orderedCatalog.map((group) => <section key={group.group}>
-            <h4>{group.title}</h4>
-            <div>
-              {group.tiers.map((tier) => <article className={tier.achieved ? "achieved" : ""} key={`${group.group}-${tier.level}`}>
-                <span aria-hidden="true">{tier.icon}</span>
-                <div>
-                  <strong>{tier.name}</strong>
-                  <small>{tier.description} Ahora: {group.value || 0}.</small>
-                </div>
-                {tier.achieved ? <Check size={16} /> : <Lock size={15} />}
-              </article>)}
-            </div>
-          </section>)}
-        </div>
-      </div>
-    </div>}
+    {catalogOpen && <BadgeCatalogDialog catalog={catalog} disputed={disputed} onClose={() => setCatalogOpen(false)} />}
   </div>;
 }
