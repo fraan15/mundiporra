@@ -10,11 +10,11 @@
       position: fixed;
       left: 50%;
       right: auto;
-      bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+      bottom: calc(6px + env(safe-area-inset-bottom, 0px));
       width: calc(100% - 24px);
       max-width: 520px;
       height: auto;
-      padding-bottom: 8px;
+      padding-bottom: 6px;
       transform: translateX(-50%);
       -webkit-transform: translateX(-50%);
       will-change: auto;
@@ -24,12 +24,12 @@
     }
 
     .page {
-      padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px));
+      padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
     }
 
     main,
     .page {
-      scroll-margin-bottom: calc(118px + env(safe-area-inset-bottom, 0px));
+      scroll-margin-bottom: calc(102px + env(safe-area-inset-bottom, 0px));
     }
   }
 }
