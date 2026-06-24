@@ -338,9 +338,11 @@ const isBettingOpenForMatch = (match) => isMatchPublished(match) && match.status
 
 const dashboardCalendarMatches = (matches, today = dateInTimeZone(new Date(), MATCH_TIME_ZONE)) => {
   const yesterday = addDays(today, -1);
+  const later = addDays(today, 3);
   return matches.filter((match) =>
     match.match_date === today ||
     (match.match_date === yesterday && isMatchInPlay(match)) ||
+    (match.status !== "finished" && match.match_date > today && match.match_date <= later) ||
     isBettingOpenForMatch(match)
   );
 };
@@ -566,11 +568,11 @@ app.get("/api/matches", requireAuth, (req, res) => {
 app.get("/api/matches/summary", requireAuth, (req, res) => {
   autoCloseExpired();
   const today = dateInTimeZone(new Date(), MATCH_TIME_ZONE);
-  const matches = matchListForUser(req, "WHERE m.match_date=? OR m.status='open'", [today]);
+  const matches = matchListForUser(req, "WHERE m.match_date>=? OR m.status='open'", [today]);
   const visible = serializeMatches(matches);
   res.json({
     today: visible.filter((match) => match.match_date === today).length,
-    upcoming: visible.filter((match) => match.match_date !== today && match.betting_open).length,
+    upcoming: visible.filter((match) => match.match_date !== today && match.status !== "finished" && !match.in_play).length,
     pending: req.user.is_read_only ? 0 : visible.filter((match) => match.betting_open && !match.prediction_id).length,
     history: db.prepare("SELECT COUNT(*) count FROM matches WHERE status='finished'").get().count
   });
@@ -591,8 +593,9 @@ app.get("/api/matches/view/:view", requireAuth, (req, res) => {
     return res.json(serializeMatches(matchListForUser(req, "WHERE m.match_date=?", [today])));
   }
   if (view === "upcoming") {
-    const matches = matchListForUser(req, "WHERE m.status='open' AND m.match_date<>?", [today])
-      .filter(isBettingOpenForMatch);
+    const current = new Date();
+    const matches = matchListForUser(req, "WHERE m.status!='finished' AND m.match_date>=? AND m.match_date<>?", [today, today])
+      .filter((match) => !isMatchInPlay(match, current) && matchStartsAt(match) > current);
     return res.json(serializeMatches(matches));
   }
   if (view === "pending") {
@@ -1130,7 +1133,8 @@ app.get("/api/dashboard/calendar", requireAuth, (req, res) => {
   autoCloseExpired();
   const today = dateInTimeZone(new Date(), MATCH_TIME_ZONE);
   const yesterday = addDays(today, -1);
-  const candidates = matchListForUser(req, "WHERE m.match_date IN (?,?) OR m.status='open'", [today, yesterday]);
+  const later = addDays(today, 3);
+  const candidates = matchListForUser(req, "WHERE m.match_date BETWEEN ? AND ? OR m.status='open'", [yesterday, later]);
   const matches = dashboardCalendarMatches(candidates, today);
   res.json(serializeMatches(matches));
 });

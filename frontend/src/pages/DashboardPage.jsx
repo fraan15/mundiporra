@@ -248,7 +248,7 @@ export function DashboardPage() {
     <button type="button" className="worldcup-dashboard-action knockout" onClick={()=>setKnockoutInfoOpen(true)}>
       <span className="worldcup-action-icon"><Info size={20}/></span>
       <span className="worldcup-action-copy">
-        <strong>Info Eliminatorias</strong>
+        <strong>Info Playoffs</strong>
         <small>Prórroga, penaltis y puntuación</small>
       </span>
       <span className="worldcup-action-arrow"><ArrowRight size={17}/></span>

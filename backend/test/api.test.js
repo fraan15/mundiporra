@@ -1120,6 +1120,9 @@ test("los endpoints ligeros de partidos filtran calendario, vistas y ticker", as
   const openTomorrow = await admin.post("/api/matches").send({
     match_date: tomorrow, match_time: "23:45", team1: "Mañana abierto", team2: "Mañana rival", force_published: true
   }).expect(201);
+  const closedTomorrow = await admin.post("/api/matches").send({
+    match_date: tomorrow, match_time: "00:00", team1: "Madrugada cerrada", team2: "Madrugada rival", force_published: true
+  }).expect(201);
   const hiddenLater = await admin.post("/api/matches").send({
     match_date: later, match_time: "23:45", team1: "Oculto ligero", team2: "Oculto rival"
   }).expect(201);
@@ -1136,11 +1139,13 @@ test("los endpoints ligeros de partidos filtran calendario, vistas y ticker", as
     predicted_team1_goals: 0,
     predicted_team2_goals: 0
   }).expect(201);
+  await admin.patch(`/api/matches/${closedTomorrow.body.id}/status`).send({ status: "closed" }).expect(200);
 
   const calendar = await user.get("/api/dashboard/calendar").expect(200);
   assert.equal(calendar.body.some((match) => match.id === todayMatch.body.id), true);
   assert.equal(calendar.body.some((match) => match.id === yesterdayLive.body.id), true);
   assert.equal(calendar.body.some((match) => match.id === openTomorrow.body.id), true);
+  assert.equal(calendar.body.some((match) => match.id === closedTomorrow.body.id), true);
   assert.equal(calendar.body.some((match) => match.id === hiddenLater.body.id), false);
   assert.equal(calendar.body.some((match) => match.id === yesterdayFinished.body.id), false);
 
@@ -1152,8 +1157,9 @@ test("los endpoints ligeros de partidos filtran calendario, vistas y ticker", as
 
   const upcoming = await user.get("/api/matches/view/upcoming").expect(200);
   assert.equal(upcoming.body.some((match) => match.id === openTomorrow.body.id), true);
+  assert.equal(upcoming.body.some((match) => match.id === closedTomorrow.body.id), true);
   assert.equal(upcoming.body.some((match) => match.id === todayMatch.body.id), false);
-  assert.equal(upcoming.body.every((match) => match.match_date !== today && match.betting_open), true);
+  assert.equal(upcoming.body.every((match) => match.match_date !== today && match.status !== "finished" && !match.in_play), true);
 
   const pending = await user.get("/api/matches/view/pending").expect(200);
   assert.equal(pending.body.some((match) => match.id === openTomorrow.body.id), false);
