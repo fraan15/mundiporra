@@ -69,7 +69,9 @@ const StatCards = ({ s, onPointsInfo }) => (
         ["Pronósticos", s.predicted_matches],
         ["Ganadores", s.winner_hits],
         ["Exactos", s.exact_hits],
+        ["Goleadores", s.scorer_hits],
         ["Media diaria", `${s.average_points} pts`],
+        ["% acierto", `${s.accuracy_percentage || 0}%`],
       ].map(([label, value]) => (
         <span key={label}>
           <small>{label}</small>
@@ -588,6 +590,10 @@ function StatsSections({ stats: s, history = [], onDayClick }) {
       ["Resultados exactos", `${s.exact_percentage}%`],
     ],
     [
+      ["Goleadores acertados", s.scorer_hits],
+      ["% de acierto", `${s.accuracy_percentage || 0}%`],
+    ],
+    [
       ["Mejor jornada", s.best_day ? `${s.best_day.points} pts` : "—"],
       ["Peor jornada", s.worst_day ? `${s.worst_day.points} pts` : "—"],
     ],
@@ -603,6 +609,8 @@ function StatsSections({ stats: s, history = [], onDayClick }) {
         {[
           ["Ganadores acertados", `${s.winner_percentage}%`],
           ["Resultados exactos", `${s.exact_percentage}%`],
+          ["Goleadores acertados", s.scorer_hits],
+          ["% de acierto", `${s.accuracy_percentage || 0}%`],
           ["Mejor jornada", s.best_day ? `${s.best_day.points} pts` : "—"],
           ["Peor jornada", s.worst_day ? `${s.worst_day.points} pts` : "—"],
           ["Equipo más elegido", s.most_picked_team],

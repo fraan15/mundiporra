@@ -643,7 +643,7 @@ const userStats = (userId) => {
     const drawLeaders = db.prepare(`
       SELECT p.user_id,COUNT(*) draws FROM predictions p
       JOIN matches m ON m.id=p.match_id JOIN users u ON u.id=p.user_id
-      WHERE m.status='finished' AND p.predicted_winner='draw' AND u.active=1 AND u.role='user'
+      WHERE m.status='finished' AND p.predicted_winner='draw' AND p.winner_points>0 AND u.active=1 AND u.role='user'
       GROUP BY p.user_id ORDER BY draws DESC,p.user_id
     `).all();
     const mostDraws = Number(drawLeaders[0]?.draws || 0);
@@ -684,7 +684,7 @@ const userStats = (userId) => {
     return awards;
   })();
   const finished = db.prepare(`
-    SELECT p.*,m.match_date,m.team1,m.team2,m.winner FROM predictions p
+    SELECT p.*,m.match_date,m.team1,m.team2,m.winner,m.scorer_enabled FROM predictions p
     JOIN matches m ON m.id=p.match_id WHERE p.user_id=? AND m.status='finished'
     ORDER BY m.match_date,m.match_time
   `).all(userId);
@@ -717,10 +717,14 @@ const userStats = (userId) => {
     group, title, value, order: tiers[0]?.order || 99,
     tiers: tiers.map((tier) => ({ ...tier, achieved: value >= tier.threshold, description: tier.description(value) }))
   })).sort((a, b) => a.order - b.order);
+  const scorerOpportunities = finished.filter((prediction) => Number(prediction.scorer_enabled)).length;
+  const accuracyHits = Number(row.winner_hits || 0) + Number(row.exact_hits || 0) + Number(row.scorer_hits || 0);
+  const accuracyOpportunities = (finished.length * 2) + scorerOpportunities;
   return {
     ...row, position, finished_matches: finished.length,
     winner_percentage: finished.length ? Math.round(row.winner_hits / finished.length * 100) : 0,
     exact_percentage: finished.length ? Math.round(row.exact_hits / finished.length * 100) : 0,
+    accuracy_percentage: accuracyOpportunities ? Math.round(accuracyHits / accuracyOpportunities * 100) : 0,
     average_points: finished.length ? Number((row.total_points / finished.length).toFixed(1)) : 0,
     best_day: daily.sort((a,b) => b.points-a.points)[0] || null,
     worst_day: [...daily].sort((a,b) => a.points-b.points)[0] || null,
@@ -939,7 +943,8 @@ app.get("/api/worldcup/overview", requireAuth, (_req, res) => {
 app.get("/api/profile/me", requireAuth, (req, res) => {
   const stats = userStats(req.user.id) || {
     position: "—", total_points: 0, predicted_matches: 0, winner_hits: 0, exact_hits: 0,
-    average_points: 0, winner_percentage: 0, exact_percentage: 0, best_day: null,
+    scorer_hits: 0, average_points: 0, winner_percentage: 0, exact_percentage: 0,
+    accuracy_percentage: 0, best_day: null,
     worst_day: null, most_picked_team: "—", best_team: "—", daily: [], badges: []
   };
   res.json({

@@ -1539,6 +1539,84 @@ test("consultar dashboard y perfiles no escribe instantáneas de clasificación"
   assert.equal(written, 0);
 });
 
+test("la medalla rey del empate cuenta solo empates acertados", async () => {
+  const admin = request.agent(app);
+  const drawKing = request.agent(app);
+  const drawGambler = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  const suffix = Date.now();
+  const kingUsername = `rey-empate-${suffix}`;
+  const gamblerUsername = `apuesta-empate-${suffix}`;
+  await admin.post("/api/users").send({ username: kingUsername, password: "prueba-segura", role: "user" }).expect(201);
+  await admin.post("/api/users").send({ username: gamblerUsername, password: "prueba-segura", role: "user" }).expect(201);
+  await drawKing.post("/api/auth/login").send({ username: kingUsername, password: "prueba-segura" }).expect(200);
+  await drawGambler.post("/api/auth/login").send({ username: gamblerUsername, password: "prueba-segura" }).expect(200);
+
+  const currentMax = Number(db.prepare(`
+    SELECT COALESCE(MAX(draws),0) draws FROM (
+      SELECT COUNT(*) draws
+      FROM predictions p
+      JOIN matches m ON m.id=p.match_id
+      JOIN users u ON u.id=p.user_id
+      WHERE m.status='finished' AND p.predicted_winner='draw' AND p.winner_points>0 AND u.active=1 AND u.role='user'
+      GROUP BY p.user_id
+    )
+  `).get().draws || 0);
+  const targetDraws = currentMax + 1;
+
+  for (let index = 0; index < targetDraws; index += 1) {
+    const created = await admin.post("/api/matches").send({
+      match_date: "2099-07-11",
+      match_time: "20:00",
+      team1: `Empate acertado A ${suffix}-${index}`,
+      team2: `Empate acertado B ${suffix}-${index}`,
+      force_published: true,
+      scorer_enabled: false
+    }).expect(201);
+    await drawKing.post("/api/predictions").send({
+      match_id: created.body.id,
+      predicted_winner: "draw",
+      predicted_team1_goals: 1,
+      predicted_team2_goals: 1,
+      predicted_scorer_id: null
+    }).expect(201);
+    await admin.post(`/api/matches/${created.body.id}/finish`).send({
+      result_team1: 1,
+      result_team2: 1,
+      scorer_ids: []
+    }).expect(200);
+  }
+  for (let index = 0; index < targetDraws + 1; index += 1) {
+    const created = await admin.post("/api/matches").send({
+      match_date: "2099-07-12",
+      match_time: "20:00",
+      team1: `Empate fallado A ${suffix}-${index}`,
+      team2: `Empate fallado B ${suffix}-${index}`,
+      force_published: true,
+      scorer_enabled: false
+    }).expect(201);
+    await drawGambler.post("/api/predictions").send({
+      match_id: created.body.id,
+      predicted_winner: "draw",
+      predicted_team1_goals: 1,
+      predicted_team2_goals: 1,
+      predicted_scorer_id: null
+    }).expect(201);
+    await admin.post(`/api/matches/${created.body.id}/finish`).send({
+      result_team1: 2,
+      result_team2: 1,
+      scorer_ids: []
+    }).expect(200);
+  }
+
+  const king = db.prepare("SELECT id FROM users WHERE username=?").get(kingUsername);
+  const gambler = db.prepare("SELECT id FROM users WHERE username=?").get(gamblerUsername);
+  const kingProfile = await drawKing.get(`/api/users/${king.id}/public`).expect(200);
+  const gamblerProfile = await drawGambler.get(`/api/users/${gambler.id}/public`).expect(200);
+  assert.equal(kingProfile.body.stats.badges.some((badge) => badge.name === `Rey del empate · ${targetDraws}`), true);
+  assert.equal(gamblerProfile.body.stats.badges.some((badge) => badge.name.startsWith("Rey del empate")), false);
+});
+
 test("un ajuste guarda el histórico y el detalle público cuadra exactamente", async () => {
   const admin = request.agent(app);
   const user = request.agent(app);
