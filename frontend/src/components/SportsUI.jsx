@@ -85,7 +85,8 @@ export function BadgeCatalogDialog({ catalog = [], disputed = [], onClose }) {
     moveCategory(deltaX < 0 ? 1 : -1);
   };
 
-  const settleCategoryTrack = () => {
+  const settleCategoryTrack = (event) => {
+    if (event.target !== event.currentTarget) return;
     if (categoryCount < 2) return;
     if (trackCategory === 0) {
       setCategoryTransition(false);
@@ -128,8 +129,7 @@ export function BadgeCatalogDialog({ catalog = [], disputed = [], onClose }) {
           className="badge-catalog-track"
           onTransitionEnd={settleCategoryTrack}
           style={{
-            "--badge-catalog-pages": carouselPages.length || 1,
-            transform: `translateX(-${(categoryCount > 1 ? trackCategory : 0) * (100 / (carouselPages.length || 1))}%)`,
+            transform: `translateX(-${(categoryCount > 1 ? trackCategory : 0) * 100}%)`,
             transition: categoryTransition ? undefined : "none"
           }}
         >
