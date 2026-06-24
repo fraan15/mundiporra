@@ -38,7 +38,7 @@ const levelStatusText = (value, threshold) => {
 const holdersText = (holders = []) => {
   if (!holders.length) return "Sin titular ahora mismo";
   if (holders.length === 1) return holders[0];
-  return `${holders.slice(0, -1).join(", ")} y ${holders.at(-1)}`;
+  return `${holders.slice(0, -1).join(", ")} y ${holders[holders.length - 1]}`;
 };
 
 const isDisputedBadge = (badge) => badge?.disputed || ["record", "leader"].includes(badge?.kind);
@@ -59,7 +59,7 @@ export function BadgeCatalogDialog({ catalog = [], disputed = [], onClose }) {
     ...orderedCatalog.map((group) => ({ ...group, type: "catalog", key: group.group, items: group.tiers || [] }))
   ].filter((page) => page.type === "disputed" || page.items.length), [orderedCatalog, orderedDisputed]);
   const categoryCount = catalogPages.length;
-  const carouselPages = categoryCount > 1 ? [catalogPages.at(-1), ...catalogPages, catalogPages[0]] : catalogPages;
+  const carouselPages = categoryCount > 1 ? [catalogPages[categoryCount - 1], ...catalogPages, catalogPages[0]] : catalogPages;
 
   const moveCategory = (direction) => {
     if (categoryCount < 2) return;
