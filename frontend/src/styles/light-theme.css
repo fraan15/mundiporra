@@ -1535,8 +1535,8 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 
 /* Floating glass bottom navigation */
 @media(max-width:800px){
-  body{padding-bottom:calc(82px + env(safe-area-inset-bottom))}
-  .app-shell main{padding-bottom:calc(82px + env(safe-area-inset-bottom))}
+  body{padding-bottom:calc(88px + env(safe-area-inset-bottom))}
+  .app-shell main{padding-bottom:calc(88px + env(safe-area-inset-bottom))}
   .page{padding-bottom:calc(28px + env(safe-area-inset-bottom))}
   .main-nav.app-bottom-nav{
     position:fixed;
@@ -1544,14 +1544,14 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
     right:auto;
     bottom:calc(5px + env(safe-area-inset-bottom));
     inset:auto auto calc(5px + env(safe-area-inset-bottom)) 50%;
-    width:auto;
-    max-width:calc(100% - 24px);
+    width:calc(100% - 24px);
+    max-width:520px;
     height:auto;
     min-height:0;
     display:flex;
     align-items:center;
     justify-content:center;
-    gap:6px;
+    gap:3px;
     padding:6px 8px;
     border:1px solid rgba(255,255,255,.24);
     border-radius:999px;
@@ -1568,27 +1568,32 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
   .main-nav.app-bottom-nav.is-expanded{
     background:linear-gradient(135deg,rgba(255,255,255,.4),rgba(255,255,255,.22));
     box-shadow:0 16px 38px rgba(0,0,0,.25),0 0 18px rgba(185,75,85,.1),inset 0 1px 0 rgba(255,255,255,.36);
-    transform:translateX(-50%) scale(1.008);
-    -webkit-transform:translateX(-50%) scale(1.008);
-    backdrop-filter:blur(18px) saturate(155%);
-    -webkit-backdrop-filter:blur(18px) saturate(155%);
+    transform:translateX(-50%) scale(1.006);
+    -webkit-transform:translateX(-50%) scale(1.006);
+    backdrop-filter:blur(17px) saturate(150%);
+    -webkit-backdrop-filter:blur(17px) saturate(150%);
   }
   .main-nav.app-bottom-nav a{
-    flex:0 0 auto;
-    width:42px;
-    min-width:42px;
-    height:42px;
-    min-height:42px;
+    flex:1 1 0;
+    min-width:0;
+    height:52px;
+    min-height:52px;
     display:flex;
+    flex-direction:column;
     align-items:center;
     justify-content:center;
+    gap:3px;
     margin:0;
-    padding:0;
+    padding:6px 2px;
     border:0;
     border-radius:999px;
     background:transparent;
     color:rgba(30,30,30,.72);
+    font-size:clamp(8px,2.3vw,9.8px);
+    font-weight:800;
+    line-height:1;
     text-decoration:none;
+    white-space:nowrap;
     overflow:hidden;
   }
   .main-nav.app-bottom-nav a.active{
@@ -1598,7 +1603,8 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
     border:0;
   }
   .main-nav.app-bottom-nav a:active{transform:scale(.96)}
-  .main-nav.app-bottom-nav a svg{width:21px;height:21px;flex:0 0 auto}
+  .main-nav.app-bottom-nav a svg{width:20px;height:20px;flex:0 0 auto}
+  .main-nav.app-bottom-nav .nav-label{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis}
   .main-nav.app-bottom-nav .nav-icon{position:relative;display:grid;place-items:center;overflow:visible}
   .main-nav.app-bottom-nav .chat-unread-dot{position:absolute;top:-3px;right:-5px}
   [data-theme="dark"] .main-nav.app-bottom-nav{
@@ -1613,9 +1619,9 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
   [data-theme="dark"] .main-nav.app-bottom-nav a.active{background:rgba(255,255,255,.24);color:#ff9aa7}
 }
 @media(max-width:380px){
-  .main-nav.app-bottom-nav{max-width:calc(100% - 16px);gap:4px}
-  .main-nav.app-bottom-nav a{width:40px;min-width:40px;height:40px;min-height:40px}
-  .main-nav.app-bottom-nav a svg{width:20px;height:20px}
+  .main-nav.app-bottom-nav{width:calc(100% - 16px);padding:6px;gap:2px}
+  .main-nav.app-bottom-nav a{height:50px;min-height:50px;font-size:8px}
+  .main-nav.app-bottom-nav a svg{width:19px;height:19px}
 }
 @media(prefers-reduced-motion:reduce){
   .main-nav.app-bottom-nav,
