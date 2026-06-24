@@ -563,11 +563,13 @@ function MainLayout() {
       <button className="pending-login-alert-close" aria-label="Cerrar aviso" title="Cerrar" onClick={()=>setPendingAlert(false)}><X size={19}/></button>
     </div>}
     <header className="topbar">
-      <button className="brand" onClick={() => navigate("/")}>
-        <span className="brand-mark"><img src="/images/mundial_2026.png" alt="" /></span>
-        <span className="brand-copy"><strong>MundiPorra</strong><TodayMatchesTicker fallback={settings.pool_name || "MUNDIPORRA"}/></span>
-      </button>
-      <div className="user-area"><button className="icon-btn" title="Cambiar tema" onClick={()=>setTheme(theme==="dark"?"light":"dark")}>{theme==="dark"?<Sun size={18}/>:<Moon size={18}/>}</button><NotificationsBell/><ProfileMenu unreadNews={newsData.unread_count} onOpenNews={()=>setNewsOpen(true)}/></div>
+      <div className="topbar-inner">
+        <button className="brand" onClick={() => navigate("/")}>
+          <span className="brand-mark"><img src="/images/mundial_2026.png" alt="" /></span>
+          <span className="brand-copy"><strong>MundiPorra</strong><TodayMatchesTicker fallback={settings.pool_name || "MUNDIPORRA"}/></span>
+        </button>
+        <div className="user-area"><button className="icon-btn" title="Cambiar tema" onClick={()=>setTheme(theme==="dark"?"light":"dark")}>{theme==="dark"?<Sun size={18}/>:<Moon size={18}/>}</button><NotificationsBell/><ProfileMenu unreadNews={newsData.unread_count} onOpenNews={()=>setNewsOpen(true)}/></div>
+      </div>
     </header>
     <nav ref={navRef} className={`main-nav app-bottom-nav bottom-nav-glass${navExpanded?" is-expanded":""}${isNavDragging?" is-dragging":""}`} style={{ "--nav-items": items.length, "--bubble-x": `${bubble.x}px`, "--bubble-width": `${bubble.width}px`, "--bubble-height": `${bubble.height}px` }} onPointerDown={handleNavPointerDown} onPointerMove={handleNavPointerMove} onPointerUp={finishNavDrag} onPointerCancel={finishNavDrag} onClickCapture={handleNavClickCapture}>
       {activeNavIndex>=0&&<span className="bottom-nav-bubble" aria-hidden="true"/>}
