@@ -91,6 +91,17 @@ export function BadgeCatalogDialog({ catalog = [], disputed = [], onClose }) {
     setCategoryAnimation(0);
   }, [categoryCount]);
 
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    const previousOverscrollBehavior = document.body.style.overscrollBehavior;
+    document.body.style.overflow = "hidden";
+    document.body.style.overscrollBehavior = "contain";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.body.style.overscrollBehavior = previousOverscrollBehavior;
+    };
+  }, []);
+
   return <div className="badge-popup-overlay" role="presentation" onClick={onClose}>
     <div className="badge-popup badge-catalog-popup" role="dialog" aria-modal="true" aria-labelledby="badge-catalog-title" onClick={(event) => event.stopPropagation()}>
       <button type="button" className="badge-popup-close" aria-label="Cerrar información de medallas" onClick={onClose}>
@@ -110,7 +121,7 @@ export function BadgeCatalogDialog({ catalog = [], disputed = [], onClose }) {
         >
             <header>
               <h4>{activePage.title}</h4>
-              <small>{activePage.type === "disputed" ? `${activePage.items.length} en juego ahora` : `${activePage.value || 0} conseguidas`}</small>
+              <small>{activePage.type === "disputed" ? `${activePage.items.length} en juego ahora` : `${activePage.items.filter((tier) => tier.achieved).length} conseguidas`}</small>
             </header>
             <div>
               {activePage.type === "disputed" ? (
