@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { Navigate, NavLink, Outlet, Route, Routes, useLocation, useNavigate } from "react-router-dom";
-import { Activity, ArrowDown, ArrowRight, ArrowUp, BarChart3, Bell, Check, CheckCheck, ChevronDown, ChevronLeft, ChevronRight, Goal, House, KeyRound, LogOut, Megaphone, MessageCircle, Moon, Shield, Sparkles, Sun, Trophy, User, X } from "lucide-react";
+import { Activity, ArrowDown, ArrowRight, ArrowUp, BarChart3, Bell, Check, CheckCheck, ChevronDown, ChevronLeft, ChevronRight, Goal, House, LogOut, Megaphone, MessageCircle, Moon, Shield, Sparkles, Sun, Trophy, User, UserCog, X } from "lucide-react";
 import { api } from "./api/client";
 import { LoginPage } from "./pages/LoginPage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -9,7 +9,7 @@ import { HistoryPage, DayHistoryPage } from "./pages/HistoryPage";
 import { AdminPage } from "./pages/AdminPage";
 import { MatchesPage } from "./pages/MatchesPage";
 import { WorldCupPage } from "./pages/WorldCupPage";
-import { ActivityPage, MatchDetailPage, ProfilePage, PublicProfilePage } from "./pages/SocialPages";
+import { ActivityPage, MatchDetailPage, ProfilePage, PublicProfilePage, UserSettingsPage } from "./pages/SocialPages";
 import { ChatPage } from "./pages/ChatPage";
 import { Avatar } from "./components/Avatar";
 import { Flag } from "./components/SportsUI";
@@ -151,9 +151,6 @@ function ProfileMenu({ unreadNews = 0, onOpenNews }) {
   const navigate = useNavigate();
   const menuRef = useRef(null);
   const [open, setOpen] = useState(false);
-  const [changingPassword, setChangingPassword] = useState(false);
-  const [form, setForm] = useState({ current_password: "", new_password: "", confirm_password: "" });
-  const [message, setMessage] = useState({ type: "", text: "" });
   useEffect(() => {
     const close = (event) => {
       if (!menuRef.current?.contains(event.target)) setOpen(false);
@@ -163,25 +160,6 @@ function ProfileMenu({ unreadNews = 0, onOpenNews }) {
   }, []);
   const toggle = () => {
     setOpen(value => !value);
-    setChangingPassword(false);
-    setMessage({ type: "", text: "" });
-  };
-  const changePassword = async (event) => {
-    event.preventDefault();
-    if (form.new_password !== form.confirm_password) {
-      setMessage({ type: "error", text: "Las nuevas contraseñas no coinciden." });
-      return;
-    }
-    try {
-      await api("/profile/password", {
-        method: "PATCH",
-        body: { current_password: form.current_password, new_password: form.new_password }
-      });
-      setForm({ current_password: "", new_password: "", confirm_password: "" });
-      setMessage({ type: "success", text: "Contraseña cambiada correctamente." });
-    } catch (error) {
-      setMessage({ type: "error", text: error.message });
-    }
   };
   const signOut = async () => {
     setOpen(false);
@@ -195,21 +173,14 @@ function ProfileMenu({ unreadNews = 0, onOpenNews }) {
       <ChevronDown className={open ? "open" : ""} size={15}/>
     </button>
     {open && <div className="profile-dropdown">
-      {!changingPassword ? <>
+      <>
         <button className={unreadNews > 0 ? "has-news-dot" : ""} onClick={() => { setOpen(false); onOpenNews(); }}><span className="profile-dropdown-icon"><Megaphone size={17}/>{unreadNews > 0 && <i className="profile-news-dot" aria-label={`${unreadNews} novedades pendientes`}/>}</span><span><strong>Novedades</strong><small>{unreadNews > 0 ? `${unreadNews} sin leer` : "Últimos avisos publicados"}</small></span></button>
         <button onClick={() => { setOpen(false); navigate("/perfil"); }}><User size={17}/><span><strong>Perfil</strong><small>Consulta tus estadísticas</small></span></button>
         <button onClick={() => { setOpen(false); navigate("/mundial"); }}><Goal size={17}/><span><strong>Mundial</strong><small>Información equipos mundial</small></span></button>
         {!user.is_read_only && <button onClick={() => { setOpen(false); navigate("/notificaciones"); }}><Bell size={17}/><span><strong>Notificaciones</strong><small>Configura los avisos push</small></span></button>}
-        {!user.is_read_only && <button onClick={() => { setChangingPassword(true); setMessage({ type: "", text: "" }); }}><KeyRound size={17}/><span><strong>Cambiar contraseña</strong><small>Actualiza tu clave de acceso</small></span></button>}
+        {!user.is_read_only && <button onClick={() => { setOpen(false); navigate("/modificar-usuario"); }}><UserCog size={17}/><span><strong>Modificar usuario</strong><small>Datos visibles y contraseña</small></span></button>}
         <button className="sign-out" onClick={signOut}><LogOut size={17}/><span><strong>Cerrar sesión</strong><small>Volver a la pantalla de acceso</small></span></button>
-      </> : <form className="password-form" onSubmit={changePassword}>
-        <div className="password-form-head"><div><strong>Cambiar contraseña</strong><small>Mínimo 4 caracteres</small></div><button type="button" onClick={() => setChangingPassword(false)}><X size={17}/></button></div>
-        <label>Contraseña actual<input required type="password" autoComplete="current-password" value={form.current_password} onChange={event => setForm({...form,current_password:event.target.value})}/></label>
-        <label>Nueva contraseña<input required minLength={4} type="password" autoComplete="new-password" value={form.new_password} onChange={event => setForm({...form,new_password:event.target.value})}/></label>
-        <label>Repetir contraseña<input required minLength={4} type="password" autoComplete="new-password" value={form.confirm_password} onChange={event => setForm({...form,confirm_password:event.target.value})}/></label>
-        {message.text && <p className={`password-message ${message.type}`}>{message.text}</p>}
-        <button className="primary" type="submit">Guardar contraseña</button>
-      </form>}
+      </>
     </div>}
   </div>;
 }
@@ -494,6 +465,7 @@ export function App() {
         <Route path="match/:id" element={<MatchDetailPage/>}/>
         <Route path="clasificacion" element={<LeaderboardPage/>}/>
         <Route path="perfil" element={<ProfilePage/>}/>
+        <Route path="modificar-usuario" element={<UserSettingsPage/>}/>
         <Route path="notificaciones" element={<PushSettingsPage/>}/>
         <Route path="chat" element={<ChatPage/>}/>
         <Route path="usuario/:id" element={<PublicProfilePage/>}/>

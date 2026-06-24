@@ -541,6 +541,45 @@ const userStats = (userId) => {
   const leaderboard = leaderboardRows();
   const row = leaderboard.find((item) => item.id === Number(userId));
   if (!row) return null;
+  const badgeGroups = [
+    { group: "exact", value: Number(row.exact_hits || 0), title: "Resultados exactos", tiers: [
+      { threshold: 1, level: 1, order: 10, icon: "🥇", name: "Primer exacto", description: () => "Ha acertado su primer resultado exacto." },
+      { threshold: 3, level: 2, order: 10, icon: "🎯", name: "Especialista exacto", description: () => "Ha conseguido 3 resultados exactos o más." },
+      { threshold: 10, level: 3, order: 10, icon: "🏹", name: "Cazador exacto", description: () => "Ha conseguido 10 resultados exactos o más." },
+      { threshold: 30, level: 4, order: 10, icon: "🧠", name: "Maestro exactos", description: () => "Ha conseguido 30 resultados exactos o más." },
+      { threshold: 50, level: 5, order: 10, icon: "🌟", name: "Dios exactos", description: () => "Ha conseguido 50 resultados exactos o más." }
+    ] },
+    { group: "winner", value: Number(row.winner_hits || 0), title: "Ganadores acertados", tiers: [
+      { threshold: 5, level: 1, order: 20, icon: "🔥", name: "Especialista en ganadores", description: () => "Ha acertado el ganador de 5 partidos o más." },
+      { threshold: 15, level: 2, order: 20, icon: "🧭", name: "Cazador de ganadores", description: () => "Ha acertado el ganador de 15 partidos o más." },
+      { threshold: 35, level: 3, order: 20, icon: "🦅", name: "Maestro de ganadores", description: () => "Ha acertado el ganador de 35 partidos o más." },
+      { threshold: 60, level: 4, order: 20, icon: "⚡", name: "Dios de ganadores", description: () => "Ha acertado el ganador de 60 partidos o más." }
+    ] },
+    { group: "scorer", value: Number(row.scorer_hits || 0), title: "Goleadores acertados", tiers: [
+      { threshold: 3, level: 1, order: 30, icon: "👟", name: "Especialista goleador", description: () => "Ha acertado 3 goleadores o más." },
+      { threshold: 10, level: 2, order: 30, icon: "🥾", name: "Cazador goleador", description: () => "Ha acertado 10 goleadores o más." },
+      { threshold: 25, level: 3, order: 30, icon: "⚽", name: "Maestro goleador", description: () => "Ha acertado 25 goleadores o más." },
+      { threshold: 40, level: 4, order: 30, icon: "💫", name: "Dios goleador", description: () => "Ha acertado 40 goleadores o más." }
+    ] },
+    { group: "draw", value: 0, title: "Empates acertados", tiers: [
+      { threshold: 3, level: 1, order: 40, icon: "🤝", name: "Especialista en empates", description: () => "Ha acertado 3 empates o más." },
+      { threshold: 8, level: 2, order: 40, icon: "🧲", name: "Cazador de empates", description: () => "Ha acertado 8 empates o más." },
+      { threshold: 15, level: 3, order: 40, icon: "🪄", name: "Maestro de empates", description: () => "Ha acertado 15 empates o más." },
+      { threshold: 25, level: 4, order: 40, icon: "♾️", name: "Dios de empates", description: () => "Ha acertado 25 empates o más." }
+    ] },
+    { group: "points", value: Number(row.total_points || 0), title: "Puntos acumulados", tiers: [
+      { threshold: 100, level: 1, order: 50, icon: "🏆", name: "Centenario", description: () => "Ha llegado a 100 puntos acumulados o más." },
+      { threshold: 250, level: 2, order: 50, icon: "💎", name: "Cuarto de millar", description: () => "Ha llegado a 250 puntos acumulados o más." },
+      { threshold: 500, level: 3, order: 50, icon: "🏛️", name: "Medio millar", description: () => "Ha llegado a 500 puntos acumulados o más." },
+      { threshold: 800, level: 4, order: 50, icon: "🚀", name: "Millar a la vista", description: () => "Ha llegado a 800 puntos acumulados o más." }
+    ] },
+    { group: "participation", value: Number(row.predicted_matches || 0), title: "Partidos participados", tiers: [
+      { threshold: 10, level: 1, order: 60, icon: "📋", name: "Constante", description: () => "Ha participado en 10 partidos finalizados o más." },
+      { threshold: 30, level: 2, order: 60, icon: "🗓️", name: "Fijo en la porra", description: () => "Ha participado en 30 partidos finalizados o más." },
+      { threshold: 60, level: 3, order: 60, icon: "🧱", name: "Incombustible", description: () => "Ha participado en 60 partidos finalizados o más." },
+      { threshold: 100, level: 4, order: 60, icon: "🫡", name: "Leyenda constante", description: () => "Ha participado en 100 partidos finalizados o más." }
+    ] }
+  ];
   const tierBadge = (value, group, tiers) => {
     const tier = [...tiers].reverse().find((item) => value >= item.threshold);
     return tier ? {
@@ -550,6 +589,8 @@ const userStats = (userId) => {
       group,
       level: tier.level,
       order: tier.order,
+      value,
+      tiers: tiers.map((item) => ({ ...item, achieved: value >= item.threshold })),
       description: tier.description(value)
     } : null;
   };
@@ -666,47 +707,16 @@ const userStats = (userId) => {
   });
   const maxEntry = (object) => Object.entries(object).sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
   const draws = finished.filter((p) => p.predicted_winner === "draw" && p.winner_points > 0).length;
-  const badgeTiers = [
-    tierBadge(row.exact_hits, "exact", [
-      { threshold: 1, level: 1, order: 10, icon: "🥇", name: "Primer exacto", description: () => "Ha acertado su primer resultado exacto." },
-      { threshold: 3, level: 2, order: 10, icon: "🎯", name: "Especialista exacto", description: () => "Ha conseguido 3 resultados exactos o más." },
-      { threshold: 10, level: 3, order: 10, icon: "🏹", name: "Cazador exacto", description: () => "Ha conseguido 10 resultados exactos o más." },
-      { threshold: 30, level: 4, order: 10, icon: "🧠", name: "Maestro exactos", description: () => "Ha conseguido 30 resultados exactos o más." },
-      { threshold: 50, level: 5, order: 10, icon: "🌟", name: "Dios exactos", description: () => "Ha conseguido 50 resultados exactos o más." }
-    ]),
-    tierBadge(row.winner_hits, "winner", [
-      { threshold: 5, level: 1, order: 20, icon: "🔥", name: "Especialista en ganadores", description: () => "Ha acertado el ganador de 5 partidos o más." },
-      { threshold: 15, level: 2, order: 20, icon: "🧭", name: "Cazador de ganadores", description: () => "Ha acertado el ganador de 15 partidos o más." },
-      { threshold: 35, level: 3, order: 20, icon: "🦅", name: "Maestro de ganadores", description: () => "Ha acertado el ganador de 35 partidos o más." },
-      { threshold: 60, level: 4, order: 20, icon: "⚡", name: "Dios de ganadores", description: () => "Ha acertado el ganador de 60 partidos o más." }
-    ]),
-    tierBadge(row.scorer_hits, "scorer", [
-      { threshold: 3, level: 1, order: 30, icon: "👟", name: "Especialista goleador", description: () => "Ha acertado 3 goleadores o más." },
-      { threshold: 10, level: 2, order: 30, icon: "🥾", name: "Cazador goleador", description: () => "Ha acertado 10 goleadores o más." },
-      { threshold: 25, level: 3, order: 30, icon: "⚽", name: "Maestro goleador", description: () => "Ha acertado 25 goleadores o más." },
-      { threshold: 40, level: 4, order: 30, icon: "💫", name: "Dios goleador", description: () => "Ha acertado 40 goleadores o más." }
-    ]),
-    tierBadge(draws, "draw", [
-      { threshold: 3, level: 1, order: 40, icon: "🤝", name: "Especialista en empates", description: () => "Ha acertado 3 empates o más." },
-      { threshold: 8, level: 2, order: 40, icon: "🧲", name: "Cazador de empates", description: () => "Ha acertado 8 empates o más." },
-      { threshold: 15, level: 3, order: 40, icon: "🪄", name: "Maestro de empates", description: () => "Ha acertado 15 empates o más." },
-      { threshold: 25, level: 4, order: 40, icon: "♾️", name: "Dios de empates", description: () => "Ha acertado 25 empates o más." }
-    ]),
-    tierBadge(row.total_points, "points", [
-      { threshold: 100, level: 1, order: 50, icon: "🏆", name: "Centenario", description: () => "Ha llegado a 100 puntos acumulados o más." },
-      { threshold: 250, level: 2, order: 50, icon: "💎", name: "Cuarto de millar", description: () => "Ha llegado a 250 puntos acumulados o más." },
-      { threshold: 500, level: 3, order: 50, icon: "🏛️", name: "Medio millar", description: () => "Ha llegado a 500 puntos acumulados o más." },
-      { threshold: 800, level: 4, order: 50, icon: "🚀", name: "Millar a la vista", description: () => "Ha llegado a 800 puntos acumulados o más." }
-    ]),
-    tierBadge(row.predicted_matches, "participation", [
-      { threshold: 10, level: 1, order: 60, icon: "📋", name: "Constante", description: () => "Ha participado en 10 partidos finalizados o más." },
-      { threshold: 30, level: 2, order: 60, icon: "🗓️", name: "Fijo en la porra", description: () => "Ha participado en 30 partidos finalizados o más." },
-      { threshold: 60, level: 3, order: 60, icon: "🧱", name: "Incombustible", description: () => "Ha participado en 60 partidos finalizados o más." },
-      { threshold: 100, level: 4, order: 60, icon: "🫡", name: "Leyenda constante", description: () => "Ha participado en 100 partidos finalizados o más." }
-    ])
-  ].filter(Boolean);
+  const groupsWithValues = badgeGroups.map((badgeGroup) =>
+    badgeGroup.group === "draw" ? { ...badgeGroup, value: draws } : badgeGroup
+  );
+  const badgeTiers = groupsWithValues.map(({ value, group, tiers }) => tierBadge(value, group, tiers)).filter(Boolean);
   const badges = badgeTiers.sort((a, b) => a.order - b.order || b.level - a.level);
   badges.push(...(dynamicBadges.get(Number(userId)) || []));
+  const badgeCatalog = groupsWithValues.map(({ group, title, value, tiers }) => ({
+    group, title, value, order: tiers[0]?.order || 99,
+    tiers: tiers.map((tier) => ({ ...tier, achieved: value >= tier.threshold, description: tier.description(value) }))
+  })).sort((a, b) => a.order - b.order);
   return {
     ...row, position, finished_matches: finished.length,
     winner_percentage: finished.length ? Math.round(row.winner_hits / finished.length * 100) : 0,
@@ -714,7 +724,7 @@ const userStats = (userId) => {
     average_points: finished.length ? Number((row.total_points / finished.length).toFixed(1)) : 0,
     best_day: daily.sort((a,b) => b.points-a.points)[0] || null,
     worst_day: [...daily].sort((a,b) => a.points-b.points)[0] || null,
-    most_picked_team: maxEntry(picks), best_team: maxEntry(teamPoints), daily, badges
+    most_picked_team: maxEntry(picks), best_team: maxEntry(teamPoints), daily, badges, badge_catalog: badgeCatalog
   };
 };
 

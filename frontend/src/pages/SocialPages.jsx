@@ -14,6 +14,7 @@ import {
   Edit3,
   Film,
   ImagePlus,
+  KeyRound,
   Goal,
   Info,
   MessageCircle,
@@ -79,12 +80,12 @@ const StatCards = ({ s, onPointsInfo }) => (
   </div>
 );
 
-const MedalsSection = ({ badges = [] }) => (
+const MedalsSection = ({ badges = [], catalog = [] }) => (
   <section className="content-card medals-card">
     <h2>
       Medallas <small>{badges.length}</small>
     </h2>
-    <Badges badges={badges} />
+    <Badges badges={badges} catalog={catalog} />
   </section>
 );
 const consumePointsReturn = () => {
@@ -218,17 +219,18 @@ function MatchSimulationOverlay({ match, players, user, onClose }) {
   </div>;
 }
 
-export function ProfilePage() {
+export function UserSettingsPage() {
   const { user: authUser, setUser } = useAuth();
   const [data, setData] = useState(null),
     [phrase, setPhrase] = useState(""),
     [displayName, setDisplayName] = useState(""),
     [saved, setSaved] = useState(false),
     [saveError, setSaveError] = useState(""),
+    [passwordForm, setPasswordForm] = useState({ current_password: "", new_password: "", confirm_password: "" }),
+    [passwordMessage, setPasswordMessage] = useState({ type: "", text: "" }),
     [avatarMessage, setAvatarMessage] = useState(""),
     [uploading, setUploading] = useState(false),
-    [cropFile, setCropFile] = useState(null),
-    [pointsOpen, setPointsOpen] = useState(consumePointsReturn);
+    [cropFile, setCropFile] = useState(null);
   const load = () =>
     api("/profile/me").then((d) => {
       setData(d);
@@ -257,6 +259,27 @@ export function ProfilePage() {
       load();
     } catch (error) {
       setSaveError(error.message);
+    }
+  };
+  const changePassword = async (event) => {
+    event.preventDefault();
+    setPasswordMessage({ type: "", text: "" });
+    if (passwordForm.new_password !== passwordForm.confirm_password) {
+      setPasswordMessage({ type: "error", text: "Las nuevas contraseñas no coinciden." });
+      return;
+    }
+    try {
+      await api("/profile/password", {
+        method: "PATCH",
+        body: {
+          current_password: passwordForm.current_password,
+          new_password: passwordForm.new_password,
+        },
+      });
+      setPasswordForm({ current_password: "", new_password: "", confirm_password: "" });
+      setPasswordMessage({ type: "success", text: "Contraseña cambiada correctamente." });
+    } catch (error) {
+      setPasswordMessage({ type: "error", text: error.message });
     }
   };
   const changeAvatar = async (event) => {
@@ -346,7 +369,6 @@ export function ProfilePage() {
       setUploading(false);
     }
   };
-  const s = data.stats;
   return (
     <div className="page">
       <section className="profile-hero">
@@ -380,15 +402,10 @@ export function ProfilePage() {
           )}
         </div>
         <div>
-          <span className="eyebrow">PERFIL DE JUGADOR</span>
-          <h1>{data.user.display_name || data.user.username}</h1>
+          <span className="eyebrow">MODIFICAR USUARIO</span>
+          <h1>Tus datos</h1>
           <p>
-            {authUser.is_read_only
-              ? "Solo lectura"
-              : data.user.role === "admin"
-                ? "Administrador"
-                : "Participante"}{" "}
-            · Desde {new Date(data.user.created_at).toLocaleDateString("es-ES")}
+            {data.user.display_name || data.user.username} · @{data.user.username}
           </p>
           {!authUser.is_read_only && (
             <small className="avatar-requirements">
@@ -409,18 +426,9 @@ export function ProfilePage() {
           )}
         </div>
       </section>
-      {pointsOpen && (
-        <PointsDetailOverlay
-          detail={data.points_detail}
-          username={data.user.display_name || data.user.username}
-          onClose={() => setPointsOpen(false)}
-        />
-      )}
-      <StatCards s={s} onPointsInfo={() => setPointsOpen(true)} />
-      <MedalsSection badges={s.badges} />
       {!authUser.is_read_only && (
         <section className="content-card">
-          <h2>Editar perfil</h2>
+          <h2>Datos visibles</h2>
           <div className="phrase-editor">
             <label>
               Nombre visible
@@ -454,6 +462,50 @@ export function ProfilePage() {
           {saveError && <small className="error-text">{saveError}</small>}
         </section>
       )}
+      {!authUser.is_read_only && (
+        <section className="content-card user-password-card">
+          <h2>Cambiar contraseña</h2>
+          <form className="password-form user-settings-password-form" onSubmit={changePassword}>
+            <label>
+              Contraseña actual
+              <input
+                required
+                type="password"
+                autoComplete="current-password"
+                value={passwordForm.current_password}
+                onChange={(event) => setPasswordForm({ ...passwordForm, current_password: event.target.value })}
+              />
+            </label>
+            <label>
+              Nueva contraseña
+              <input
+                required
+                minLength={4}
+                type="password"
+                autoComplete="new-password"
+                value={passwordForm.new_password}
+                onChange={(event) => setPasswordForm({ ...passwordForm, new_password: event.target.value })}
+              />
+            </label>
+            <label>
+              Repetir contraseña
+              <input
+                required
+                minLength={4}
+                type="password"
+                autoComplete="new-password"
+                value={passwordForm.confirm_password}
+                onChange={(event) => setPasswordForm({ ...passwordForm, confirm_password: event.target.value })}
+              />
+            </label>
+            {passwordMessage.text && <p className={`password-message ${passwordMessage.type}`}>{passwordMessage.text}</p>}
+            <button className="primary" type="submit">
+              <KeyRound size={16} />
+              Guardar contraseña
+            </button>
+          </form>
+        </section>
+      )}
       {cropFile && (
         <AvatarCropper
           file={cropFile}
@@ -461,7 +513,6 @@ export function ProfilePage() {
           onConfirm={uploadAvatar}
         />
       )}
-      <StatsSections stats={s} history={data.history} />
     </div>
   );
 }
@@ -583,8 +634,14 @@ function StatsSections({ stats: s, history = [], onDayClick }) {
     </>
   );
 }
-export function PublicProfilePage() {
-  const { id } = useParams(),
+export function ProfilePage() {
+  const { user } = useAuth();
+  return <PublicProfilePage userId={user.id} />;
+}
+
+export function PublicProfilePage({ userId }) {
+  const params = useParams(),
+    id = userId || params.id,
     navigate = useNavigate(),
     [data, setData] = useState(null),
     [historyPage, setHistoryPage] = useState(1),
@@ -681,7 +738,7 @@ export function PublicProfilePage() {
         <b>#{s.position}</b>
       </section>
       <StatCards s={s} onPointsInfo={() => setPointsOpen(true)} />
-      <MedalsSection badges={s.badges} />
+      <MedalsSection badges={s.badges} catalog={s.badge_catalog} />
       <StatsSections stats={s} history={data.history} onDayClick={goToDay} />
       <section className="content-card">
         <h2>Historial visible</h2>
