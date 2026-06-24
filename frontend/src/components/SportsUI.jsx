@@ -92,13 +92,34 @@ export function BadgeCatalogDialog({ catalog = [], disputed = [], onClose }) {
   }, [categoryCount]);
 
   useEffect(() => {
+    const scrollY = window.scrollY || window.pageYOffset || 0;
+    const root = document.documentElement;
     const previousOverflow = document.body.style.overflow;
     const previousOverscrollBehavior = document.body.style.overscrollBehavior;
+    const previousPosition = document.body.style.position;
+    const previousTop = document.body.style.top;
+    const previousLeft = document.body.style.left;
+    const previousRight = document.body.style.right;
+    const previousWidth = document.body.style.width;
+    const previousRootOverscrollBehavior = root.style.overscrollBehavior;
     document.body.style.overflow = "hidden";
     document.body.style.overscrollBehavior = "contain";
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.left = "0";
+    document.body.style.right = "0";
+    document.body.style.width = "100%";
+    root.style.overscrollBehavior = "contain";
     return () => {
       document.body.style.overflow = previousOverflow;
       document.body.style.overscrollBehavior = previousOverscrollBehavior;
+      document.body.style.position = previousPosition;
+      document.body.style.top = previousTop;
+      document.body.style.left = previousLeft;
+      document.body.style.right = previousRight;
+      document.body.style.width = previousWidth;
+      root.style.overscrollBehavior = previousRootOverscrollBehavior;
+      window.scrollTo(0, scrollY);
     };
   }, []);
 
