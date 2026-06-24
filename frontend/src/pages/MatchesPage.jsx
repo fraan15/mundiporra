@@ -26,7 +26,7 @@ export function MatchesPage() {
   const initialView = savedState?.view || (window.location.hash === "#upcoming" ? "pending" : "today");
   const [matches,setMatches]=useState([]),[loading,setLoading]=useState(true),[view,setView]=useState(initialView);
   const [counts,setCounts]=useState({today:0,upcoming:0,pending:0,history:0});
-  const [selectedTeamId,setSelectedTeamId]=useState(savedState?.selectedTeamId||""),[historyDate,setHistoryDate]=useState(savedState?.historyDate||yesterdayKey());
+  const [selectedTeamId,setSelectedTeamId]=useState(initialView==="history"?(savedState?.selectedTeamId||""):""),[historyDate,setHistoryDate]=useState(savedState?.historyDate||yesterdayKey());
   const load=async()=>{
     const path=view==="history"?`/matches/view/history?date=${encodeURIComponent(historyDate||yesterdayKey())}`:`/matches/view/${view}`;
     const [summary,data]=await Promise.all([api("/matches/summary"),api(path)]);
@@ -63,7 +63,7 @@ export function MatchesPage() {
     });
     return [...groups.entries()];
   },[visible,view,today]);
-  const selectView=id=>{setView(id);if(id==="history"&&!historyDate)setHistoryDate(yesterdayKey());window.history.replaceState(null,"",id==="pending"?"#upcoming":window.location.pathname)};
+  const selectView=id=>{setView(id);if(id!=="history")setSelectedTeamId("");if(id==="history"&&!historyDate)setHistoryDate(yesterdayKey());window.history.replaceState(null,"",id==="pending"?"#upcoming":window.location.pathname)};
   const openMatch=id=>{sessionStorage.setItem("matchesPageReturn",JSON.stringify({view,selectedTeamId,historyDate,scrollY:window.scrollY}));navigate(`/match/${id}`,{state:{fromMatchesPage:true}})};
 
   return <div className="page matches-page-redesign">
@@ -75,9 +75,9 @@ export function MatchesPage() {
     <nav className="matches-filter-rail" aria-label="Vista de partidos">{filters.map(([id,label,description,Icon,count])=><button key={id} className={view===id?"active":""} onClick={()=>selectView(id)}><span className="filter-card-icon"><Icon size={16}/></span><span className="filter-card-copy"><span>{label}</span><small>{description}</small></span><b>{count}</b></button>)}</nav>
 
     <section className="matches-toolbar">
-      <div className="matches-team-search"><SearchSelect label="Buscar selección" items={teams} value={selectedTeamId} onChange={team=>setSelectedTeamId(team?.id||"")} placeholder="Buscar selección…" renderItem={team=><><strong>{team.flag_icon} {team.name}</strong><small>{team.fifa_code||"Selección"}</small></>}/></div>
+      {view==="history"&&<div className="matches-team-search"><SearchSelect label="Buscar selección" items={teams} value={selectedTeamId} onChange={team=>setSelectedTeamId(team?.id||"")} placeholder="Buscar selección…" renderItem={team=><><strong>{team.flag_icon} {team.name}</strong><small>{team.fifa_code||"Selección"}</small></>}/></div>}
       {view==="history"&&<label className="matches-date-filter"><span>Fecha del histórico</span><input type="date" value={historyDate} aria-label="Seleccionar fecha del histórico" onChange={event=>setHistoryDate(event.target.value)}/></label>}
-      {(selectedTeamId||(view==="history"&&historyDate!==yesterdayKey()))&&<button onClick={()=>{setSelectedTeamId("");if(view==="history")setHistoryDate(yesterdayKey())}}><X size={15}/> Restablecer</button>}
+      {view==="history"&&(selectedTeamId||historyDate!==yesterdayKey())&&<button onClick={()=>{setSelectedTeamId("");setHistoryDate(yesterdayKey())}}><X size={15}/> Restablecer</button>}
       <small>{visible.length} partido{visible.length===1?"":"s"}</small>
     </section>
 

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Navigate, NavLink, Outlet, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { Activity, ArrowDown, ArrowRight, ArrowUp, BarChart3, Bell, Check, CheckCheck, ChevronDown, ChevronLeft, ChevronRight, Goal, House, LogOut, Megaphone, MessageCircle, Moon, Shield, Sparkles, Sun, Trophy, User, UserCog, X } from "lucide-react";
 import { api } from "./api/client";
@@ -322,6 +322,12 @@ function MainLayout() {
   const [messageError,setMessageError]=useState("");
   const [answering,setAnswering]=useState(false);
   const [navExpanded,setNavExpanded]=useState(false);
+  const navRef=useRef(null);
+  const navItemRefs=useRef([]);
+  const dragStateRef=useRef(null);
+  const suppressNavClickRef=useRef(false);
+  const [bubbleX,setBubbleX]=useState(0);
+  const [isNavDragging,setIsNavDragging]=useState(false);
   useEffect(()=>{document.documentElement.dataset.theme=theme;localStorage.setItem("theme",theme)},[theme]);
   useEffect(()=>{
     let lastY=window.scrollY;
@@ -429,6 +435,105 @@ function MainLayout() {
     ["/chat", "Chat", MessageCircle],
     ...(user.role === "admin" ? [["/gestion", "Gestión", Shield]] : [])
   ];
+  const activeNavIndex=items.findIndex(([to])=>to==="/" ? location.pathname==="/" : location.pathname===to || location.pathname.startsWith(`${to}/`));
+  const clamp=(value,min,max)=>Math.min(Math.max(value,min),max);
+  const getBubbleXForIndex=useCallback(index=>{
+    const nav=navRef.current;
+    const item=navItemRefs.current[index];
+    if(!nav||!item)return 0;
+    const navRect=nav.getBoundingClientRect();
+    const itemRect=item.getBoundingClientRect();
+    const bubbleWidth=Math.min(42,itemRect.width);
+    const itemCenter=itemRect.left-navRect.left+itemRect.width/2;
+    return clamp(itemCenter-bubbleWidth/2,0,Math.max(0,navRect.width-bubbleWidth));
+  },[]);
+  const moveBubbleToActive=useCallback(()=>{
+    if(activeNavIndex<0)return;
+    setBubbleX(getBubbleXForIndex(activeNavIndex));
+  },[activeNavIndex,getBubbleXForIndex]);
+  useLayoutEffect(()=>{
+    if(isNavDragging)return;
+    moveBubbleToActive();
+  },[isNavDragging,items.length,location.pathname,moveBubbleToActive]);
+  useEffect(()=>{
+    const reposition=()=>moveBubbleToActive();
+    window.addEventListener("resize",reposition);
+    window.addEventListener("orientationchange",reposition);
+    window.visualViewport?.addEventListener("resize",reposition);
+    return()=>{
+      window.removeEventListener("resize",reposition);
+      window.removeEventListener("orientationchange",reposition);
+      window.visualViewport?.removeEventListener("resize",reposition);
+    };
+  },[moveBubbleToActive]);
+  const getNearestNavIndex=useCallback(x=>{
+    const nav=navRef.current;
+    if(!nav)return -1;
+    const navRect=nav.getBoundingClientRect();
+    const bubbleCenter=x+21;
+    let nearestIndex=-1;
+    let nearestDistance=Infinity;
+    navItemRefs.current.forEach((item,index)=>{
+      if(!item)return;
+      const itemRect=item.getBoundingClientRect();
+      const itemCenter=itemRect.left-navRect.left+itemRect.width/2;
+      const distance=Math.abs(itemCenter-bubbleCenter);
+      if(distance<nearestDistance){
+        nearestDistance=distance;
+        nearestIndex=index;
+      }
+    });
+    const nearestItem=navItemRefs.current[nearestIndex];
+    if(!nearestItem)return -1;
+    const threshold=Math.max(24,nearestItem.getBoundingClientRect().width*.46);
+    return nearestDistance<=threshold ? nearestIndex : -1;
+  },[]);
+  const handleNavPointerDown=event=>{
+    if(event.button!==undefined&&event.button!==0)return;
+    const nav=navRef.current;
+    if(!nav||activeNavIndex<0||!window.matchMedia("(max-width: 800px)").matches)return;
+    dragStateRef.current={pointerId:event.pointerId,startX:event.clientX,startBubbleX:bubbleX,currentBubbleX:bubbleX,hasMoved:false};
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+  const handleNavPointerMove=event=>{
+    const drag=dragStateRef.current;
+    const nav=navRef.current;
+    if(!drag||drag.pointerId!==event.pointerId||!nav)return;
+    const deltaX=event.clientX-drag.startX;
+    if(Math.abs(deltaX)<=6&&!drag.hasMoved)return;
+    drag.hasMoved=true;
+    suppressNavClickRef.current=true;
+    setIsNavDragging(true);
+    event.preventDefault();
+    const navRect=nav.getBoundingClientRect();
+    const nextX=clamp(drag.startBubbleX+deltaX,0,Math.max(0,navRect.width-42));
+    drag.currentBubbleX=nextX;
+    setBubbleX(nextX);
+  };
+  const finishNavDrag=event=>{
+    const drag=dragStateRef.current;
+    if(!drag||drag.pointerId!==event.pointerId)return;
+    dragStateRef.current=null;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    if(!drag.hasMoved){
+      setIsNavDragging(false);
+      return;
+    }
+    event.preventDefault();
+    setIsNavDragging(false);
+    window.setTimeout(()=>{suppressNavClickRef.current=false;},0);
+    const nearestIndex=getNearestNavIndex(drag.currentBubbleX);
+    if(nearestIndex>=0&&nearestIndex!==activeNavIndex){
+      navigate(items[nearestIndex][0]);
+      return;
+    }
+    moveBubbleToActive();
+  };
+  const handleNavClickCapture=event=>{
+    if(!suppressNavClickRef.current)return;
+    event.preventDefault();
+    event.stopPropagation();
+  };
   return <div className="app-shell">
     <ScrollToTopOnNavigation/>
     <NewsDrawer open={newsOpen} items={newsData.items} unreadCount={newsData.unread_count} onClose={()=>setNewsOpen(false)} onMarkRead={markNewsRead} onMarkAllRead={markAllNewsRead}/>
@@ -462,7 +567,10 @@ function MainLayout() {
       </button>
       <div className="user-area"><button className="icon-btn" title="Cambiar tema" onClick={()=>setTheme(theme==="dark"?"light":"dark")}>{theme==="dark"?<Sun size={18}/>:<Moon size={18}/>}</button><NotificationsBell/><ProfileMenu unreadNews={newsData.unread_count} onOpenNews={()=>setNewsOpen(true)}/></div>
     </header>
-    <nav className={`main-nav app-bottom-nav bottom-nav-glass${navExpanded?" is-expanded":""}`} style={{ "--nav-items": items.length }}>{items.map(([to, label, Icon]) => <NavLink key={to} to={to} end={to==="/"} aria-label={label} title={label} className={({isActive})=>isActive?"active":""}><span className="nav-icon"><Icon size={18}/>{to==="/chat"&&unreadChat>0&&<i className="chat-unread-dot" aria-label={`${unreadChat} mensajes sin leer`}/>}</span><span className="nav-label">{label}</span></NavLink>)}</nav>
+    <nav ref={navRef} className={`main-nav app-bottom-nav bottom-nav-glass${navExpanded?" is-expanded":""}${isNavDragging?" is-dragging":""}`} style={{ "--nav-items": items.length, "--bubble-x": `${bubbleX}px` }} onPointerDown={handleNavPointerDown} onPointerMove={handleNavPointerMove} onPointerUp={finishNavDrag} onPointerCancel={finishNavDrag} onClickCapture={handleNavClickCapture}>
+      {activeNavIndex>=0&&<span className="bottom-nav-bubble" aria-hidden="true"/>}
+      {items.map(([to, label, Icon],index) => <NavLink ref={node=>{navItemRefs.current[index]=node;}} key={to} to={to} end={to==="/"} aria-label={label} title={label} className={({isActive})=>isActive?"active":""}><span className="nav-icon"><Icon size={18}/>{to==="/chat"&&unreadChat>0&&<i className="chat-unread-dot" aria-label={`${unreadChat} mensajes sin leer`}/>}</span><span className="nav-label">{label}</span></NavLink>)}
+    </nav>
     <main><Outlet /></main>
   </div>;
 }
