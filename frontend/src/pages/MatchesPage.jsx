@@ -48,10 +48,10 @@ export function MatchesPage() {
     return [...values.values()].sort((a,b)=>a.name.localeCompare(b.name,"es"));
   },[matches]);
   const filters=[
-    ["today","Hoy",CheckCircle2,counts.today],
-    ["upcoming","Próximos",Clock3,counts.upcoming],
-    ["pending",user.is_read_only?"Solo lectura":"Sin apostar",Target,pendingCount],
-    ["history","Histórico",History,counts.history]
+    ["today","Hoy","Partidos de hoy",CheckCircle2,counts.today],
+    ["upcoming","Próximos","Por jugar",Clock3,counts.upcoming],
+    ["pending",user.is_read_only?"Solo lectura":"Sin apostar",user.is_read_only?"Consulta":"Pendientes",Target,pendingCount],
+    ["history","Histórico","Finalizados",History,counts.history]
   ];
   const visible=matches.filter(match=>!selectedTeamId||String(match.team1_id)===String(selectedTeamId)||String(match.team2_id)===String(selectedTeamId));
   const grouped=useMemo(()=>{
@@ -72,7 +72,7 @@ export function MatchesPage() {
       {!user.is_read_only&&<div className={`matches-pulse ${pendingCount?"attention":"complete"}`}><Target/><strong>{pendingCount}</strong><span>sin apostar</span></div>}
     </section>
 
-    <nav className="matches-filter-rail" aria-label="Vista de partidos">{filters.map(([id,label,Icon,count])=><button key={id} className={view===id?"active":""} onClick={()=>selectView(id)}><Icon size={16}/><span>{label}</span><b>{count}</b></button>)}</nav>
+    <nav className="matches-filter-rail" aria-label="Vista de partidos">{filters.map(([id,label,description,Icon,count])=><button key={id} className={view===id?"active":""} onClick={()=>selectView(id)}><span className="filter-card-icon"><Icon size={16}/></span><span className="filter-card-copy"><span>{label}</span><small>{description}</small></span><b>{count}</b></button>)}</nav>
 
     <section className="matches-toolbar">
       <div className="matches-team-search"><SearchSelect label="Buscar selección" items={teams} value={selectedTeamId} onChange={team=>setSelectedTeamId(team?.id||"")} placeholder="Buscar selección…" renderItem={team=><><strong>{team.flag_icon} {team.name}</strong><small>{team.fifa_code||"Selección"}</small></>}/></div>
