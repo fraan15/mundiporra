@@ -640,6 +640,59 @@ const userStats = (userId) => {
       add(item.user_id, { icon: "⚡", name: `Récord diario · ${dailyRecord} pts`, kind: "record", group: "record", level: 9, order: 79, disputed: true, description: `Tiene la mejor jornada registrada, con ${dailyRecord} puntos en un solo día.` })
     );
 
+    const addStatLeader = ({ rows, field, icon, name, level, order, description }) => {
+      const best = Number(rows[0]?.[field] || 0);
+      if (best <= 0) return;
+      rows.filter((item) => Number(item[field]) === best).forEach((item) =>
+        add(item.user_id, { icon, name: `${name} · ${best}`, kind: "leader", group: "leader", level, order, description: description(best) })
+      );
+    };
+
+    addStatLeader({
+      rows: db.prepare(`
+        SELECT p.user_id,COUNT(*) exacts FROM predictions p
+        JOIN matches m ON m.id=p.match_id JOIN users u ON u.id=p.user_id
+        WHERE m.status='finished' AND p.exact_result_points>0 AND u.active=1 AND u.role='user'
+        GROUP BY p.user_id ORDER BY exacts DESC,p.user_id
+      `).all(),
+      field: "exacts",
+      icon: "🎯",
+      name: "Rey del exacto",
+      level: 8,
+      order: 86,
+      description: (best) => `Es quien más resultados exactos acumula: ${best}.`
+    });
+
+    addStatLeader({
+      rows: db.prepare(`
+        SELECT p.user_id,COUNT(*) signs FROM predictions p
+        JOIN matches m ON m.id=p.match_id JOIN users u ON u.id=p.user_id
+        WHERE m.status='finished' AND p.winner_points>0 AND u.active=1 AND u.role='user'
+        GROUP BY p.user_id ORDER BY signs DESC,p.user_id
+      `).all(),
+      field: "signs",
+      icon: "✅",
+      name: "Rey del signo",
+      level: 8,
+      order: 87,
+      description: (best) => `Es quien más signos acertados acumula: ${best}.`
+    });
+
+    addStatLeader({
+      rows: db.prepare(`
+        SELECT p.user_id,COUNT(*) scorers FROM predictions p
+        JOIN matches m ON m.id=p.match_id JOIN users u ON u.id=p.user_id
+        WHERE m.status='finished' AND p.scorer_points>0 AND u.active=1 AND u.role='user'
+        GROUP BY p.user_id ORDER BY scorers DESC,p.user_id
+      `).all(),
+      field: "scorers",
+      icon: "⚽",
+      name: "Rey del goleador",
+      level: 8,
+      order: 88,
+      description: (best) => `Es quien más goleadores acertados acumula: ${best}.`
+    });
+
     const drawLeaders = db.prepare(`
       SELECT p.user_id,COUNT(*) draws FROM predictions p
       JOIN matches m ON m.id=p.match_id JOIN users u ON u.id=p.user_id
