@@ -701,7 +701,7 @@ const userStats = (userId) => {
     `).all();
     const mostDraws = Number(drawLeaders[0]?.draws || 0);
     if (mostDraws > 0) drawLeaders.filter((item) => Number(item.draws) === mostDraws).forEach((item) =>
-      add(item.user_id, { icon: "🤝", name: `Rey del empate · ${mostDraws}`, kind: "leader", group: "leader", level: 8, order: 91, description: `Es quien más empates acertados acumula: ${mostDraws}.` })
+      add(item.user_id, { icon: "🤝", name: `Rey del empate · ${mostDraws}`, kind: "leader", group: "leader", level: 8, order: 89, description: `Es quien más empates acertados acumula: ${mostDraws}.` })
     );
 
     const topRows = db.prepare(`
