@@ -10,9 +10,9 @@
       position: fixed;
       left: 50%;
       right: auto;
-      bottom: calc(6px + env(safe-area-inset-bottom, 0px));
-      width: calc(100% - 24px);
-      max-width: 520px;
+      bottom: calc(5px + env(safe-area-inset-bottom, 0px));
+      width: auto;
+      max-width: calc(100% - 24px);
       height: auto;
       padding-bottom: 6px;
       transform: translateX(-50%);
@@ -24,12 +24,12 @@
     }
 
     .page {
-      padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+      padding-bottom: calc(86px + env(safe-area-inset-bottom, 0px));
     }
 
     main,
     .page {
-      scroll-margin-bottom: calc(102px + env(safe-area-inset-bottom, 0px));
+      scroll-margin-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
     }
   }
 }
