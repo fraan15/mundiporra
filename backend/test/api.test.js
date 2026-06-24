@@ -1605,6 +1605,17 @@ test("consultar dashboard y perfiles no escribe instantáneas de clasificación"
   assert.equal(written, 0);
 });
 
+test("las medallas de puntos usan umbrales exigentes pero alcanzables para 106 partidos", async () => {
+  const agent = request.agent(app);
+  await agent.post("/api/auth/login").send({ username: "lucia", password: "lucia" }).expect(200);
+  const lucia = db.prepare("SELECT id FROM users WHERE username=?").get("lucia");
+
+  const medals = await agent.get(`/api/users/${lucia.id}/public/medals`).expect(200);
+  const pointsCatalog = medals.body.badge_catalog.find((group) => group.group === "points");
+  assert.deepEqual(pointsCatalog.tiers.map((tier) => tier.threshold), [100, 200, 300, 375]);
+  assert.equal(pointsCatalog.tiers.some((tier) => [500, 800].includes(tier.threshold)), false);
+});
+
 test("la medalla rey del empate cuenta solo empates acertados", async () => {
   const admin = request.agent(app);
   const drawKing = request.agent(app);

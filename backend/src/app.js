@@ -592,6 +592,13 @@ app.get("/api/admin/match-reference", requireAdmin, (req, res) => {
 });
 
 const emptyMedals = { badges: [], badge_catalog: [], disputed_badges: [] };
+const POINT_BADGE_TIERS = [
+  { threshold: 100, level: 1, order: 50, icon: "🏆", name: "Centenario", description: () => "Ha llegado a 100 puntos acumulados o más." },
+  { threshold: 200, level: 2, order: 50, icon: "💎", name: "Ritmo de podio", description: () => "Ha llegado a 200 puntos acumulados o más." },
+  { threshold: 300, level: 3, order: 50, icon: "🏛️", name: "Aspirante a leyenda", description: () => "Ha llegado a 300 puntos acumulados o más." },
+  { threshold: 375, level: 4, order: 50, icon: "🚀", name: "Temporada de élite", description: () => "Ha llegado a 375 puntos acumulados o más." }
+];
+const POINT_MILESTONE_THRESHOLDS = [50, 100, 150, 200, 250, 300, 350, 375];
 const userStats = (userId, { includeMedals = false } = {}) => {
   const leaderboard = leaderboardRows();
   const row = leaderboard.find((item) => item.id === Number(userId));
@@ -622,12 +629,7 @@ const userStats = (userId, { includeMedals = false } = {}) => {
       { threshold: 15, level: 3, order: 40, icon: "🪄", name: "Maestro de empates", description: () => "Ha acertado 15 empates o más." },
       { threshold: 25, level: 4, order: 40, icon: "♾️", name: "Dios de empates", description: () => "Ha acertado 25 empates o más." }
     ] },
-    { group: "points", value: Number(row.total_points || 0), title: "Puntos acumulados", tiers: [
-      { threshold: 100, level: 1, order: 50, icon: "🏆", name: "Centenario", description: () => "Ha llegado a 100 puntos acumulados o más." },
-      { threshold: 250, level: 2, order: 50, icon: "💎", name: "Cuarto de millar", description: () => "Ha llegado a 250 puntos acumulados o más." },
-      { threshold: 500, level: 3, order: 50, icon: "🏛️", name: "Medio millar", description: () => "Ha llegado a 500 puntos acumulados o más." },
-      { threshold: 800, level: 4, order: 50, icon: "🚀", name: "Millar a la vista", description: () => "Ha llegado a 800 puntos acumulados o más." }
-    ] },
+    { group: "points", value: Number(row.total_points || 0), title: "Puntos acumulados", tiers: POINT_BADGE_TIERS },
     { group: "participation", value: Number(row.predicted_matches || 0), title: "Partidos participados", tiers: [
       { threshold: 10, level: 1, order: 60, icon: "📋", name: "Constante", description: () => "Ha participado en 10 partidos finalizados o más." },
       { threshold: 30, level: 2, order: 60, icon: "🗓️", name: "Fijo en la porra", description: () => "Ha participado en 30 partidos finalizados o más." },
@@ -670,7 +672,7 @@ const userStats = (userId, { includeMedals = false } = {}) => {
         totals.set(prediction.user_id,
           (totals.get(prediction.user_id) || 0) + Number(prediction.total_points || 0));
       }
-      for (let threshold = 100; threshold <= 800; threshold += 100) {
+      for (const threshold of POINT_MILESTONE_THRESHOLDS) {
         if (thresholdWinners.has(threshold)) continue;
         const winners = matchRows
           .filter((prediction) => (totals.get(prediction.user_id) || 0) >= threshold)
@@ -680,7 +682,7 @@ const userStats = (userId, { includeMedals = false } = {}) => {
     }
     for (const [threshold, winnerIds] of thresholdWinners) winnerIds.forEach((winnerId) => add(winnerId, {
       icon: "🏁", name: `Primero en ${threshold} puntos`, kind: "milestone",
-      group: "record", level: threshold / 100, order: 80 + threshold / 100,
+      group: "record", level: POINT_MILESTONE_THRESHOLDS.indexOf(threshold) + 1, order: 80 + POINT_MILESTONE_THRESHOLDS.indexOf(threshold),
       description: `Fue de los primeros jugadores en alcanzar ${threshold} puntos acumulados.`
     }));
 
