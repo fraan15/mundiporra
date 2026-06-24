@@ -95,6 +95,23 @@ function normalizeGoals(goals) {
     : [];
 }
 
+export function normalizePlayerName(name) {
+  return String(name || "")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[’']/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLocaleLowerCase("es");
+}
+
+function canonicalPlayerName(name, playerNames = null) {
+  if (!playerNames) return name;
+  if (playerNames instanceof Map) return playerNames.get(normalizePlayerName(name)) || null;
+  if (playerNames.has(name)) return name;
+  return playerNames.has(normalizePlayerName(name)) ? name : null;
+}
+
 export function isKnockoutRound(round) {
   return Boolean(round) && !/^Matchday\b/i.test(String(round).trim());
 }
@@ -210,10 +227,11 @@ function referenceStatsForTeam(catalog, team, playerNames = null) {
     const home = match.team1.fifa_code === team.fifa_code;
     const teamGoals = home ? match.goals1 : match.goals2;
     (teamGoals || []).forEach((goal) => {
-      if (!goal.name || (playerNames && !playerNames.has(goal.name))) return;
-      const current = scorersByName.get(goal.name) || { name: goal.name, goals: 0 };
+      const name = canonicalPlayerName(goal.name, playerNames);
+      if (!name) return;
+      const current = scorersByName.get(name) || { name, goals: 0 };
       current.goals += 1;
-      scorersByName.set(goal.name, current);
+      scorersByName.set(name, current);
     });
   });
   const top_scorers = [...scorersByName.values()]

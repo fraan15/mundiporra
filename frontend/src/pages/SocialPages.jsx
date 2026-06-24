@@ -2032,7 +2032,7 @@ function TeamComparisonOverlay({ team1Id, team2Id, onClose }) {
             <strong>Comparando selecciones...</strong>
           </div>
         ) : (
-          <>
+          <div className="team-detail-scroll comparison-scroll">
             <header className="comparison-header">
               <span className="eyebrow">CARA A CARA</span>
               <h1>
@@ -2116,7 +2116,7 @@ function TeamComparisonOverlay({ team1Id, team2Id, onClose }) {
                 ))}
               </div>
             </section>
-          </>
+          </div>
         )}
       </section>
     </div>

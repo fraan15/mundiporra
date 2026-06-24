@@ -12,7 +12,7 @@ import { READ_ONLY_USER, hydrateUser, requireAdmin, requireAuth, requireWritable
 import { autoCloseExpired, calculateWinner, effectiveCloseAt, isExpired, recalculateAll, recalculateMatch } from "./services/matches.js";
 import { createNotification, leaderboardRows, notifyAll, notifyAllExcept, notifyNewTopThree, saveRankingSnapshot } from "./services/notifications.js";
 import { NO_SCORER, NO_SCORER_ID, parseScorerList, parseScorerSelection, serializeActualScorers, serializePredictedScorer } from "./services/scorers.js";
-import { loadWorldCupReference, syncWorldCupReference, teamReferenceStats, worldCupOverview } from "./services/worldcupReference.js";
+import { loadWorldCupReference, normalizePlayerName, syncWorldCupReference, teamReferenceStats, worldCupOverview } from "./services/worldcupReference.js";
 import { getPushPreferences, pushConfigured, savePushSubscription, sendPushToUser, vapidPublicKey } from "./services/push.js";
 
 initDatabase();
@@ -528,7 +528,7 @@ app.get("/api/teams/:id/detail", requireAuth, (req, res) => {
     }, new Map()).values()]
     .sort((a, b) => b.goals - a.goals || a.name.localeCompare(b.name, "es"))
     .slice(0, 3);
-  const playerNames = new Set(players.map((player) => player.name));
+  const playerNames = new Map(players.map((player) => [normalizePlayerName(player.name), player.name]));
   const reference = teamReferenceStats(team, playerNames);
   res.json({
     team,
