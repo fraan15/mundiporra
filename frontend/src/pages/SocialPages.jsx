@@ -41,31 +41,51 @@ import { ReactionBar } from "../components/ReactionBar";
 import { IMAGE_ACCEPT, inferImageType, optimizeImageForUpload, sendImage } from "../utils/imageUpload";
 
 const StatCards = ({ s, onPointsInfo }) => (
-  <div className="stat-cards">
-    {[
-      ["Posición", `#${s.position}`],
-      ["Puntos", s.total_points],
-      ["Pronósticos", s.predicted_matches],
-      ["Ganadores", s.winner_hits],
-      ["Exactos", s.exact_hits],
-      ["Media", `${s.average_points} pts`],
-    ].map(([k, v]) => (
-      <article key={k} className={k === "Puntos" ? "points-stat-card" : ""}>
-        <span>{k}</span>
-        <strong>{v}</strong>
-        {k === "Puntos" && onPointsInfo && (
-          <button
-            type="button"
-            className="points-info-trigger"
-            aria-label="Ver de dónde salen todos los puntos"
-            onClick={onPointsInfo}
-          >
-            <Info size={16} />
-          </button>
-        )}
-      </article>
-    ))}
+  <div className="profile-score-summary">
+    <div className="stat-cards primary-stat-cards">
+      {[
+        ["Posición", `#${s.position}`],
+        ["Puntos", s.total_points],
+      ].map(([k, v]) => (
+        <article key={k} className={k === "Puntos" ? "points-stat-card" : ""}>
+          <span>{k}</span>
+          <strong>{v}</strong>
+          {k === "Puntos" && onPointsInfo && (
+            <button
+              type="button"
+              className="points-info-trigger"
+              aria-label="Ver de dónde salen todos los puntos"
+              onClick={onPointsInfo}
+            >
+              <Info size={16} />
+            </button>
+          )}
+        </article>
+      ))}
+    </div>
+    <div className="profile-compact-stats content-card" aria-label="Resumen de pronósticos">
+      {[
+        ["Pronósticos", s.predicted_matches],
+        ["Ganadores", s.winner_hits],
+        ["Exactos", s.exact_hits],
+        ["Media diaria", `${s.average_points} pts`],
+      ].map(([label, value]) => (
+        <span key={label}>
+          <small>{label}</small>
+          <strong>{value}</strong>
+        </span>
+      ))}
+    </div>
   </div>
+);
+
+const MedalsSection = ({ badges = [] }) => (
+  <section className="content-card medals-card">
+    <h2>
+      Medallas <small>{badges.length}</small>
+    </h2>
+    <Badges badges={badges} />
+  </section>
 );
 const consumePointsReturn = () => {
   const returning = sessionStorage.getItem("returnToPointsDetail") === "1";
@@ -397,6 +417,7 @@ export function ProfilePage() {
         />
       )}
       <StatCards s={s} onPointsInfo={() => setPointsOpen(true)} />
+      <MedalsSection badges={s.badges} />
       {!authUser.is_read_only && (
         <section className="content-card">
           <h2>Editar perfil</h2>
@@ -441,12 +462,6 @@ export function ProfilePage() {
         />
       )}
       <StatsSections stats={s} history={data.history} />
-      <section className="content-card medals-card">
-        <h2>
-          Medallas <small>{s.badges.length}</small>
-        </h2>
-        <Badges badges={s.badges} />
-      </section>
     </div>
   );
 }
@@ -462,88 +477,54 @@ function byDateAsc(a, b) {
 function lastFiveDays(data = []) {
   return [...data].sort(byDateAsc).slice(-5);
 }
-function PointsByDay({ data = [], onDayClick }) {
-  const visibleDays = lastFiveDays(data);
-  if (!visibleDays.length)
-    return <p className="stat-change-empty">Todavía no hay puntos diarios.</p>;
-  return (
-    <div className="stat-change-list">
-      {visibleDays.map((day) => {
-        const points = Number(day.points) || 0,
-          state = points > 0 ? "positive" : points < 0 ? "negative" : "neutral";
-        return (
-          <article
-            key={day.date}
-            className={`stat-change-row ${state} ${onDayClick ? "clickable" : ""}`}
-            onClick={onDayClick ? () => onDayClick(day.date) : undefined}
-            onKeyDown={
-              onDayClick
-                ? (event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      onDayClick(day.date);
-                    }
-                  }
-                : undefined
-            }
-            role={onDayClick ? "button" : undefined}
-            tabIndex={onDayClick ? 0 : undefined}
-            aria-label={
-              onDayClick
-                ? `Ir al primer partido del ${formatStatDate(day.date)}`
-                : undefined
-            }
-          >
-            <span>{formatStatDate(day.date)}</span>
-            <strong>
-              {points > 0 ? "+" : ""}
-              {points} pts
-            </strong>
-            <small>
-              {points > 0
-                ? "Ha sumado puntos"
-                : points < 0
-                  ? "Ha perdido puntos"
-                  : "Sin cambios"}
-            </small>
-          </article>
-        );
-      })}
-    </div>
-  );
-}
-function PositionEvolution({ data = [] }) {
-  const sortedData = [...data].sort(byDateAsc);
-  const changes = sortedData.map((day, index) => ({
-    day,
-    index,
-    previous: Number(sortedData[index - 1]?.position),
+function StatsTimelineTable({ points = [], history = [], onDayClick }) {
+  const pointsByDate = new Map(points.map((day) => [day.date, day]));
+  const sortedHistory = [...history].sort(byDateAsc);
+  const positionByDate = new Map(sortedHistory.map((day, index) => {
+    const position = Number(day.position),
+      previous = Number(sortedHistory[index - 1]?.position),
+      change = index === 0 ? 0 : previous - position;
+    return [day.date, { ...day, position, change, initial: index === 0 }];
   }));
-  const visibleDays = lastFiveDays(changes);
-  if (!visibleDays.length)
-    return (
-      <p className="stat-change-empty">Todavía no hay histórico de posición.</p>
-    );
+  const rows = lastFiveDays([...new Set([...pointsByDate.keys(), ...positionByDate.keys()])].map((date) => ({ date })))
+    .map(({ date }) => ({ date, points: pointsByDate.get(date), position: positionByDate.get(date) }));
+
+  if (!rows.length) return <p className="stat-change-empty">Todavía no hay histórico diario.</p>;
+
+  const changeLabel = (row) => {
+    if (!row.position) return "—";
+    if (row.position.initial) return "Inicial";
+    if (row.position.change > 0) return `+${row.position.change}`;
+    if (row.position.change < 0) return String(row.position.change);
+    return "=";
+  };
+
   return (
-    <div className="stat-change-list">
-      {visibleDays.map(({ day, index, previous }) => {
-        const position = Number(day.position),
-          change = index === 0 ? 0 : previous - position,
-          state = change > 0 ? "positive" : change < 0 ? "negative" : "neutral";
+    <div className="stats-timeline-table">
+      <div className="stats-timeline-head" role="row">
+        <span>Día</span>
+        <span>Puntos</span>
+        <span>Posición</span>
+        <span>Cambio</span>
+      </div>
+      {rows.map((row) => {
+        const dayPoints = row.points ? Number(row.points.points) || 0 : null,
+          positionChange = Number(row.position?.change || 0),
+          state = positionChange > 0 || dayPoints > 0 ? "positive" : positionChange < 0 || dayPoints < 0 ? "negative" : "neutral";
         return (
-          <article key={day.date} className={`stat-change-row ${state}`}>
-            <span>{formatStatDate(day.date)}</span>
-            <strong>#{position}</strong>
-            <small>
-              {index === 0
-                ? "Posición inicial"
-                : change > 0
-                  ? `+${change} ${change === 1 ? "puesto" : "puestos"}`
-                  : change < 0
-                    ? `${change} ${Math.abs(change) === 1 ? "puesto" : "puestos"}`
-                    : "Sin cambios"}
-            </small>
-          </article>
+          <button
+            type="button"
+            key={row.date}
+            className={`stats-timeline-row ${state}`}
+            onClick={onDayClick && row.points ? () => onDayClick(row.date) : undefined}
+            disabled={!onDayClick || !row.points}
+            aria-label={onDayClick && row.points ? `Ir al primer partido del ${formatStatDate(row.date)}` : undefined}
+          >
+            <span>{formatStatDate(row.date)}</span>
+            <strong>{dayPoints === null ? "—" : `${dayPoints > 0 ? "+" : ""}${dayPoints} pts`}</strong>
+            <b>{row.position ? `#${row.position.position}` : "—"}</b>
+            <small>{changeLabel(row)}</small>
+          </button>
         );
       })}
     </div>
@@ -595,16 +576,10 @@ function StatsSections({ stats: s, history = [], onDayClick }) {
           </div>
         ))}
       </div>
-      <div className="chart-grid">
-        <section className="content-card">
-          <h2>Puntos por día</h2>
-          <PointsByDay data={s.daily} onDayClick={onDayClick} />
-        </section>
-        <section className="content-card">
-          <h2>Evolución de posición</h2>
-          <PositionEvolution data={history} />
-        </section>
-      </div>
+      <section className="content-card stats-timeline-card">
+        <h2>Resumen diario</h2>
+        <StatsTimelineTable points={s.daily} history={history} onDayClick={onDayClick} />
+      </section>
     </>
   );
 }
@@ -706,13 +681,8 @@ export function PublicProfilePage() {
         <b>#{s.position}</b>
       </section>
       <StatCards s={s} onPointsInfo={() => setPointsOpen(true)} />
+      <MedalsSection badges={s.badges} />
       <StatsSections stats={s} history={data.history} onDayClick={goToDay} />
-      <section className="content-card medals-card">
-        <h2>
-          Medallas <small>{s.badges.length}</small>
-        </h2>
-        <Badges badges={s.badges} />
-      </section>
       <section className="content-card">
         <h2>Historial visible</h2>
         <p className="prediction-history-hint">

@@ -33,10 +33,15 @@ export function MiniChart({ data = [], field = "points", inverse = false }) {
 export function Badges({ badges = [] }) {
   const [selectedBadge, setSelectedBadge] = useState(null);
   const activeBadge = badges.find((badge) => badge.name === selectedBadge);
+  const orderedBadges = [...badges].sort((a, b) =>
+    Number(a.order ?? 99) - Number(b.order ?? 99) ||
+    Number(b.level ?? 0) - Number(a.level ?? 0) ||
+    String(a.name).localeCompare(String(b.name), "es")
+  );
 
   return <div className="badges-wrap">
     <div className="badges" aria-label="Medallas del jugador">
-      {badges.length ? badges.map((badge) => {
+      {orderedBadges.length ? orderedBadges.map((badge) => {
         const isActive = selectedBadge === badge.name;
         return <button
           type="button"
