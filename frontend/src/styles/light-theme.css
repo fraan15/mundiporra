@@ -1993,7 +1993,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
     text-decoration:none;
     white-space:nowrap;
     overflow:hidden;
-    transition:color .16s ease,transform .16s ease;
+    transition:transform .16s ease;
   }
   .main-nav.app-bottom-nav .bottom-nav-bubble{
     display:block;
@@ -2018,6 +2018,13 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
     transition:none;
   }
   .main-nav.app-bottom-nav a.active{
+    color:var(--accent,#b94b55);
+    background:transparent;
+    box-shadow:none;
+    border:0;
+    transition:transform .16s ease;
+  }
+  .main-nav.app-bottom-nav.is-expanded a.active{
     color:var(--accent,#b94b55);
     background:transparent;
     box-shadow:none;
@@ -2053,7 +2060,8 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
     background:linear-gradient(135deg,rgba(255,255,255,.3),rgba(255,255,255,.15));
     box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 5px 16px rgba(0,0,0,.18),0 0 18px rgba(255,95,112,.12);
   }
-  [data-theme="dark"] .main-nav.app-bottom-nav a.active{background:transparent;color:#ff9aa7;box-shadow:none}
+  [data-theme="dark"] .main-nav.app-bottom-nav a.active,
+  [data-theme="dark"] .main-nav.app-bottom-nav.is-expanded a.active{background:transparent;color:#ff9aa7;box-shadow:none}
 }
 @media(max-width:380px){
   .main-nav.app-bottom-nav{width:calc(100% - 12px);padding:5px;gap:2px}
