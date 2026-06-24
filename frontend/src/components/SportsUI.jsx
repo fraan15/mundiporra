@@ -35,7 +35,13 @@ const levelStatusText = (value, threshold) => {
   return missing ? `Faltan ${missing}` : "Alcanzada";
 };
 
-export function Badges({ badges = [], catalog = [] }) {
+const holdersText = (holders = []) => {
+  if (!holders.length) return "Sin titular ahora mismo";
+  if (holders.length === 1) return holders[0];
+  return `${holders.slice(0, -1).join(", ")} y ${holders.at(-1)}`;
+};
+
+export function Badges({ badges = [], catalog = [], disputed = [] }) {
   const [selectedBadge, setSelectedBadge] = useState(null);
   const [catalogOpen, setCatalogOpen] = useState(false);
   const activeBadge = badges.find((badge) => badge.name === selectedBadge);
@@ -45,6 +51,11 @@ export function Badges({ badges = [], catalog = [] }) {
     String(a.name).localeCompare(String(b.name), "es")
   );
   const orderedCatalog = [...catalog].sort((a, b) => Number(a.order ?? 99) - Number(b.order ?? 99));
+  const orderedDisputed = [...disputed].sort((a, b) =>
+    Number(a.order ?? 99) - Number(b.order ?? 99) ||
+    Number(b.level ?? 0) - Number(a.level ?? 0) ||
+    String(a.name).localeCompare(String(b.name), "es")
+  );
   const hasCatalog = orderedCatalog.some((group) => group.tiers?.length);
 
   return <div className="badges-wrap">
@@ -104,6 +115,20 @@ export function Badges({ badges = [], catalog = [] }) {
         <small className="badge-popup-type">Guía de medallas</small>
         <h3 id="badge-catalog-title">Todas las medallas</h3>
         <div className="badge-catalog-list">
+          {orderedDisputed.length > 0 && <section className="badge-catalog-disputed">
+            <h4>Medallas en disputa</h4>
+            <div>
+              {orderedDisputed.map((badge) => <article className={badge.kind || ""} key={`${badge.name}-${badge.description}`}>
+                <span aria-hidden="true">{badge.icon}</span>
+                <div>
+                  <strong>{badge.name}</strong>
+                  <small>{badge.description || "Medalla disputada durante la porra."}</small>
+                  <em>Ahora: {holdersText(badge.holders)}</em>
+                </div>
+                <Check size={16} />
+              </article>)}
+            </div>
+          </section>}
           {orderedCatalog.map((group) => <section key={group.group}>
             <h4>{group.title}</h4>
             <div>

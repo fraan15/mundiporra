@@ -82,12 +82,12 @@ const StatCards = ({ s, onPointsInfo }) => (
   </div>
 );
 
-const MedalsSection = ({ badges = [], catalog = [] }) => (
+const MedalsSection = ({ badges = [], catalog = [], disputed = [] }) => (
   <section className="content-card medals-card">
     <h2>
       Medallas <small>{badges.length}</small>
     </h2>
-    <Badges badges={badges} catalog={catalog} />
+    <Badges badges={badges} catalog={catalog} disputed={disputed} />
   </section>
 );
 const consumePointsReturn = () => {
@@ -746,7 +746,7 @@ export function PublicProfilePage({ userId }) {
         <b>#{s.position}</b>
       </section>
       <StatCards s={s} onPointsInfo={() => setPointsOpen(true)} />
-      <MedalsSection badges={s.badges} catalog={s.badge_catalog} />
+      <MedalsSection badges={s.badges} catalog={s.badge_catalog} disputed={s.disputed_badges} />
       <StatsSections stats={s} history={data.history} onDayClick={goToDay} />
       <section className="content-card">
         <h2>Historial visible</h2>

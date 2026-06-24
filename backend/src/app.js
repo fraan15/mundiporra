@@ -624,7 +624,7 @@ const userStats = (userId) => {
       }
     }
     for (const [threshold, winnerIds] of thresholdWinners) winnerIds.forEach((winnerId) => add(winnerId, {
-      icon: "🏁", name: `Primero en ${threshold} puntos`, kind: "record",
+      icon: "🏁", name: `Primero en ${threshold} puntos`, kind: "milestone",
       group: "record", level: threshold / 100, order: 80 + threshold / 100,
       description: `Fue de los primeros jugadores en alcanzar ${threshold} puntos acumulados.`
     }));
@@ -637,7 +637,7 @@ const userStats = (userId) => {
     `).all();
     const dailyRecord = Number(dailyRecords[0]?.points || 0);
     if (dailyRecord > 0) dailyRecords.filter((item) => Number(item.points) === dailyRecord).forEach((item) =>
-      add(item.user_id, { icon: "⚡", name: `Récord diario · ${dailyRecord} pts`, kind: "record", group: "record", level: 9, order: 79, description: `Tiene la mejor jornada registrada, con ${dailyRecord} puntos en un solo día.` })
+      add(item.user_id, { icon: "⚡", name: `Récord diario · ${dailyRecord} pts`, kind: "record", group: "record", level: 9, order: 79, disputed: true, description: `Tiene la mejor jornada registrada, con ${dailyRecord} puntos en un solo día.` })
     );
 
     const drawLeaders = db.prepare(`
@@ -713,6 +713,28 @@ const userStats = (userId) => {
   const badgeTiers = groupsWithValues.map(({ value, group, tiers }) => tierBadge(value, group, tiers)).filter(Boolean);
   const badges = badgeTiers.sort((a, b) => a.order - b.order || b.level - a.level);
   badges.push(...(dynamicBadges.get(Number(userId)) || []));
+  const disputedBadges = Array.from(dynamicBadges.entries()).flatMap(([holderId, holderBadges]) => {
+    const holder = leaderboard.find((item) => item.id === holderId);
+    return holderBadges.filter((badge) => badge.disputed || badge.kind === "leader").map((badge) => ({ ...badge, holder: holder?.username || "Jugador" }));
+  }).reduce((items, badge) => {
+    const key = `${badge.name}-${badge.description}`;
+    const existing = items.get(key);
+    if (existing) {
+      existing.holders.push(badge.holder);
+    } else {
+      items.set(key, {
+        icon: badge.icon,
+        name: badge.name,
+        kind: badge.kind,
+        group: badge.group,
+        level: badge.level,
+        order: badge.order,
+        description: badge.description,
+        holders: [badge.holder]
+      });
+    }
+    return items;
+  }, new Map());
   const badgeCatalog = groupsWithValues.map(({ group, title, value, tiers }) => ({
     group, title, value, order: tiers[0]?.order || 99,
     tiers: tiers.map((tier) => ({ ...tier, achieved: value >= tier.threshold, description: tier.description(value) }))
@@ -728,7 +750,12 @@ const userStats = (userId) => {
     average_points: finished.length ? Number((row.total_points / finished.length).toFixed(1)) : 0,
     best_day: daily.sort((a,b) => b.points-a.points)[0] || null,
     worst_day: [...daily].sort((a,b) => a.points-b.points)[0] || null,
-    most_picked_team: maxEntry(picks), best_team: maxEntry(teamPoints), daily, badges, badge_catalog: badgeCatalog
+    most_picked_team: maxEntry(picks), best_team: maxEntry(teamPoints), daily, badges, badge_catalog: badgeCatalog,
+    disputed_badges: Array.from(disputedBadges.values()).sort((a, b) =>
+      Number(a.order ?? 99) - Number(b.order ?? 99) ||
+      Number(b.level ?? 0) - Number(a.level ?? 0) ||
+      String(a.name).localeCompare(String(b.name), "es")
+    )
   };
 };
 
