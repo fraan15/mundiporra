@@ -336,6 +336,105 @@ const matchListForUser = (req, where = "", params = []) =>
   matchListRows(req.user.id, where, params).filter((match) => canAccessMatch(req, match));
 const isBettingOpenForMatch = (match) => isMatchPublished(match) && match.status === "open" && !isExpired(match) && !isMatchInPlay(match);
 
+const dashboardCalendarMatches = (matches, today = dateInTimeZone(new Date(), MATCH_TIME_ZONE)) => {
+  const yesterday = addDays(today, -1);
+  return matches.filter((match) =>
+    match.match_date === today ||
+    (match.match_date === yesterday && isMatchInPlay(match)) ||
+    isBettingOpenForMatch(match)
+  );
+};
+
+const activityBaseSql = `
+  SELECT * FROM (
+    SELECT 'prediction' type,COALESCE(NULLIF(u.display_name,''),u.username) username,u.avatar_filename,m.team1,m.team2,NULL total_points,
+      p.created_at,NULL winner_points,NULL exact_result_points,NULL scorer_points,p.id event_id,m.is_star,1 scoring_multiplier,
+      NULL predicted_scorer_name
+    FROM predictions p
+    JOIN users u ON u.id=p.user_id
+    JOIN matches m ON m.id=p.match_id
+    UNION ALL
+    SELECT 'points' type,COALESCE(NULLIF(u.display_name,''),u.username) username,u.avatar_filename,m.team1,m.team2,p.total_points,
+      p.updated_at created_at,p.winner_points,p.exact_result_points,p.scorer_points,p.id event_id,m.is_star,p.scoring_multiplier,
+      CASE
+        WHEN p.predicted_team1_goals=0 AND p.predicted_team2_goals=0 THEN 'Sin goleador'
+        ELSE player.name
+      END predicted_scorer_name
+    FROM predictions p
+    JOIN users u ON u.id=p.user_id
+    JOIN matches m ON m.id=p.match_id
+    LEFT JOIN players player ON player.id=p.predicted_scorer_id
+    WHERE p.total_points>0
+  )
+`;
+
+const activityPointLabel = (points) => `${points} ${points === 1 ? "punto" : "puntos"}`;
+const activityPointsBreakdown = (item) => {
+  if (item.type !== "points") return null;
+  const multiplier = Number(item.scoring_multiplier || 1);
+  const rules = [
+    ["Ganador", "acierto de ganador", Number(item.winner_points || 0), null],
+    ["Resultado exacto", "acierto exacto", Number(item.exact_result_points || 0), null],
+    ["Goleador", "goleador", Number(item.scorer_points || 0), item.predicted_scorer_name]
+  ].filter(([, , points]) => points > 0);
+  const baseRules = rules.map(([label, description, points, detail]) => ({
+    label,
+    detail,
+    description,
+    points,
+    base_points: points / multiplier,
+    earned_points: points
+  }));
+  const baseTotal = baseRules.reduce((total, rule) => total + rule.base_points, 0);
+  return {
+    is_star: Boolean(item.is_star),
+    multiplier,
+    base_total: baseTotal,
+    total: Number(item.total_points || 0),
+    rules: baseRules,
+    formula: multiplier > 1
+      ? `(${baseRules.map((rule) => rule.base_points).join(" + ")}) x ${multiplier} = ${item.total_points}`
+      : `${baseTotal} = ${item.total_points}`
+  };
+};
+const activityPointsText = (item) => {
+  const hits = [
+    Number(item.winner_points || 0) > 0 && "ganador",
+    Number(item.exact_result_points || 0) > 0 && "resultado exacto",
+    Number(item.scorer_points || 0) > 0 && "goleador"
+  ].filter(Boolean);
+  const hitText = hits.length ? ` por acertar ${hits.join(" + ")}` : "";
+  return `${item.username} ganó ${activityPointLabel(item.total_points)}${item.is_star ? " en Partido Estrella" : ""}${hitText}`;
+};
+const serializeActivityItems = (items) => items.map((item) => ({
+  ...item,
+  avatar_url: avatarUrl(item),
+  text: item.type === "points"
+    ? activityPointsText(item)
+    : `${item.username} registró un pronóstico en ${item.team1} - ${item.team2}`,
+  points_breakdown: activityPointsBreakdown(item)
+}));
+const activityPage = (page, pageSize) => {
+  const limitedActivitySql = `
+    SELECT * FROM (${activityBaseSql})
+    ORDER BY created_at DESC,event_id DESC
+    LIMIT 50
+  `;
+  const total = db.prepare(`SELECT COUNT(*) total FROM (${limitedActivitySql})`).get().total;
+  const items = db.prepare(`
+    SELECT * FROM (${limitedActivitySql})
+    ORDER BY created_at DESC,event_id DESC
+    LIMIT ? OFFSET ?
+  `).all(pageSize, (page - 1) * pageSize);
+  return {
+    items: serializeActivityItems(items),
+    page,
+    page_size: pageSize,
+    total,
+    total_pages: Math.max(1, Math.ceil(total / pageSize))
+  };
+};
+
 const selectedMatchEntities = (data) => {
   const team1 = data.team1_id ? db.prepare("SELECT * FROM teams WHERE id=?").get(data.team1_id) : null;
   const team2 = data.team2_id ? db.prepare("SELECT * FROM teams WHERE id=?").get(data.team2_id) : null;
@@ -996,11 +1095,15 @@ app.get("/api/dashboard", requireAuth, (req, res) => {
     WHERE p.user_id=? AND m.match_date=?
   `).get(req.user.id, today).points;
   const current = new Date();
-  const todayOrPast = matchListForUser(req, "WHERE m.status!='finished' AND m.match_date<=?", [today]);
-  const inPlaySource = todayOrPast.filter((match) => isMatchInPlay(match, current));
-  const futureSource = matchListForUser(req, "WHERE m.status!='finished' AND m.match_date>=?", [today])
+  const yesterday = addDays(today, -1);
+  const relevantMatches = matchListForUser(req, "WHERE m.match_date IN (?,?) OR m.status!='finished'", [today, yesterday]);
+  const inPlaySource = relevantMatches
+    .filter((match) => match.status !== "finished" && match.match_date <= today && isMatchInPlay(match, current));
+  const futureSource = relevantMatches
+    .filter((match) => match.status !== "finished" && match.match_date >= today)
     .filter((match) => !isMatchInPlay(match, current) && matchStartsAt(match) > current);
-  const pending = req.user.is_read_only ? 0 : matchListForUser(req, "WHERE m.status='open'")
+  const pending = req.user.is_read_only ? 0 : relevantMatches
+    .filter((match) => match.status === "open")
     .filter((match) => isBettingOpenForMatch(match) && !match.prediction_id).length;
   const inPlayMatches = serializeMatches(inPlaySource);
   const nextMatches = serializeMatches(futureSource);
@@ -1008,7 +1111,9 @@ app.get("/api/dashboard", requireAuth, (req, res) => {
     summary: { ...stats, today_points: todayPoints, pending },
     in_play_matches: inPlayMatches,
     next_match: nextMatches[0] || null,
-    next_matches: nextMatches
+    next_matches: nextMatches,
+    activity_preview: activityPage(1, 5).items,
+    calendar_matches: serializeMatches(dashboardCalendarMatches(relevantMatches, today))
   });
 });
 
@@ -1026,11 +1131,7 @@ app.get("/api/dashboard/calendar", requireAuth, (req, res) => {
   const today = dateInTimeZone(new Date(), MATCH_TIME_ZONE);
   const yesterday = addDays(today, -1);
   const candidates = matchListForUser(req, "WHERE m.match_date IN (?,?) OR m.status='open'", [today, yesterday]);
-  const matches = candidates.filter((match) =>
-    match.match_date === today ||
-    (match.match_date === yesterday && isMatchInPlay(match)) ||
-    isBettingOpenForMatch(match)
-  );
+  const matches = dashboardCalendarMatches(candidates, today);
   res.json(serializeMatches(matches));
 });
 
@@ -1229,77 +1330,7 @@ app.get("/api/users/:id/public/medals", requireAuth, (req, res) => {
 app.get("/api/activity", requireAuth, (req, res) => {
   const page = Math.max(Number(req.query.page) || 1, 1);
   const pageSize = Math.min(Math.max(Number(req.query.page_size) || 10, 1), 30);
-  const pointLabel = (points) => `${points} ${points === 1 ? "punto" : "puntos"}`;
-  const pointsBreakdown = (item) => {
-    if (item.type !== "points") return null;
-    const multiplier = Number(item.scoring_multiplier || 1);
-    const rules = [
-      ["Ganador", "acierto de ganador", Number(item.winner_points || 0), null],
-      ["Resultado exacto", "acierto exacto", Number(item.exact_result_points || 0), null],
-      ["Goleador", "goleador", Number(item.scorer_points || 0), item.predicted_scorer_name]
-    ].filter(([, , points]) => points > 0);
-    const baseRules = rules.map(([label, description, points, detail]) => ({
-      label,
-      detail,
-      description,
-      points,
-      base_points: points / multiplier,
-      earned_points: points
-    }));
-    const baseTotal = baseRules.reduce((total, rule) => total + rule.base_points, 0);
-    return {
-      is_star: Boolean(item.is_star),
-      multiplier,
-      base_total: baseTotal,
-      total: Number(item.total_points || 0),
-      rules: baseRules,
-      formula: multiplier > 1
-        ? `(${baseRules.map((rule) => rule.base_points).join(" + ")}) x ${multiplier} = ${item.total_points}`
-        : `${baseTotal} = ${item.total_points}`
-    };
-  };
-  const pointsText = (item) => {
-    const hits = [
-      Number(item.winner_points || 0) > 0 && "ganador",
-      Number(item.exact_result_points || 0) > 0 && "resultado exacto",
-      Number(item.scorer_points || 0) > 0 && "goleador"
-    ].filter(Boolean);
-    const hitText = hits.length ? ` por acertar ${hits.join(" + ")}` : "";
-    return `${item.username} ganó ${pointLabel(item.total_points)}${item.is_star ? " en Partido Estrella" : ""}${hitText}`;
-  };
-  const items = db.prepare(`
-    SELECT * FROM (
-      SELECT 'prediction' type,COALESCE(NULLIF(u.display_name,''),u.username) username,u.avatar_filename,m.team1,m.team2,NULL total_points,
-        p.created_at,NULL winner_points,NULL exact_result_points,NULL scorer_points,p.id event_id,m.is_star,1 scoring_multiplier,
-        NULL predicted_scorer_name
-      FROM predictions p
-      JOIN users u ON u.id=p.user_id
-      JOIN matches m ON m.id=p.match_id
-      UNION ALL
-      SELECT 'points' type,COALESCE(NULLIF(u.display_name,''),u.username) username,u.avatar_filename,m.team1,m.team2,p.total_points,
-        p.updated_at created_at,p.winner_points,p.exact_result_points,p.scorer_points,p.id event_id,m.is_star,p.scoring_multiplier,
-        CASE
-          WHEN p.predicted_team1_goals=0 AND p.predicted_team2_goals=0 THEN 'Sin goleador'
-          ELSE player.name
-        END predicted_scorer_name
-      FROM predictions p
-      JOIN users u ON u.id=p.user_id
-      JOIN matches m ON m.id=p.match_id
-      LEFT JOIN players player ON player.id=p.predicted_scorer_id
-      WHERE p.total_points>0
-    )
-    ORDER BY created_at DESC,event_id DESC
-    LIMIT 50
-  `).all().map((item) => ({
-    ...item,
-    avatar_url: avatarUrl(item),
-    text: item.type === "points"
-      ? pointsText(item)
-      : `${item.username} registró un pronóstico en ${item.team1} - ${item.team2}`,
-    points_breakdown: pointsBreakdown(item)
-  }));
-  const start = (page - 1) * pageSize;
-  res.json({ items: items.slice(start, start + pageSize), page, page_size: pageSize, total: items.length, total_pages: Math.max(1, Math.ceil(items.length / pageSize)) });
+  res.json(activityPage(page, pageSize));
 });
 
 app.get("/api/chat/mentions", requireAuth, (req, res) => {
