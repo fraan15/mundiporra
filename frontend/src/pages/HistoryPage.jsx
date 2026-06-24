@@ -1,19 +1,21 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, CalendarDays, ChevronRight } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../App";
 
 const dayPredictionScore = (prediction) => `${prediction.predicted_team1_goals}–${prediction.predicted_team2_goals}`;
 const dayPredictionScorer = (prediction) => prediction.predicted_scorer_name ? `Goleador: ${prediction.predicted_scorer_name}` : "Sin goleador";
+const yesterdayKey = () => {
+  const date = new Date();
+  date.setDate(date.getDate() - 1);
+  return date.toLocaleDateString("sv-SE");
+};
 
 export function HistoryPage() {
-  const { user } = useAuth();
-  const [days,setDays]=useState([]); const navigate=useNavigate();
-  useEffect(()=>{api("/history/days").then(setDays)},[]);
-  return <div className="page"><section className="page-heading"><span className="eyebrow"><CalendarDays size={14}/> ARCHIVO DEL TORNEO</span><h1>Histórico diario</h1><p>{user.is_read_only?"Revive cada jornada y los puntos repartidos.":"Revive cada jornada, tus apuestas y los puntos repartidos."}</p></section>
-    <div className="day-grid">{days.map(day=><button className="day-card" key={day.match_date} onClick={()=>navigate(`/historico/${day.match_date}`)}><div className="calendar-tile"><strong>{new Date(`${day.match_date}T12:00:00`).getDate()}</strong><span>{new Date(`${day.match_date}T12:00:00`).toLocaleDateString("es-ES",{month:"short"}).toUpperCase()}</span></div><div><strong>{new Date(`${day.match_date}T12:00:00`).toLocaleDateString("es-ES",{weekday:"long",year:"numeric"})}</strong><span>{day.matches_count} partidos{user.is_read_only?"":` · ${day.my_points} puntos ganados`}</span></div><ChevronRight/></button>)}</div>
-  </div>;
+  const navigate=useNavigate();
+  useEffect(()=>{navigate(`/historico/${yesterdayKey()}`,{replace:true})},[navigate]);
+  return <div className="page-loader"><span/></div>;
 }
 
 export function DayHistoryPage() {

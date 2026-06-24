@@ -190,11 +190,10 @@ function TodayMatchesTicker({ fallback }) {
   const location = useLocation();
   useEffect(() => {
     let active = true;
-    const load = () => api("/matches").then(data => {
+    const load = () => api("/matches/today").then(data => {
       if (!active) return;
-      const today = new Date().toLocaleDateString("sv-SE");
       setMatches(data
-        .filter(match => match.match_date === today && match.result_team1 === null && match.result_team2 === null)
+        .filter(match => match.result_team1 === null && match.result_team2 === null)
         .sort((a, b) => a.match_time.localeCompare(b.match_time)));
     }).catch(() => {});
     const stopPolling = startVisiblePolling(load, 30000);

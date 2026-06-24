@@ -1088,7 +1088,7 @@ test("los partidos se publican 24 horas antes salvo publicación forzada", async
   assert.equal(created.body.published, false);
   assert.equal((await user.get("/api/matches")).body.some((match) => match.id === created.body.id), false);
   const calendar = await user.get("/api/dashboard/calendar");
-  assert.equal(calendar.body.some((match) => match.id === created.body.id && match.published === false), true);
+  assert.equal(calendar.body.some((match) => match.id === created.body.id), false);
   assert.equal((await user.get(`/api/matches/${created.body.id}/detail`)).status, 404);
   assert.equal((await user.post("/api/predictions").send({
     match_id: created.body.id,
@@ -1100,6 +1100,72 @@ test("los partidos se publican 24 horas antes salvo publicación forzada", async
   const published = await admin.put(`/api/matches/${created.body.id}`).send({ ...payload, force_published: true });
   assert.equal(published.body.published, true);
   assert.equal((await user.get("/api/matches")).body.some((match) => match.id === created.body.id), true);
+});
+
+test("los endpoints ligeros de partidos filtran calendario, vistas y ticker", async () => {
+  const admin = request.agent(app);
+  const user = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  await user.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
+  const dayKey = (offset) => {
+    const date = new Date();
+    date.setDate(date.getDate() + offset);
+    return date.toLocaleDateString("sv-SE", { timeZone: "Europe/Madrid" });
+  };
+  const yesterday = dayKey(-1), today = dayKey(0), tomorrow = dayKey(1), later = dayKey(3);
+
+  const todayMatch = await admin.post("/api/matches").send({
+    match_date: today, match_time: "23:45", team1: "Hoy ligero", team2: "Hoy rival", force_published: true
+  }).expect(201);
+  const openTomorrow = await admin.post("/api/matches").send({
+    match_date: tomorrow, match_time: "23:45", team1: "Mañana abierto", team2: "Mañana rival", force_published: true
+  }).expect(201);
+  const hiddenLater = await admin.post("/api/matches").send({
+    match_date: later, match_time: "23:45", team1: "Oculto ligero", team2: "Oculto rival"
+  }).expect(201);
+  const yesterdayLive = await admin.post("/api/matches").send({
+    match_date: yesterday, match_time: "00:01", team1: "Ayer live", team2: "Ayer rival", force_published: true
+  }).expect(201);
+  const yesterdayFinished = await admin.post("/api/matches").send({
+    match_date: yesterday, match_time: "00:02", team1: "Ayer final", team2: "Ayer cerrado", force_published: true
+  }).expect(201);
+  await admin.post(`/api/matches/${yesterdayFinished.body.id}/finish`).send({ result_team1: 1, result_team2: 0 }).expect(200);
+  await user.post("/api/predictions").send({
+    match_id: openTomorrow.body.id,
+    predicted_winner: "draw",
+    predicted_team1_goals: 0,
+    predicted_team2_goals: 0
+  }).expect(201);
+
+  const calendar = await user.get("/api/dashboard/calendar").expect(200);
+  assert.equal(calendar.body.some((match) => match.id === todayMatch.body.id), true);
+  assert.equal(calendar.body.some((match) => match.id === yesterdayLive.body.id), true);
+  assert.equal(calendar.body.some((match) => match.id === openTomorrow.body.id), true);
+  assert.equal(calendar.body.some((match) => match.id === hiddenLater.body.id), false);
+  assert.equal(calendar.body.some((match) => match.id === yesterdayFinished.body.id), false);
+
+  const todayTicker = await user.get("/api/matches/today").expect(200);
+  assert.deepEqual(todayTicker.body.map((match) => match.id).filter((id) => [todayMatch.body.id, openTomorrow.body.id].includes(id)), [todayMatch.body.id]);
+
+  const todayView = await user.get("/api/matches/view/today").expect(200);
+  assert.equal(todayView.body.every((match) => match.match_date === today), true);
+
+  const upcoming = await user.get("/api/matches/view/upcoming").expect(200);
+  assert.equal(upcoming.body.some((match) => match.id === openTomorrow.body.id), true);
+  assert.equal(upcoming.body.some((match) => match.id === todayMatch.body.id), false);
+  assert.equal(upcoming.body.every((match) => match.match_date !== today && match.betting_open), true);
+
+  const pending = await user.get("/api/matches/view/pending").expect(200);
+  assert.equal(pending.body.some((match) => match.id === openTomorrow.body.id), false);
+  assert.equal(pending.body.every((match) => match.betting_open && !match.prediction_id), true);
+
+  const history = await user.get(`/api/matches/view/history?date=${yesterday}`).expect(200);
+  assert.equal(history.body.some((match) => match.id === yesterdayFinished.body.id), true);
+  assert.equal(history.body.some((match) => match.id === yesterdayLive.body.id), false);
+
+  const summary = await user.get("/api/matches/summary").expect(200);
+  assert.equal(summary.body.today >= 1, true);
+  assert.equal(summary.body.history >= 1, true);
 });
 
 test("avisa individualmente a las 22:00 de apuestas pendientes de madrugada sin duplicar", async () => {
@@ -1611,10 +1677,10 @@ test("la medalla rey del empate cuenta solo empates acertados", async () => {
 
   const king = db.prepare("SELECT id FROM users WHERE username=?").get(kingUsername);
   const gambler = db.prepare("SELECT id FROM users WHERE username=?").get(gamblerUsername);
-  const kingProfile = await drawKing.get(`/api/users/${king.id}/public`).expect(200);
-  const gamblerProfile = await drawGambler.get(`/api/users/${gambler.id}/public`).expect(200);
-  assert.equal(kingProfile.body.stats.badges.some((badge) => badge.name === `Rey del empate · ${targetDraws}`), true);
-  assert.equal(gamblerProfile.body.stats.badges.some((badge) => badge.name.startsWith("Rey del empate")), false);
+  const kingMedals = await drawKing.get(`/api/users/${king.id}/public/medals`).expect(200);
+  const gamblerMedals = await drawGambler.get(`/api/users/${gambler.id}/public/medals`).expect(200);
+  assert.equal(kingMedals.body.badges.some((badge) => badge.name === `Rey del empate · ${targetDraws}`), true);
+  assert.equal(gamblerMedals.body.badges.some((badge) => badge.name.startsWith("Rey del empate")), false);
 });
 
 test("un ajuste guarda el histórico y el detalle público cuadra exactamente", async () => {

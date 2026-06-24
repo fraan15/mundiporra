@@ -318,6 +318,24 @@ const serializeMatches = (matches) => {
 };
 const serializeMatch = (match) => serializeMatches([match])[0];
 
+const matchListSelect = `
+  SELECT m.*, COUNT(bettor.id) prediction_count,
+    mine.id prediction_id, mine.predicted_winner, mine.predicted_team1_goals, mine.predicted_team2_goals,
+    mine.predicted_scorer_id,mine.winner_points, mine.exact_result_points,mine.scorer_points,mine.total_points
+  FROM matches m
+  LEFT JOIN predictions p ON p.match_id=m.id
+  LEFT JOIN users bettor ON bettor.id=p.user_id AND bettor.role='user'
+  LEFT JOIN predictions mine ON mine.match_id=m.id AND mine.user_id=?
+`;
+const matchListRows = (userId, where = "", params = []) => db.prepare(`
+  ${matchListSelect}
+  ${where}
+  GROUP BY m.id ORDER BY m.match_date,m.match_time
+`).all(userId, ...params);
+const matchListForUser = (req, where = "", params = []) =>
+  matchListRows(req.user.id, where, params).filter((match) => canAccessMatch(req, match));
+const isBettingOpenForMatch = (match) => isMatchPublished(match) && match.status === "open" && !isExpired(match) && !isMatchInPlay(match);
+
 const selectedMatchEntities = (data) => {
   const team1 = data.team1_id ? db.prepare("SELECT * FROM teams WHERE id=?").get(data.team1_id) : null;
   const team2 = data.team2_id ? db.prepare("SELECT * FROM teams WHERE id=?").get(data.team2_id) : null;
@@ -443,17 +461,53 @@ app.get("/api/stadiums", requireAuth, (req, res) => {
 
 app.get("/api/matches", requireAuth, (req, res) => {
   autoCloseExpired();
-  const matches = db.prepare(`
-    SELECT m.*, COUNT(bettor.id) prediction_count,
-      mine.id prediction_id, mine.predicted_winner, mine.predicted_team1_goals, mine.predicted_team2_goals,
-      mine.predicted_scorer_id,mine.winner_points, mine.exact_result_points,mine.scorer_points,mine.total_points
-    FROM matches m
-    LEFT JOIN predictions p ON p.match_id=m.id
-    LEFT JOIN users bettor ON bettor.id=p.user_id AND bettor.role='user'
-    LEFT JOIN predictions mine ON mine.match_id=m.id AND mine.user_id=?
-    GROUP BY m.id ORDER BY m.match_date,m.match_time
-  `).all(req.user.id);
-  res.json(serializeMatches(matches.filter((match) => canAccessMatch(req, match))));
+  res.json(serializeMatches(matchListForUser(req)));
+});
+
+app.get("/api/matches/summary", requireAuth, (req, res) => {
+  autoCloseExpired();
+  const today = dateInTimeZone(new Date(), MATCH_TIME_ZONE);
+  const matches = matchListForUser(req, "WHERE m.match_date=? OR m.status='open'", [today]);
+  const visible = serializeMatches(matches);
+  res.json({
+    today: visible.filter((match) => match.match_date === today).length,
+    upcoming: visible.filter((match) => match.match_date !== today && match.betting_open).length,
+    pending: req.user.is_read_only ? 0 : visible.filter((match) => match.betting_open && !match.prediction_id).length,
+    history: db.prepare("SELECT COUNT(*) count FROM matches WHERE status='finished'").get().count
+  });
+});
+
+app.get("/api/matches/today", requireAuth, (req, res) => {
+  autoCloseExpired();
+  const today = dateInTimeZone(new Date(), MATCH_TIME_ZONE);
+  const matches = matchListForUser(req, "WHERE m.match_date=? AND m.status!='finished'", [today]);
+  res.json(serializeMatches(matches));
+});
+
+app.get("/api/matches/view/:view", requireAuth, (req, res) => {
+  autoCloseExpired();
+  const today = dateInTimeZone(new Date(), MATCH_TIME_ZONE);
+  const view = req.params.view;
+  if (view === "today") {
+    return res.json(serializeMatches(matchListForUser(req, "WHERE m.match_date=?", [today])));
+  }
+  if (view === "upcoming") {
+    const matches = matchListForUser(req, "WHERE m.status='open' AND m.match_date<>?", [today])
+      .filter(isBettingOpenForMatch);
+    return res.json(serializeMatches(matches));
+  }
+  if (view === "pending") {
+    const matches = req.user.is_read_only ? [] : matchListForUser(req, "WHERE m.status='open'")
+      .filter((match) => isBettingOpenForMatch(match) && !match.prediction_id);
+    return res.json(serializeMatches(matches));
+  }
+  if (view === "history") {
+    const date = String(req.query.date || "").match(/^\d{4}-\d{2}-\d{2}$/)?.[0];
+    if (!date) return res.status(400).json({ error: "Fecha de histórico no válida." });
+    const matches = matchListForUser(req, "WHERE m.match_date=? AND m.status='finished'", [date]);
+    return res.json(serializeMatches(matches));
+  }
+  res.status(404).json({ error: "Vista de partidos no encontrada." });
 });
 
 app.get("/api/admin/matches", requireAdmin, (req, res) => {
@@ -537,7 +591,8 @@ app.get("/api/admin/match-reference", requireAdmin, (req, res) => {
   res.json({ from, to, timezone: catalog.display_timezone, matches });
 });
 
-const userStats = (userId) => {
+const emptyMedals = { badges: [], badge_catalog: [], disputed_badges: [] };
+const userStats = (userId, { includeMedals = false } = {}) => {
   const leaderboard = leaderboardRows();
   const row = leaderboard.find((item) => item.id === Number(userId));
   if (!row) return null;
@@ -595,7 +650,7 @@ const userStats = (userId) => {
     } : null;
   };
   const position = leaderboard.findIndex((item) => item.id === Number(userId)) + 1;
-  const dynamicBadges = (() => {
+  const buildDynamicBadges = () => {
     const awards = new Map(leaderboard.map((item) => [item.id, []]));
     const add = (id, badge) => awards.get(id)?.push(badge);
     const pointRows = db.prepare(`
@@ -735,7 +790,7 @@ const userStats = (userId) => {
 
     if (leaderboard.length) add(leaderboard.at(-1).id, { icon: "🤖", name: "Medalla del bot", kind: "leader", group: "leader", level: 1, order: 93, description: "Ocupa actualmente el último puesto de la clasificación." });
     return awards;
-  })();
+  };
   const finished = db.prepare(`
     SELECT p.*,m.match_date,m.team1,m.team2,m.winner,m.scorer_enabled FROM predictions p
     JOIN matches m ON m.id=p.match_id WHERE p.user_id=? AND m.status='finished'
@@ -760,38 +815,51 @@ const userStats = (userId) => {
   });
   const maxEntry = (object) => Object.entries(object).sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
   const draws = finished.filter((p) => p.predicted_winner === "draw" && p.winner_points > 0).length;
-  const groupsWithValues = badgeGroups.map((badgeGroup) =>
-    badgeGroup.group === "draw" ? { ...badgeGroup, value: draws } : badgeGroup
-  );
-  const badgeTiers = groupsWithValues.map(({ value, group, tiers }) => tierBadge(value, group, tiers)).filter(Boolean);
-  const badges = badgeTiers.sort((a, b) => a.order - b.order || b.level - a.level);
-  badges.push(...(dynamicBadges.get(Number(userId)) || []));
-  const disputedBadges = Array.from(dynamicBadges.entries()).flatMap(([holderId, holderBadges]) => {
-    const holder = leaderboard.find((item) => item.id === holderId);
-    return holderBadges.filter((badge) => badge.disputed || badge.kind === "leader").map((badge) => ({ ...badge, holder: holder?.username || "Jugador" }));
-  }).reduce((items, badge) => {
-    const key = `${badge.name}-${badge.description}`;
-    const existing = items.get(key);
-    if (existing) {
-      existing.holders.push(badge.holder);
-    } else {
-      items.set(key, {
-        icon: badge.icon,
-        name: badge.name,
-        kind: badge.kind,
-        group: badge.group,
-        level: badge.level,
-        order: badge.order,
-        description: badge.description,
-        holders: [badge.holder]
-      });
-    }
-    return items;
-  }, new Map());
-  const badgeCatalog = groupsWithValues.map(({ group, title, value, tiers }) => ({
-    group, title, value, order: tiers[0]?.order || 99,
-    tiers: tiers.map((tier) => ({ ...tier, achieved: value >= tier.threshold, description: tier.description(value) }))
-  })).sort((a, b) => a.order - b.order);
+  const buildMedals = () => {
+    const dynamicBadges = buildDynamicBadges();
+    const groupsWithValues = badgeGroups.map((badgeGroup) =>
+      badgeGroup.group === "draw" ? { ...badgeGroup, value: draws } : badgeGroup
+    );
+    const badgeTiers = groupsWithValues.map(({ value, group, tiers }) => tierBadge(value, group, tiers)).filter(Boolean);
+    const badges = badgeTiers.sort((a, b) => a.order - b.order || b.level - a.level);
+    badges.push(...(dynamicBadges.get(Number(userId)) || []));
+    const disputedBadges = Array.from(dynamicBadges.entries()).flatMap(([holderId, holderBadges]) => {
+      const holder = leaderboard.find((item) => item.id === holderId);
+      return holderBadges.filter((badge) => badge.disputed || badge.kind === "leader").map((badge) => ({ ...badge, holder: holder?.username || "Jugador" }));
+    }).reduce((items, badge) => {
+      const key = `${badge.name}-${badge.description}`;
+      const existing = items.get(key);
+      if (existing) {
+        existing.holders.push(badge.holder);
+      } else {
+        items.set(key, {
+          icon: badge.icon,
+          name: badge.name,
+          kind: badge.kind,
+          group: badge.group,
+          level: badge.level,
+          order: badge.order,
+          description: badge.description,
+          holders: [badge.holder]
+        });
+      }
+      return items;
+    }, new Map());
+    const badgeCatalog = groupsWithValues.map(({ group, title, value, tiers }) => ({
+      group, title, value, order: tiers[0]?.order || 99,
+      tiers: tiers.map((tier) => ({ ...tier, achieved: value >= tier.threshold, description: tier.description(value) }))
+    })).sort((a, b) => a.order - b.order);
+    return {
+      badges,
+      badge_catalog: badgeCatalog,
+      disputed_badges: Array.from(disputedBadges.values()).sort((a, b) =>
+        Number(a.order ?? 99) - Number(b.order ?? 99) ||
+        Number(b.level ?? 0) - Number(a.level ?? 0) ||
+        String(a.name).localeCompare(String(b.name), "es")
+      )
+    };
+  };
+  const medals = includeMedals ? buildMedals() : emptyMedals;
   const scorerOpportunities = finished.filter((prediction) => Number(prediction.scorer_enabled)).length;
   const accuracyHits = Number(row.winner_hits || 0) + Number(row.exact_hits || 0) + Number(row.scorer_hits || 0);
   const accuracyOpportunities = (finished.length * 2) + scorerOpportunities;
@@ -803,12 +871,7 @@ const userStats = (userId) => {
     average_points: finished.length ? Number((row.total_points / finished.length).toFixed(1)) : 0,
     best_day: daily.sort((a,b) => b.points-a.points)[0] || null,
     worst_day: [...daily].sort((a,b) => a.points-b.points)[0] || null,
-    most_picked_team: maxEntry(picks), best_team: maxEntry(teamPoints), daily, badges, badge_catalog: badgeCatalog,
-    disputed_badges: Array.from(disputedBadges.values()).sort((a, b) =>
-      Number(a.order ?? 99) - Number(b.order ?? 99) ||
-      Number(b.level ?? 0) - Number(a.level ?? 0) ||
-      String(a.name).localeCompare(String(b.name), "es")
-    )
+    most_picked_team: maxEntry(picks), best_team: maxEntry(teamPoints), daily, ...medals
   };
 };
 
@@ -930,28 +993,15 @@ app.get("/api/dashboard", requireAuth, (req, res) => {
     SELECT COALESCE(SUM(p.total_points),0) points FROM predictions p JOIN matches m ON m.id=p.match_id
     WHERE p.user_id=? AND m.match_date=?
   `).get(req.user.id, today).points;
-  const unfinishedMatches = db.prepare(`
-    SELECT m.*, COUNT(bettor.id) prediction_count,
-      mine.id prediction_id, mine.predicted_winner, mine.predicted_team1_goals, mine.predicted_team2_goals,
-      mine.predicted_scorer_id,mine.winner_points, mine.exact_result_points,mine.scorer_points,mine.total_points
-    FROM matches m
-    LEFT JOIN predictions p ON p.match_id=m.id
-    LEFT JOIN users bettor ON bettor.id=p.user_id AND bettor.role='user'
-    LEFT JOIN predictions mine ON mine.match_id=m.id AND mine.user_id=?
-    WHERE m.status!='finished'
-    GROUP BY m.id
-    ORDER BY m.match_date,m.match_time
-  `).all(req.user.id)
-    .filter((match) => canAccessMatch(req, match));
-  const pending = unfinishedMatches.filter((match) =>
-    match.status === "open" &&
-    !isExpired(match) &&
-    !db.prepare("SELECT id FROM predictions WHERE match_id=? AND user_id=?").get(match.id, req.user.id)
-  ).length;
-  const serializedUnfinished = serializeMatches(unfinishedMatches);
-  const inPlayMatches = serializedUnfinished.filter((match) => match.in_play);
   const current = new Date();
-  const nextMatches = serializedUnfinished.filter((match) => !match.in_play && matchStartsAt(match) > current);
+  const todayOrPast = matchListForUser(req, "WHERE m.status!='finished' AND m.match_date<=?", [today]);
+  const inPlaySource = todayOrPast.filter((match) => isMatchInPlay(match, current));
+  const futureSource = matchListForUser(req, "WHERE m.status!='finished' AND m.match_date>=?", [today])
+    .filter((match) => !isMatchInPlay(match, current) && matchStartsAt(match) > current);
+  const pending = req.user.is_read_only ? 0 : matchListForUser(req, "WHERE m.status='open'")
+    .filter((match) => isBettingOpenForMatch(match) && !match.prediction_id).length;
+  const inPlayMatches = serializeMatches(inPlaySource);
+  const nextMatches = serializeMatches(futureSource);
   res.json({
     summary: { ...stats, today_points: todayPoints, pending },
     in_play_matches: inPlayMatches,
@@ -960,17 +1010,25 @@ app.get("/api/dashboard", requireAuth, (req, res) => {
   });
 });
 
+app.get("/api/dashboard/medals", requireAuth, (req, res) => {
+  const stats = userStats(req.user.id, { includeMedals: true });
+  res.json(stats ? {
+    badges: stats.badges,
+    badge_catalog: stats.badge_catalog,
+    disputed_badges: stats.disputed_badges
+  } : emptyMedals);
+});
+
 app.get("/api/dashboard/calendar", requireAuth, (req, res) => {
-  const matches = db.prepare(`
-    SELECT m.*, COUNT(bettor.id) prediction_count,
-      mine.id prediction_id, mine.predicted_winner, mine.predicted_team1_goals, mine.predicted_team2_goals,
-      mine.predicted_scorer_id,mine.winner_points, mine.exact_result_points,mine.scorer_points,mine.total_points
-    FROM matches m
-    LEFT JOIN predictions p ON p.match_id=m.id
-    LEFT JOIN users bettor ON bettor.id=p.user_id AND bettor.role='user'
-    LEFT JOIN predictions mine ON mine.match_id=m.id AND mine.user_id=?
-    GROUP BY m.id ORDER BY m.match_date,m.match_time
-  `).all(req.user.id);
+  autoCloseExpired();
+  const today = dateInTimeZone(new Date(), MATCH_TIME_ZONE);
+  const yesterday = addDays(today, -1);
+  const candidates = matchListForUser(req, "WHERE m.match_date IN (?,?) OR m.status='open'", [today, yesterday]);
+  const matches = candidates.filter((match) =>
+    match.match_date === today ||
+    (match.match_date === yesterday && isMatchInPlay(match)) ||
+    isBettingOpenForMatch(match)
+  );
   res.json(serializeMatches(matches));
 });
 
@@ -1033,6 +1091,14 @@ app.get("/api/profile/me", requireAuth, (req, res) => {
     points_detail: pointsDetail(req.user.id, stats),
     history: db.prepare("SELECT snapshot_date date,position,points FROM ranking_snapshots WHERE user_id=? ORDER BY snapshot_date").all(req.user.id)
   });
+});
+app.get("/api/profile/me/medals", requireAuth, (req, res) => {
+  const stats = userStats(req.user.id, { includeMedals: true });
+  res.json(stats ? {
+    badges: stats.badges,
+    badge_catalog: stats.badge_catalog,
+    disputed_badges: stats.disputed_badges
+  } : emptyMedals);
 });
 app.patch("/api/profile/me", requireAuth, requireWritableUser, (req, res) => {
   const phrase = String(req.body.personal_phrase || "").trim().slice(0, 120);
@@ -1146,6 +1212,16 @@ app.get("/api/users/:id/public", requireAuth, (req, res) => {
   `).all(user.id, now());
   const stats = userStats(user.id);
   res.json({ user: { ...user, avatar_url: avatarUrl(user) }, stats, points_detail: pointsDetail(user.id, stats), predictions, history: db.prepare("SELECT snapshot_date date,position,points FROM ranking_snapshots WHERE user_id=? ORDER BY snapshot_date").all(user.id) });
+});
+app.get("/api/users/:id/public/medals", requireAuth, (req, res) => {
+  const user = db.prepare("SELECT id FROM users WHERE id=? AND active=1").get(req.params.id);
+  if (!user) return res.status(404).json({ error: "Usuario no encontrado." });
+  const stats = userStats(user.id, { includeMedals: true });
+  res.json(stats ? {
+    badges: stats.badges,
+    badge_catalog: stats.badge_catalog,
+    disputed_badges: stats.disputed_badges
+  } : emptyMedals);
 });
 
 app.get("/api/activity", requireAuth, (req, res) => {

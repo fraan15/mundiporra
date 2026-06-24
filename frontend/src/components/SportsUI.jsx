@@ -1,5 +1,5 @@
 import { Check, Info, Lock, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const flags = {
   "Alemania": "🇩🇪", "Arabia Saudí": "🇸🇦", "Argelia": "🇩🇿", "Argentina": "🇦🇷", "Australia": "🇦🇺",
@@ -92,14 +92,68 @@ export function BadgeCatalogDialog({ catalog = [], disputed = [], onClose }) {
 export function Badges({ badges = [], catalog = [], disputed = [] }) {
   const [selectedBadge, setSelectedBadge] = useState(null);
   const [catalogOpen, setCatalogOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
+  const swipeStart = useRef(null);
+  const ignoreBadgeClick = useRef(false);
   const activeBadge = badges.find((badge) => badge.name === selectedBadge);
-  const orderedBadges = [...badges].sort((a, b) =>
+  const orderedBadges = useMemo(() => [...badges].sort((a, b) =>
     Number(a.order ?? 99) - Number(b.order ?? 99) ||
     Number(b.level ?? 0) - Number(a.level ?? 0) ||
     String(a.name).localeCompare(String(b.name), "es")
-  );
+  ), [badges]);
+  const badgePages = useMemo(() => {
+    const pages = [];
+    for (let index = 0; index < orderedBadges.length; index += 6) pages.push(orderedBadges.slice(index, index + 6));
+    return pages;
+  }, [orderedBadges]);
   const orderedCatalog = [...catalog].sort((a, b) => Number(a.order ?? 99) - Number(b.order ?? 99));
   const hasCatalog = orderedCatalog.some((group) => group.tiers?.length);
+  const pageCount = badgePages.length;
+  const safeCurrentPage = pageCount ? Math.min(currentPage, pageCount - 1) : 0;
+
+  useEffect(() => {
+    if (safeCurrentPage !== currentPage) setCurrentPage(safeCurrentPage);
+  }, [currentPage, safeCurrentPage]);
+
+  const changePage = (direction) => {
+    if (pageCount < 2) return;
+    setCurrentPage((page) => {
+      const nextPage = page + direction;
+      if (nextPage < 0) return pageCount - 1;
+      if (nextPage >= pageCount) return 0;
+      return nextPage;
+    });
+  };
+
+  const endBadgeSwipe = (event) => {
+    const start = swipeStart.current;
+    swipeStart.current = null;
+    if (!start) return;
+    const deltaX = event.clientX - start.x;
+    const deltaY = event.clientY - start.y;
+    if (Math.abs(deltaX) < 42 || Math.abs(deltaX) < Math.abs(deltaY) * 1.25) return;
+    ignoreBadgeClick.current = true;
+    changePage(deltaX < 0 ? 1 : -1);
+    window.setTimeout(() => { ignoreBadgeClick.current = false; }, 250);
+  };
+
+  const renderBadge = (badge) => {
+    const isActive = selectedBadge === badge.name;
+    return <button
+      type="button"
+      className={`badge-card ${badge.kind || ""} ${isActive ? "active" : ""}`}
+      key={badge.name}
+      title={badge.description || badge.name}
+      aria-haspopup="dialog"
+      onClick={() => {
+        if (ignoreBadgeClick.current) return;
+        setSelectedBadge(badge.name);
+      }}
+    >
+      <span aria-hidden="true">{badge.icon}</span>
+      <strong>{badge.name}</strong>
+    </button>;
+  };
 
   return <div className="badges-wrap">
     {hasCatalog && <button
@@ -111,22 +165,37 @@ export function Badges({ badges = [], catalog = [], disputed = [] }) {
     >
       <Info size={18} />
     </button>}
-    <div className="badges" aria-label="Medallas del jugador">
-      {orderedBadges.length ? orderedBadges.map((badge) => {
-        const isActive = selectedBadge === badge.name;
-        return <button
-          type="button"
-          className={`badge-card ${badge.kind || ""} ${isActive ? "active" : ""}`}
-          key={badge.name}
-          title={badge.description || badge.name}
-          aria-haspopup="dialog"
-          onClick={() => setSelectedBadge(badge.name)}
-        >
-          <span aria-hidden="true">{badge.icon}</span>
-          <strong>{badge.name}</strong>
-        </button>;
-      }) : <p className="empty-state">Los logros se desbloquean jugando.</p>}
-    </div>
+    {orderedBadges.length ? <>
+      <div
+        className="badges"
+        aria-label="Medallas del jugador"
+        onPointerDown={(event) => {
+          if (event.pointerType !== "mouse") swipeStart.current = { x: event.clientX, y: event.clientY };
+        }}
+        onPointerUp={endBadgeSwipe}
+        onPointerCancel={() => { swipeStart.current = null; }}
+      >
+        <div className="badges-pages" style={{ transform: `translateX(-${safeCurrentPage * 100}%)` }}>
+          {badgePages.map((page, pageIndex) => (
+            <div className="badges-page" key={`badges-page-${pageIndex}`}>
+              {page.map(renderBadge)}
+            </div>
+          ))}
+        </div>
+      </div>
+      {pageCount > 1 && <div className="badges-pagination" aria-label="Páginas de medallas">
+        {badgePages.map((_, pageIndex) => (
+          <button
+            type="button"
+            className={pageIndex === safeCurrentPage ? "active" : ""}
+            key={`badge-page-dot-${pageIndex}`}
+            aria-label={`Ver página ${pageIndex + 1} de medallas`}
+            aria-current={pageIndex === safeCurrentPage ? "page" : undefined}
+            onClick={() => setCurrentPage(pageIndex)}
+          />
+        ))}
+      </div>}
+    </> : <p className="empty-state">Los logros se desbloquean jugando.</p>}
     {activeBadge && <div className="badge-popup-overlay" role="presentation" onClick={() => setSelectedBadge(null)}>
       <div className={`badge-popup ${activeBadge.kind || ""}`} role="dialog" aria-modal="true" aria-labelledby="badge-popup-title" onClick={(event) => event.stopPropagation()}>
         <button type="button" className="badge-popup-close" aria-label="Cerrar explicación de medalla" onClick={() => setSelectedBadge(null)}>

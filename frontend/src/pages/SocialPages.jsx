@@ -656,11 +656,22 @@ export function PublicProfilePage({ userId }) {
     [pointsOpen, setPointsOpen] = useState(consumePointsReturn),
     [openMatchId, setOpenMatchId] = useState(null),
     [avatarOpen, setAvatarOpen] = useState(false),
-    [scrollMatchId, setScrollMatchId] = useState(null);
+    [scrollMatchId, setScrollMatchId] = useState(null),
+    [medals, setMedals] = useState(null);
   const pageSize = 5;
   useEffect(() => {
+    let ignore = false;
     setHistoryPage(1);
-    api(`/users/${id}/public`).then(setData);
+    setMedals(null);
+    api(`/users/${id}/public`).then((profile) => {
+      if (!ignore) setData(profile);
+    });
+    api(userId ? "/profile/me/medals" : `/users/${id}/public/medals`).then((profileMedals) => {
+      if (!ignore) setMedals(profileMedals);
+    });
+    return () => {
+      ignore = true;
+    };
   }, [id]);
   const predictions = useMemo(
     () =>
@@ -746,7 +757,7 @@ export function PublicProfilePage({ userId }) {
         <b>#{s.position}</b>
       </section>
       <StatCards s={s} onPointsInfo={() => setPointsOpen(true)} />
-      <MedalsSection badges={s.badges} catalog={s.badge_catalog} disputed={s.disputed_badges} />
+      <MedalsSection badges={medals?.badges || s.badges} catalog={medals?.badge_catalog || s.badge_catalog} disputed={medals?.disputed_badges || s.disputed_badges} />
       <StatsSections stats={s} history={data.history} onDayClick={goToDay} />
       <section className="content-card">
         <h2>Historial visible</h2>

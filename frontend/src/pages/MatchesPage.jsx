@@ -10,6 +10,7 @@ import { startVisiblePolling } from "../utils/visiblePolling";
 const dateKey = date => date.toLocaleDateString("sv-SE");
 const hasResult = match => match.result_team1 !== null && match.result_team2 !== null;
 const daysAgoKey = days => { const date=new Date(); date.setDate(date.getDate()-days); return dateKey(date); };
+const yesterdayKey = () => daysAgoKey(1);
 const dateLabel = value => {
   const date = new Date(`${value}T12:00:00`), today = new Date(), tomorrow = new Date();
   tomorrow.setDate(today.getDate() + 1);
@@ -24,16 +25,20 @@ export function MatchesPage() {
   const savedState=useRef((()=>{try{return JSON.parse(sessionStorage.getItem("matchesPageReturn")||"null")}catch{return null}})()).current;
   const initialView = savedState?.view || (window.location.hash === "#upcoming" ? "pending" : "today");
   const [matches,setMatches]=useState([]),[loading,setLoading]=useState(true),[view,setView]=useState(initialView);
-  const [selectedTeamId,setSelectedTeamId]=useState(savedState?.selectedTeamId||""),[historyDate,setHistoryDate]=useState(savedState?.historyDate||daysAgoKey(3));
-  const load=async()=>{setMatches(await api("/matches"));setLoading(false)};
-  useEffect(()=>startVisiblePolling(load,30000),[]);
+  const [counts,setCounts]=useState({today:0,upcoming:0,pending:0,history:0});
+  const [selectedTeamId,setSelectedTeamId]=useState(savedState?.selectedTeamId||""),[historyDate,setHistoryDate]=useState(savedState?.historyDate||yesterdayKey());
+  const load=async()=>{
+    const path=view==="history"?`/matches/view/history?date=${encodeURIComponent(historyDate||yesterdayKey())}`:`/matches/view/${view}`;
+    const [summary,data]=await Promise.all([api("/matches/summary"),api(path)]);
+    setCounts(summary);
+    setMatches(data);
+    setLoading(false);
+  };
+  useEffect(()=>{setLoading(true);return startVisiblePolling(load,30000)},[view,historyDate]);
   useEffect(()=>{if(loading||!savedState)return;requestAnimationFrame(()=>window.scrollTo({top:savedState.scrollY||0,behavior:"auto"}));sessionStorage.removeItem("matchesPageReturn")},[loading,savedState]);
 
   const today=dateKey(new Date());
-  const pending=user.is_read_only?[]:matches.filter(match=>match.betting_open&&!match.prediction_id);
-  const todayMatches=matches.filter(match=>match.match_date===today||match.in_play);
-  const upcoming=matches.filter(match=>match.match_date>today&&!match.in_play&&!hasResult(match));
-  const historical=matches.filter(hasResult).sort((a,b)=>`${b.match_date}${b.match_time}`.localeCompare(`${a.match_date}${a.match_time}`));
+  const pendingCount=user.is_read_only?0:counts.pending;
   const teams=useMemo(()=>{
     const values=new Map();
     matches.forEach(match=>{
@@ -43,13 +48,12 @@ export function MatchesPage() {
     return [...values.values()].sort((a,b)=>a.name.localeCompare(b.name,"es"));
   },[matches]);
   const filters=[
-    ["today","Hoy",CheckCircle2,todayMatches.length],
-    ["upcoming","Próximos",Clock3,upcoming.length],
-    ["pending",user.is_read_only?"Solo lectura":"Sin apostar",Target,pending.length],
-    ["history","Histórico",History,historical.length]
+    ["today","Hoy",CheckCircle2,counts.today],
+    ["upcoming","Próximos",Clock3,counts.upcoming],
+    ["pending",user.is_read_only?"Solo lectura":"Sin apostar",Target,pendingCount],
+    ["history","Histórico",History,counts.history]
   ];
-  const source=view==="today"?todayMatches:view==="upcoming"?upcoming:view==="pending"?pending:historical;
-  const visible=source.filter(match=>(!selectedTeamId||String(match.team1_id)===String(selectedTeamId)||String(match.team2_id)===String(selectedTeamId))&&(view!=="history"||!historyDate||match.match_date===historyDate));
+  const visible=matches.filter(match=>!selectedTeamId||String(match.team1_id)===String(selectedTeamId)||String(match.team2_id)===String(selectedTeamId));
   const grouped=useMemo(()=>{
     const groups=new Map();
     [...visible].sort((a,b)=>view==="history"?`${b.match_date}${b.match_time}`.localeCompare(`${a.match_date}${a.match_time}`):`${a.match_date}${a.match_time}`.localeCompare(`${b.match_date}${b.match_time}`)).forEach(match=>{
@@ -59,13 +63,13 @@ export function MatchesPage() {
     });
     return [...groups.entries()];
   },[visible,view,today]);
-  const selectView=id=>{setView(id);if(id==="history"&&!historyDate)setHistoryDate(daysAgoKey(3));window.history.replaceState(null,"",id==="pending"?"#upcoming":window.location.pathname)};
+  const selectView=id=>{setView(id);if(id==="history"&&!historyDate)setHistoryDate(yesterdayKey());window.history.replaceState(null,"",id==="pending"?"#upcoming":window.location.pathname)};
   const openMatch=id=>{sessionStorage.setItem("matchesPageReturn",JSON.stringify({view,selectedTeamId,historyDate,scrollY:window.scrollY}));navigate(`/match/${id}`,{state:{fromMatchesPage:true}})};
 
   return <div className="page matches-page-redesign">
     <section className="matches-command-header">
-      <div><span className="eyebrow">CENTRO DE PARTIDOS</span><h1>Tu agenda del Mundial</h1><p>{user.is_read_only?"Todos los encuentros, resultados y datos en un solo lugar.":pending.length?`Tienes ${pending.length} pronóstico${pending.length===1?"":"s"} por completar.`:"Todo al día. Ya puedes centrarte en la jornada."}</p></div>
-      {!user.is_read_only&&<div className={`matches-pulse ${pending.length?"attention":"complete"}`}><Target/><strong>{pending.length}</strong><span>sin apostar</span></div>}
+      <div><span className="eyebrow">CENTRO DE PARTIDOS</span><h1>Tu agenda del Mundial</h1><p>{user.is_read_only?"Todos los encuentros, resultados y datos en un solo lugar.":pendingCount?`Tienes ${pendingCount} pronóstico${pendingCount===1?"":"s"} por completar.`:"Todo al día. Ya puedes centrarte en la jornada."}</p></div>
+      {!user.is_read_only&&<div className={`matches-pulse ${pendingCount?"attention":"complete"}`}><Target/><strong>{pendingCount}</strong><span>sin apostar</span></div>}
     </section>
 
     <nav className="matches-filter-rail" aria-label="Vista de partidos">{filters.map(([id,label,Icon,count])=><button key={id} className={view===id?"active":""} onClick={()=>selectView(id)}><Icon size={16}/><span>{label}</span><b>{count}</b></button>)}</nav>
@@ -73,7 +77,7 @@ export function MatchesPage() {
     <section className="matches-toolbar">
       <div className="matches-team-search"><SearchSelect label="Buscar selección" items={teams} value={selectedTeamId} onChange={team=>setSelectedTeamId(team?.id||"")} placeholder="Buscar selección…" renderItem={team=><><strong>{team.flag_icon} {team.name}</strong><small>{team.fifa_code||"Selección"}</small></>}/></div>
       {view==="history"&&<label className="matches-date-filter"><span>Fecha del histórico</span><input type="date" value={historyDate} aria-label="Seleccionar fecha del histórico" onChange={event=>setHistoryDate(event.target.value)}/></label>}
-      {(selectedTeamId||(view==="history"&&historyDate!==daysAgoKey(3)))&&<button onClick={()=>{setSelectedTeamId("");if(view==="history")setHistoryDate(daysAgoKey(3))}}><X size={15}/> Restablecer</button>}
+      {(selectedTeamId||(view==="history"&&historyDate!==yesterdayKey()))&&<button onClick={()=>{setSelectedTeamId("");if(view==="history")setHistoryDate(yesterdayKey())}}><X size={15}/> Restablecer</button>}
       <small>{visible.length} partido{visible.length===1?"":"s"}</small>
     </section>
 
