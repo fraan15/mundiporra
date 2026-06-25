@@ -347,7 +347,7 @@ function DashboardCalendar({ matches, calendarToday, onOpenMatch, restoreScrollT
 
 export function DashboardPage() {
   const [calendarReturnInfo]=useState(()=>sessionStorage.getItem("dashboardCalendarReturn")==="1"?{scrollTop:Number(sessionStorage.getItem("dashboardCalendarScrollTop")||0)}:null);
-  const {user}=useAuth(),navigate=useNavigate(),location=useLocation(),[data,setData]=useState(null),[activity,setActivity]=useState([]),[calendarMatches,setCalendarMatches]=useState([]),[calendarToday,setCalendarToday]=useState(null),[tick,setTick]=useState(Date.now()),[matchIndex,setMatchIndex]=useState(0),[liveMatchIndex,setLiveMatchIndex]=useState(0),[liveDragOffset,setLiveDragOffset]=useState(0),[isLiveDragging,setIsLiveDragging]=useState(false),[liveSlideDirection,setLiveSlideDirection]=useState("next"),[knockoutInfoOpen,setKnockoutInfoOpen]=useState(false),[medalInfoOpen,setMedalInfoOpen]=useState(false),[medalData,setMedalData]=useState(null);
+  const {user}=useAuth(),navigate=useNavigate(),location=useLocation(),[data,setData]=useState(null),[activity,setActivity]=useState([]),[calendarMatches,setCalendarMatches]=useState([]),[calendarToday,setCalendarToday]=useState(null),[tick,setTick]=useState(Date.now()),[matchIndex,setMatchIndex]=useState(0),[liveMatchIndex,setLiveMatchIndex]=useState(0),[liveDragOffset,setLiveDragOffset]=useState(0),[isLiveDragging,setIsLiveDragging]=useState(false),[knockoutInfoOpen,setKnockoutInfoOpen]=useState(false),[medalInfoOpen,setMedalInfoOpen]=useState(false),[medalData,setMedalData]=useState(null);
   const calendarRestoreScrollTop=calendarReturnInfo ? calendarReturnInfo.scrollTop : null;
   const swipeStart=useRef(null),liveSwipeStart=useRef(null),liveDragFrame=useRef(null),suppressNextClick=useRef(false),suppressLiveClick=useRef(false),initialDashboardHydrated=useRef(false);
   const loadDashboard=()=>api("/dashboard").then((dashboard)=>{
@@ -380,13 +380,12 @@ export function DashboardPage() {
     window.setTimeout(()=>{suppressNextClick.current=false},0);
     setMatchIndex(index=>(index+(deltaX<0?1:-1)+nextMatches.length)%nextMatches.length);
   };
-  const goToLiveMatch=(index,direction=index>liveMatchIndex?"next":"prev")=>{
+  const goToLiveMatch=(index)=>{
     if(!inPlayMatches.length)return;
     if(liveDragFrame.current){
       cancelAnimationFrame(liveDragFrame.current);
       liveDragFrame.current=null;
     }
-    setLiveSlideDirection(direction);
     setLiveDragOffset(0);
     setIsLiveDragging(false);
     setLiveMatchIndex((index+inPlayMatches.length)%inPlayMatches.length);
@@ -408,11 +407,11 @@ export function DashboardPage() {
     const deltaX=event.clientX-liveSwipeStart.current.x,deltaY=event.clientY-liveSwipeStart.current.y;
     const absX=Math.abs(deltaX),absY=Math.abs(deltaY);
     if(!liveSwipeStart.current.dragging){
-      if(absY>14&&absY>absX*1.05){
+      if(absY>12&&absY>absX*1.15){
         liveSwipeStart.current=null;
         return;
       }
-      if(absX>16&&absX>absY*1.25){
+      if(absX>16&&absX>absY*1.3){
         liveSwipeStart.current.dragging=true;
         setIsLiveDragging(true);
         event.currentTarget.setPointerCapture?.(liveSwipeStart.current.pointerId);
@@ -427,6 +426,8 @@ export function DashboardPage() {
     if(!liveSwipeStart.current)return;
     const {x,y,dragging}=liveSwipeStart.current;
     const deltaX=event.clientX-x,deltaY=event.clientY-y;
+    const width=event.currentTarget.clientWidth||1;
+    const threshold=Math.max(38,width*.16);
     liveSwipeStart.current=null;
     if(liveDragFrame.current){
       cancelAnimationFrame(liveDragFrame.current);
@@ -434,12 +435,12 @@ export function DashboardPage() {
     }
     setLiveDragOffset(0);
     setIsLiveDragging(false);
-    if(!dragging||inPlayMatches.length<2||Math.abs(deltaX)<45||Math.abs(deltaX)<=Math.abs(deltaY)*1.25){
+    if(!dragging||inPlayMatches.length<2||Math.abs(deltaX)<threshold||Math.abs(deltaX)<=Math.abs(deltaY)*1.25){
       window.setTimeout(()=>{suppressLiveClick.current=false},0);
       return;
     }
     window.setTimeout(()=>{suppressLiveClick.current=false},0);
-    goToLiveMatch(liveMatchIndex+(deltaX<0?1:-1),deltaX<0?"next":"prev");
+    goToLiveMatch(liveMatchIndex+(deltaX<0?1:-1));
   };
   const cancelLiveSwipe=()=>{
     liveSwipeStart.current=null;
@@ -491,7 +492,7 @@ export function DashboardPage() {
     </button>
   </section>
   <DashboardCalendar matches={calendarMatches} calendarToday={calendarToday} onOpenMatch={openCalendarMatch} restoreScrollTop={calendarRestoreScrollTop} user={user} currentTime={tick}/>
-              {liveMatch&&<section className="live-matches-section content-card"><div className="card-title"><div><span className="eyebrow live-label"><Radio size={14}/> EN DIRECTO</span><h2>Partidos en juego</h2><p>Sigue los encuentros activos ahora mismo</p></div><button className="detail-icon-button" aria-label="Ver detalle del partido en juego" title="Ver detalle" onClick={()=>navigate(`/match/${liveMatch.id}`)}><Eye size={17}/></button></div><div className={`live-match-carousel ${isLiveDragging?"is-dragging":""}`} onPointerDown={startLiveSwipe} onPointerMove={moveLiveSwipe} onPointerUp={endLiveSwipe} onPointerCancel={cancelLiveSwipe}><article key={liveMatch.id} className={`live-match-card live-slide-${liveSlideDirection} ${isLiveDragging?"is-dragging":""} ${liveMatch.is_star?"star-dashboard-card live-star-card":""}`} style={isLiveDragging?{transform:`translate3d(${liveDragOffset}px,0,0) rotate(${liveDragOffset/120}deg)`}:undefined}>{Boolean(liveMatch.is_star)&&<span className="live-star-badge"><Star size={13} fill="currentColor"/> Partido Estrella <b>x2</b></span>}<div className="live-match-teams match-open-card" onClick={()=>openMatch(liveMatch,suppressLiveClick)} onKeyDown={event=>openMatchOnKey(event,liveMatch,suppressLiveClick)} role="button" tabIndex={0} aria-label={`Ver detalle de ${liveMatch.team1} contra ${liveMatch.team2}`}><div><Flag team={liveMatch.team1} teamData={liveMatch.team1_team}/><strong>{liveMatch.team1}</strong></div><span className="live-versus"><b>VS</b><small><Clock3 size={12}/> Comenzó {liveMatch.match_time?.slice(0,5)}</small><em className="live-status-badge"><i/> Live</em></span><div><Flag team={liveMatch.team2} teamData={liveMatch.team2_team}/><strong>{liveMatch.team2}</strong></div></div><div className={`live-match-prediction ${liveMatch.prediction_id?"has-prediction":"no-prediction"}`}><span className="live-prediction-label">{user.is_read_only?"Participación":"Tu apuesta"}</span><DashboardPredictionValue match={liveMatch} user={user} emptyText="No apostado"/></div></article></div>{inPlayMatches.length>1&&<div className="match-carousel-controls live-match-carousel-controls"><button aria-label="Partido en juego anterior" onClick={()=>goToLiveMatch(liveMatchIndex-1,"prev")}><ArrowLeft size={17}/></button><div>{inPlayMatches.map((match,index)=><button aria-label={`Ver partido en juego ${index+1}`} className={index===liveMatchIndex?"active":""} key={match.id} onClick={()=>goToLiveMatch(index,index>liveMatchIndex?"next":"prev")}/>)}</div><button aria-label="Partido en juego siguiente" onClick={()=>goToLiveMatch(liveMatchIndex+1,"next")}><ArrowRight size={17}/></button></div>}</section>}
+              {liveMatch&&<section className="live-matches-section content-card"><div className="card-title"><div><span className="eyebrow live-label"><Radio size={14}/> EN DIRECTO</span><h2>Partidos en juego</h2><p>Sigue los encuentros activos ahora mismo</p></div><button className="detail-icon-button" aria-label="Ver detalle del partido en juego" title="Ver detalle" onClick={()=>navigate(`/match/${liveMatch.id}`)}><Eye size={17}/></button></div><div className={`live-match-carousel ${isLiveDragging?"is-dragging":""}`} onPointerDown={startLiveSwipe} onPointerMove={moveLiveSwipe} onPointerUp={endLiveSwipe} onPointerCancel={cancelLiveSwipe} onPointerLeave={event=>{if(event.pointerType==="mouse")cancelLiveSwipe()}}><div className={`live-match-track ${isLiveDragging?"is-dragging":""}`} style={{transform:`translate3d(calc(${-liveMatchIndex*100}% + ${liveDragOffset}px),0,0)`}}>{inPlayMatches.map(match=><div className="live-match-slide" key={match.id}><article className={`live-match-card ${match.is_star?"star-dashboard-card live-star-card":""}`} onClick={()=>openMatch(match,suppressLiveClick)} onKeyDown={event=>openMatchOnKey(event,match,suppressLiveClick)} role="button" tabIndex={0} aria-label={`Ver detalle de ${match.team1} contra ${match.team2}`}>{Boolean(match.is_star)&&<span className="live-star-badge"><Star size={13} fill="currentColor"/> Partido Estrella <b>x2</b></span>}<div className="live-match-teams match-open-card"><div><Flag team={match.team1} teamData={match.team1_team}/><strong>{match.team1}</strong></div><span className="live-versus"><b>VS</b><small><Clock3 size={12}/> Comenzó {match.match_time?.slice(0,5)}</small><em className="live-status-badge"><i/> Live</em></span><div><Flag team={match.team2} teamData={match.team2_team}/><strong>{match.team2}</strong></div></div><div className={`live-match-prediction ${match.prediction_id?"has-prediction":"no-prediction"}`}><span className="live-prediction-label">{user.is_read_only?"Participación":"Tu apuesta"}</span><DashboardPredictionValue match={match} user={user} emptyText="No apostado"/></div></article></div>)}</div></div>{inPlayMatches.length>1&&<div className="match-carousel-controls live-match-carousel-controls"><button aria-label="Partido en juego anterior" onClick={()=>goToLiveMatch(liveMatchIndex-1)}><ArrowLeft size={17}/></button><div>{inPlayMatches.map((match,index)=><button aria-label={`Ver partido en juego ${index+1}`} className={index===liveMatchIndex?"active":""} key={match.id} onClick={()=>goToLiveMatch(index)}/>)}</div><button aria-label="Partido en juego siguiente" onClick={()=>goToLiveMatch(liveMatchIndex+1)}><ArrowRight size={17}/></button></div>}</section>}
   <div className="dashboard-grid">
   <section className="content-card activity-card"><div className="card-title"><div><span className="eyebrow">COMUNIDAD</span><h2>Última actividad</h2></div><button onClick={()=>navigate("/actividad")}>Ver todo</button></div><div className="activity-feed compact">{activity.slice(0,4).map((a,i)=><article key={i}><ActivityAvatar user={a} type={a.type}/><div><strong className="activity-line">{a.text}{a.type==="points"&&<span className={`points-award ${a.exact_result_points>0?"exact":""}`}>{a.exact_result_points>0&&<Star size={14} fill="currentColor"/>}+{a.total_points} pts</span>}</strong><small>{new Date(a.created_at).toLocaleString("es-ES")}</small></div></article>)}</div></section></div></div>
 }

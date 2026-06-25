@@ -201,7 +201,11 @@ function ProfileMenu({ unreadNews = 0, onOpenNews }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const menuRef = useRef(null);
+  const swipeRef = useRef(null);
   const [open, setOpen] = useState(false);
+  const [dragX, setDragX] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const [closing, setClosing] = useState(false);
   useEffect(() => {
     const close = (event) => {
       if (!menuRef.current?.contains(event.target)) setOpen(false);
@@ -212,10 +216,52 @@ function ProfileMenu({ unreadNews = 0, onOpenNews }) {
   const toggle = () => {
     setOpen(value => !value);
   };
+  const closeMenu = () => {
+    setOpen(false);
+    setClosing(false);
+    setDragging(false);
+    setDragX(0);
+  };
+  const closeMenuWithSlide = () => {
+    setClosing(true);
+    setDragging(false);
+    setDragX(0);
+    window.setTimeout(closeMenu, 180);
+  };
+  const startSwipe = (event) => {
+    if (event.pointerType === "mouse") return;
+    swipeRef.current = { x: event.clientX, y: event.clientY };
+    setClosing(false);
+  };
+  const moveSwipe = (event) => {
+    if (!swipeRef.current) return;
+    const deltaX = event.clientX - swipeRef.current.x;
+    const deltaY = event.clientY - swipeRef.current.y;
+    if (!dragging && Math.abs(deltaX) < 8 && Math.abs(deltaY) < 8) return;
+    if (!dragging && Math.abs(deltaY) > Math.abs(deltaX)) {
+      swipeRef.current = null;
+      return;
+    }
+    const nextX = Math.max(0, deltaX);
+    swipeRef.current.dx = nextX;
+    setDragging(true);
+    setDragX(nextX);
+  };
+  const endSwipe = () => {
+    if (!swipeRef.current) return;
+    const finalX = swipeRef.current.dx || 0;
+    swipeRef.current = null;
+    if (finalX > 92) {
+      closeMenuWithSlide();
+      return;
+    }
+    setDragging(false);
+    setDragX(0);
+  };
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (event) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") closeMenu();
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
@@ -225,22 +271,24 @@ function ProfileMenu({ unreadNews = 0, onOpenNews }) {
     return () => document.body.classList.remove("profile-menu-open");
   }, [open]);
   const signOut = async () => {
-    setOpen(false);
+    closeMenu();
     await logout();
     navigate("/login", { replace: true });
   };
   const roleLabel = user.is_read_only ? "Solo lectura" : user.role === "admin" ? "Administrador" : "Participante";
+  const drawerClassName = `profile-side-drawer${dragging ? " is-dragging" : ""}${closing ? " is-closing" : ""}`;
+  const drawerStyle = dragX > 0 ? { transform: `translate3d(${dragX}px,0,0)` } : undefined;
   return <div className="profile-menu" ref={menuRef}>
     <button className="profile-shortcut" aria-expanded={open} aria-haspopup="menu" onClick={toggle}>
       <span className="profile-avatar-wrap"><Avatar user={user}/>{unreadNews > 0 && <i className="profile-news-dot" aria-label={`${unreadNews} novedades pendientes`}/>}</span>
       <span><strong>{user.display_name||user.username}</strong><small>{roleLabel}</small></span>
       <ChevronDown className={open ? "open" : ""} size={15}/>
     </button>
-    {open && <div className="profile-side-backdrop" onPointerDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>
-      <aside className="profile-side-drawer" role="dialog" aria-modal="true" aria-label="Menú de perfil">
+    {open && <div className="profile-side-backdrop" onPointerDown={(event) => { if (event.target === event.currentTarget) closeMenu(); }}>
+      <aside className={drawerClassName} style={drawerStyle} role="dialog" aria-modal="true" aria-label="Menú de perfil" onPointerDown={startSwipe} onPointerMove={moveSwipe} onPointerUp={endSwipe} onPointerCancel={endSwipe}>
         <header className="profile-side-header">
-          <button className="profile-side-close" type="button" aria-label="Cerrar menú" title="Cerrar" onClick={() => setOpen(false)}><X size={20}/></button>
-          <button className="profile-side-avatar-button" type="button" aria-label="Modificar usuario" title="Modificar usuario" onClick={() => { setOpen(false); navigate("/modificar-usuario"); }}>
+          <button className="profile-side-close" type="button" aria-label="Cerrar menú" title="Cerrar" onClick={closeMenu}><X size={20}/></button>
+          <button className="profile-side-avatar-button" type="button" aria-label="Modificar usuario" title="Modificar usuario" onClick={() => { closeMenu(); navigate("/modificar-usuario"); }}>
             <Avatar user={user} className="profile-side-avatar"/>
           </button>
           <h2>{user.display_name||user.username}</h2>
@@ -248,11 +296,11 @@ function ProfileMenu({ unreadNews = 0, onOpenNews }) {
           <span className="profile-side-role">{roleLabel}</span>
         </header>
         <nav className="profile-side-nav" aria-label="Acciones de perfil">
-          <button onClick={() => { setOpen(false); onOpenNews(); }}><Megaphone size={24}/><span>Novedades</span>{unreadNews > 0 && <b className="profile-side-news-badge" aria-label={`${unreadNews} novedades pendientes`}>{unreadNews > 9 ? "9+" : unreadNews}</b>}</button>
-          <button onClick={() => { setOpen(false); navigate("/perfil"); }}><User size={24}/><span>Perfil</span></button>
-          <button onClick={() => { setOpen(false); navigate("/mundial"); }}><Goal size={24}/><span>Mundial</span></button>
-          {!user.is_read_only && <button onClick={() => { setOpen(false); navigate("/notificaciones"); }}><Bell size={24}/><span>Notificaciones</span></button>}
-          {!user.is_read_only && <button onClick={() => { setOpen(false); navigate("/modificar-usuario"); }}><UserCog size={24}/><span>Modificar usuario</span></button>}
+          <button onClick={() => { closeMenu(); onOpenNews(); }}><Megaphone size={24}/><span>Novedades</span>{unreadNews > 0 && <b className="profile-side-news-badge" aria-label={`${unreadNews} novedades pendientes`}>{unreadNews > 9 ? "9+" : unreadNews}</b>}</button>
+          <button onClick={() => { closeMenu(); navigate("/perfil"); }}><User size={24}/><span>Perfil</span></button>
+          <button onClick={() => { closeMenu(); navigate("/mundial"); }}><Goal size={24}/><span>Mundial</span></button>
+          {!user.is_read_only && <button onClick={() => { closeMenu(); navigate("/notificaciones"); }}><Bell size={24}/><span>Notificaciones</span></button>}
+          {!user.is_read_only && <button onClick={() => { closeMenu(); navigate("/modificar-usuario"); }}><UserCog size={24}/><span>Modificar usuario</span></button>}
         </nav>
         <footer className="profile-side-footer">
           <button className="profile-side-logout" onClick={signOut}><LogOut size={22}/><span>Cerrar sesión</span></button>
