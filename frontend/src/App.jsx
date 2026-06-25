@@ -595,7 +595,7 @@ function MainLayout() {
       {activeNavIndex>=0&&<span className="bottom-nav-bubble" aria-hidden="true"/>}
       {items.map(([to, label, Icon],index) => <NavLink ref={node=>{navItemRefs.current[index]=node;}} key={to} to={to} end={to==="/"} aria-label={label} title={label} className={({isActive})=>isActive?"active":""}><span className="nav-icon"><Icon size={18}/>{to==="/chat"&&unreadChat>0&&<i className="chat-unread-dot" aria-label={`${unreadChat} mensajes sin leer`}/>}</span><span className="nav-label">{label}</span></NavLink>)}
     </nav>
-    <main><Outlet /></main>
+    <main className={location.pathname === "/chat" ? "chat-main" : ""}><Outlet /></main>
   </div>;
 }
 

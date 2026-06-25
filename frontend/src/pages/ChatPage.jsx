@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { CornerUpLeft, ImagePlus, MessageCircle, Plus, Send, Smile, Trash2, X } from "lucide-react";
 import { api } from "../api/client";
 import { useAuth } from "../App";
@@ -68,40 +68,108 @@ export function ChatPage() {
   const { user } = useAuth();
   const [messages, setMessages] = useState([]), [text, setText] = useState(""), [reply, setReply] = useState(null), [sending, setSending] = useState(false);
   const [media, setMedia] = useState(null), [viewer, setViewer] = useState(null), [mentions, setMentions] = useState([]);
-  const [swipe, setSwipe] = useState({ id: null, offset: 0 });
+  const [mentionIndex, setMentionIndex] = useState(0);
+  const [swipe, setSwipe] = useState({ id: null, offset: 0, ready: false });
   const [highlightedId, setHighlightedId] = useState(null);
   const [attachmentOpen, setAttachmentOpen] = useState(false);
   const [gifOpen, setGifOpen] = useState(false), [gifQuery, setGifQuery] = useState(""), [gifType, setGifType] = useState("gif"), [gifItems, setGifItems] = useState([]), [gifError, setGifError] = useState(""), [gifLoading, setGifLoading] = useState(false);
-  const streamRef = useRef(null), endRef = useRef(null), composerRef = useRef(null), initialLoad = useRef(true), scrollRequest = useRef("initial"), fileRef = useRef(null), touch = useRef(null);
+  const streamRef = useRef(null), endRef = useRef(null), composerRef = useRef(null), textareaRef = useRef(null), fileRef = useRef(null);
+  const initialLoad = useRef(true), scrollRequest = useRef("initial"), pointer = useRef(null), mentionRange = useRef(null);
+
   const isNearBottom = () => {
     const stream = streamRef.current;
-    return !stream || stream.scrollHeight - stream.scrollTop - stream.clientHeight < 80;
+    return !stream || stream.scrollHeight - stream.scrollTop - stream.clientHeight < 90;
   };
-  const scrollToLatest = (behavior = "auto", includeComposer = false) => requestAnimationFrame(() => requestAnimationFrame(() => {
-    endRef.current?.scrollIntoView({ block: "end", behavior });
-    if (includeComposer) composerRef.current?.scrollIntoView({ block: "end", behavior: "auto" });
-  }));
+  const scrollToLatest = (behavior = "auto") => requestAnimationFrame(() => endRef.current?.scrollIntoView({ block: "end", behavior }));
+  const keepBottomIfNeeded = () => { if (isNearBottom()) scrollToLatest("auto"); };
   const load = async () => {
     const wasInitial = initialLoad.current, shouldStick = wasInitial || scrollRequest.current !== "none" || isNearBottom();
     const data = await api("/chat");
     if (shouldStick && scrollRequest.current === "none") scrollRequest.current = wasInitial ? "initial" : "auto";
     setMessages(data);
-    if (wasInitial) { initialLoad.current = false; if (!user.is_read_only) await api("/chat/read", { method: "POST" }); }
+    if (wasInitial) {
+      initialLoad.current = false;
+      if (!user.is_read_only) await api("/chat/read", { method: "POST" });
+    }
   };
+
   useEffect(() => startVisiblePolling(load, 10000), []);
   useEffect(() => { if (fileRef.current) fileRef.current.accept = "image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"; }, []);
+  useLayoutEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = "auto";
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 128)}px`;
+  }, [text]);
   useEffect(() => {
     if (!messages.length || scrollRequest.current === "none") return;
-    const mode = scrollRequest.current, behavior = mode === "smooth" ? "smooth" : "auto";
-    scrollToLatest(behavior, mode === "initial");
-    const timers = mode === "initial" ? [120, 400, 900].map(delay => setTimeout(() => scrollToLatest("auto", true), delay)) : [];
-    const done = setTimeout(() => { scrollRequest.current = "none"; }, mode === "initial" ? 1100 : 250);
-    return () => { timers.forEach(clearTimeout); clearTimeout(done); };
+    scrollToLatest(scrollRequest.current === "smooth" ? "smooth" : "auto");
+    const done = setTimeout(() => { scrollRequest.current = "none"; }, 220);
+    return () => clearTimeout(done);
   }, [messages.at(-1)?.id]);
+  useEffect(() => {
+    const observer = new ResizeObserver(() => {
+      if (scrollRequest.current !== "none" || isNearBottom()) scrollToLatest("auto");
+    });
+    if (streamRef.current) observer.observe(streamRef.current);
+    if (composerRef.current) observer.observe(composerRef.current);
+    return () => observer.disconnect();
+  }, []);
 
-  const currentMention = () => text.slice(0, document.activeElement?.selectionStart ?? text.length).match(/(?:^|\s)@([^\s@]{2,})$/)?.[1];
-  useEffect(() => { const query = currentMention(); if (!query) { setMentions([]); return; } const timer = setTimeout(() => api(`/chat/mentions?q=${encodeURIComponent(query)}`).then(setMentions).catch(() => setMentions([])), 180); return () => clearTimeout(timer); }, [text]);
-  const chooseMention = (item) => { setText((value) => value.replace(/(?:^|\s)@([^\s@]*)$/, (match) => `${match.startsWith(" ") ? " " : ""}@${item.display_name.replace(/\s+/g, "_")} `)); setMentions([]); };
+  const getMentionMatch = () => {
+    const input = textareaRef.current;
+    const cursor = input?.selectionStart ?? text.length;
+    const before = text.slice(0, cursor);
+    const match = before.match(/(?:^|\s)@([\p{L}\p{N}_.-]{2,})$/u);
+    if (!match) return null;
+    const token = match[0], prefix = token.startsWith(" ") ? 1 : 0;
+    return { query: match[1], start: cursor - token.length + prefix, end: cursor };
+  };
+  useEffect(() => {
+    const match = getMentionMatch();
+    mentionRange.current = match;
+    setMentionIndex(0);
+    if (!match) { setMentions([]); return; }
+    const timer = setTimeout(() => api(`/chat/mentions?q=${encodeURIComponent(match.query)}`).then(setMentions).catch(() => setMentions([])), 180);
+    return () => clearTimeout(timer);
+  }, [text]);
+  const chooseMention = (item) => {
+    const input = textareaRef.current, range = mentionRange.current || getMentionMatch();
+    if (!range) return;
+    const mention = `@${item.display_name.replace(/\s+/g, "_")} `;
+    const nextText = `${text.slice(0, range.start)}${mention}${text.slice(range.end)}`;
+    const cursor = range.start + mention.length;
+    setText(nextText);
+    setMentions([]);
+    requestAnimationFrame(() => {
+      input?.focus();
+      input?.setSelectionRange(cursor, cursor);
+    });
+  };
+  const handleTextKeyDown = (event) => {
+    if (mentions.length) {
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        setMentionIndex(index => (index + (event.key === "ArrowDown" ? 1 : -1) + mentions.length) % mentions.length);
+        return;
+      }
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        chooseMention(mentions[mentionIndex]);
+        return;
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setMentions([]);
+        return;
+      }
+    }
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      event.currentTarget.form.requestSubmit();
+    }
+  };
+
   const discardMedia = async (item = media) => { if (item?.type === "image" && item?.id) await api(`/chat/image/${encodeURIComponent(item.id)}`, { method: "DELETE" }).catch(() => {}); if (item === media) setMedia(null); };
   const searchGiphy = async (event) => { event.preventDefault(); if (gifQuery.trim().length < 2) return; setGifLoading(true); setGifError(""); try { const result = await api(`/giphy/search?q=${encodeURIComponent(gifQuery.trim())}&type=${gifType}`); setGifItems(result.items); } catch (error) { setGifError(error.message); } finally { setGifLoading(false); } };
   const uploadImage = async (event) => {
@@ -119,18 +187,139 @@ export function ChatPage() {
       if (!response.ok) throw new Error(data.error || `No se pudo procesar la imagen (HTTP ${response.status}).`);
       await discardMedia(media);
       setMedia(data);
+      setAttachmentOpen(false);
     } catch (error) { alert(error.message || "No se pudo subir la imagen."); }
     finally { input.value = ""; setSending(false); }
   };
-  const submit = async (event) => { event.preventDefault(); if ((!text.trim() && !media) || sending) return; setSending(true); try { await api("/chat", { method: "POST", body: { message: text, reply_to_id: reply?.id || null, media } }); setText(""); setReply(null); setMedia(null); setGifOpen(false); setAttachmentOpen(false); scrollRequest.current = "smooth"; await load(); } finally { setSending(false); } };
-  const removeMessage = async (message) => { if (!window.confirm("¿Estás seguro de que deseas borrar el mensaje?")) return; await api(`/chat/${message.id}`, { method: "DELETE" }); if (reply?.id === message.id) setReply(null); await load(); };
-  const startSwipe = (event, message) => { touch.current = { id: message.id, x: event.touches[0].clientX, y: event.touches[0].clientY, message, horizontal: null }; setSwipe({ id: message.id, offset: 0 }); };
-  const moveSwipe = (event) => { if (!touch.current) return; const point = event.touches[0], dx = point.clientX - touch.current.x, dy = point.clientY - touch.current.y; if (touch.current.horizontal === null && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) touch.current.horizontal = dx > 0 && Math.abs(dx) > Math.abs(dy); if (!touch.current.horizontal) return; const distance = Math.max(0, dx), offset = 84 * (1 - Math.exp(-distance / 72)); setSwipe({ id: touch.current.id, offset }); };
-  const endSwipe = (event) => { if (!touch.current) return; const point = event.changedTouches[0], dx = point.clientX - touch.current.x, dy = point.clientY - touch.current.y; if (dx > 65 && Math.abs(dy) < 45) setReply(touch.current.message); touch.current = null; setSwipe({ id: null, offset: 0 }); };
-  const goToMessage = async (id) => { try { let target = document.getElementById(`chat-message-${id}`); if (!target) { setMessages(await api(`/chat?around=${id}`)); await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))); target = document.getElementById(`chat-message-${id}`); } setHighlightedId(id); target?.scrollIntoView({ behavior: "smooth", block: "center" }); setTimeout(() => setHighlightedId((value) => value === id ? null : value), 1800); } catch (error) { alert(error.message); } };
+  const submit = async (event) => {
+    event.preventDefault();
+    if ((!text.trim() && !media) || sending) return;
+    setSending(true);
+    try {
+      await api("/chat", { method: "POST", body: { message: text, reply_to_id: reply?.id || null, media } });
+      setText("");
+      setReply(null);
+      setMedia(null);
+      setGifOpen(false);
+      setAttachmentOpen(false);
+      scrollRequest.current = "smooth";
+      await load();
+    } finally { setSending(false); }
+  };
+  const removeMessage = async (message) => { if (!window.confirm("Estas seguro de que deseas borrar el mensaje?")) return; await api(`/chat/${message.id}`, { method: "DELETE" }); if (reply?.id === message.id) setReply(null); await load(); };
+  const startSwipe = (event, message) => {
+    if (event.pointerType === "mouse") return;
+    pointer.current = { id: event.pointerId, x: event.clientX, y: event.clientY, message, horizontal: null };
+    setSwipe({ id: message.id, offset: 0, ready: false });
+  };
+  const moveSwipe = (event) => {
+    const state = pointer.current;
+    if (!state || state.id !== event.pointerId) return;
+    const dx = event.clientX - state.x, dy = event.clientY - state.y;
+    if (state.horizontal === null && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) state.horizontal = dx > 0 && Math.abs(dx) > Math.abs(dy) * 1.25;
+    if (!state.horizontal) return;
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    event.preventDefault();
+    const distance = Math.max(0, dx), offset = Math.min(92, 92 * (1 - Math.exp(-distance / 76)));
+    setSwipe({ id: state.message.id, offset, ready: distance > 68 });
+  };
+  const endSwipe = (event) => {
+    const state = pointer.current;
+    if (!state || state.id !== event.pointerId) return;
+    if (swipe.ready) setReply(state.message);
+    pointer.current = null;
+    setSwipe({ id: null, offset: 0, ready: false });
+  };
+  const goToMessage = async (id) => {
+    try {
+      let target = document.getElementById(`chat-message-${id}`);
+      if (!target) {
+        setMessages(await api(`/chat?around=${id}`));
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        target = document.getElementById(`chat-message-${id}`);
+      }
+      setHighlightedId(id);
+      target?.scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(() => setHighlightedId((value) => value === id ? null : value), 1800);
+    } catch (error) { alert(error.message); }
+  };
 
-  return <div className="page chat-page"><section className="page-heading chat-heading"><span className="eyebrow"><MessageCircle size={14}/> VESTUARIO MUNDIALISTA</span><h1>Chat de la porra</h1><p>Comenta la jornada, celebra tus aciertos y responde a los demás jugadores.</p></section><section className="chat-card">
-    <div className="chat-stream" ref={streamRef}>{messages.length ? messages.map(message => <article id={`chat-message-${message.id}`} className={`chat-message ${message.user_id === user.id ? "mine" : ""} ${swipe.id === message.id ? "swiping" : ""} ${highlightedId === message.id ? "highlighted" : ""}`} style={{ transform: `translate3d(${swipe.id === message.id ? swipe.offset : 0}px,0,0)` }} key={message.id} onTouchStart={(event) => startSwipe(event, message)} onTouchMove={moveSwipe} onTouchEnd={endSwipe} onTouchCancel={() => { touch.current = null; setSwipe({ id: null, offset: 0 }); }}><span className="chat-swipe-reply"><CornerUpLeft size={17}/></span><Avatar user={message} className="chat-avatar"/><div className="chat-bubble"><header><strong>{message.username}</strong><time>{new Date(message.created_at).toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" })}</time></header>{message.reply_deleted ? <blockquote className="deleted-reply"><span>El mensaje citado ha sido eliminado</span></blockquote> : message.reply_to_id && <blockquote role="button" tabIndex={0} onClick={() => goToMessage(message.reply_to_id)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") goToMessage(message.reply_to_id); }}><b>{message.reply_username}</b>{message.reply_media_type && <img src={message.reply_media_preview_url || message.reply_media_url} alt="Contenido citado" loading="lazy"/>}<span>{message.reply_message || (message.reply_media_type === "image" ? "Imagen" : message.reply_media_type === "sticker" ? "Sticker" : "GIF")}</span></blockquote>}{message.message && <p>{mentionParts(message.message)}</p>}{message.media_type && <button type="button" className="chat-media-button" onClick={() => message.media_type === "image" && setViewer(message.media_url)}><img src={message.media_preview_url || message.media_url} alt={message.media_type === "sticker" ? "Sticker" : message.media_type === "gif" ? "GIF" : "Imagen enviada"} loading="lazy"/></button>} {!user.is_read_only && <div className="chat-message-actions"><button type="button" onClick={() => setReply(message)}><CornerUpLeft size={14}/> Responder</button>{(message.user_id === user.id || user.role === "admin") && <button type="button" className="delete" onClick={() => removeMessage(message)}><Trash2 size={14}/> Borrar</button>}</div>}</div></article>) : <div className="chat-empty"><MessageCircle/><strong>Abre la conversación</strong><span>Sé la primera persona en dejar un mensaje.</span></div>}<div className="chat-end" ref={endRef} aria-hidden="true"/></div>
-    {!user.is_read_only && <form className="chat-composer" ref={composerRef} onSubmit={submit}>{reply && <div className="chat-replying"><div><span>Respondiendo a <strong>{reply.username}</strong></span><small>{reply.message || "Contenido multimedia"}</small></div><button type="button" onClick={() => setReply(null)}><X size={16}/></button></div>}{media && <div className="chat-selected-media"><img src={media.preview_url || media.url} alt="Archivo seleccionado"/><button type="button" onClick={() => discardMedia()}><X size={15}/></button></div>}{mentions.length > 0 && <div className="chat-mentions">{mentions.map(item => <button type="button" key={item.id} onClick={() => chooseMention(item)}><Avatar user={{ ...item, username: item.display_name }}/><span><strong>{item.display_name}</strong><small>@{item.username}</small></span></button>)}</div>}{gifOpen && <div className="chat-gif-picker"><div><button type="button" className={gifType === "gif" ? "active" : ""} onClick={() => setGifType("gif")}>GIF</button><button type="button" className={gifType === "sticker" ? "active" : ""} onClick={() => setGifType("sticker")}>Stickers</button><button type="button" className="chat-gif-close" onClick={() => setGifOpen(false)} aria-label="Cerrar selector"><X size={17}/></button></div><div className="chat-gif-search"><input value={gifQuery} onChange={event => setGifQuery(event.target.value)} placeholder="Buscar…"/><button type="button" onClick={searchGiphy} disabled={gifLoading}>{gifLoading ? "…" : "Buscar"}</button></div>{gifError && <small>{gifError}</small>}<div className="chat-gif-results">{gifItems.map(item => <button type="button" key={item.id} onClick={async () => { await discardMedia(media); setMedia(item); setGifOpen(false); }}><img src={item.preview_url || item.url} alt={item.title || item.type}/></button>)}</div></div>}<div className="chat-compose-row"><div className="chat-attachment-control"><button type="button" className={`chat-add-trigger ${attachmentOpen ? "active" : ""}`} onClick={() => setAttachmentOpen(value => !value)} aria-label="Añadir contenido" aria-expanded={attachmentOpen}><Plus size={22}/></button>{attachmentOpen && <div className="chat-attachment-menu"><button type="button" onClick={() => { setAttachmentOpen(false); fileRef.current?.click(); }}><ImagePlus size={17}/><span>Foto</span></button><button type="button" onClick={() => { setAttachmentOpen(false); setGifOpen(true); }}><Smile size={17}/><span>GIF / sticker</span></button></div>}<input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={uploadImage}/></div><textarea maxLength={500} rows={1} value={text} onChange={event => setText(event.target.value)} placeholder="Escribe algo para toda la porra..." onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form.requestSubmit(); } }}/><button className="primary chat-send-button" disabled={(!text.trim() && !media) || sending} aria-label="Enviar mensaje"><Send size={17}/></button></div></form>}
-  </section>{viewer && <div className="chat-image-viewer" role="dialog" onClick={() => setViewer(null)}><button aria-label="Cerrar"><X/></button><img src={viewer} alt="Imagen ampliada"/></div>}</div>;
+  const renderReplyPreview = (message) => {
+    if (message.reply_deleted) return <blockquote className="deleted-reply"><span>El mensaje citado ha sido eliminado</span></blockquote>;
+    if (!message.reply_to_id) return null;
+    return <blockquote role="button" tabIndex={0} onClick={() => goToMessage(message.reply_to_id)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") goToMessage(message.reply_to_id); }}>
+      <b>{message.reply_username}</b>
+      {message.reply_media_type && <img src={message.reply_media_preview_url || message.reply_media_url} alt="Contenido citado" loading="lazy" onLoad={keepBottomIfNeeded}/>}
+      <span>{message.reply_message || (message.reply_media_type === "image" ? "Imagen" : message.reply_media_type === "sticker" ? "Sticker" : "GIF")}</span>
+    </blockquote>;
+  };
+
+  const renderMessage = (message) => {
+    const activeSwipe = swipe.id === message.id;
+    return <article
+      id={`chat-message-${message.id}`}
+      className={`chat-message ${message.user_id === user.id ? "mine" : ""} ${activeSwipe ? "swiping" : ""} ${activeSwipe && swipe.ready ? "reply-ready" : ""} ${highlightedId === message.id ? "highlighted" : ""}`}
+      style={{ transform: `translate3d(${activeSwipe ? swipe.offset : 0}px,0,0)` }}
+      key={message.id}
+      onPointerDown={(event) => startSwipe(event, message)}
+      onPointerMove={moveSwipe}
+      onPointerUp={endSwipe}
+      onPointerCancel={() => { pointer.current = null; setSwipe({ id: null, offset: 0, ready: false }); }}
+    >
+      <span className="chat-swipe-reply"><CornerUpLeft size={17}/></span>
+      <Avatar user={message} className="chat-avatar"/>
+      <div className="chat-bubble">
+        <header><strong>{message.username}</strong><time>{new Date(message.created_at).toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" })}</time></header>
+        {renderReplyPreview(message)}
+        {message.message && <p>{mentionParts(message.message)}</p>}
+        {message.media_type && <button type="button" className="chat-media-button" onClick={() => message.media_type === "image" && setViewer(message.media_url)}>
+          <img src={message.media_preview_url || message.media_url} alt={message.media_type === "sticker" ? "Sticker" : message.media_type === "gif" ? "GIF" : "Imagen enviada"} loading="lazy" onLoad={keepBottomIfNeeded}/>
+        </button>}
+        {!user.is_read_only && <div className="chat-message-actions">
+          <button type="button" onClick={() => setReply(message)}><CornerUpLeft size={14}/> Responder</button>
+          {(message.user_id === user.id || user.role === "admin") && <button type="button" className="delete" onClick={() => removeMessage(message)}><Trash2 size={14}/> Borrar</button>}
+        </div>}
+      </div>
+    </article>;
+  };
+
+  return <div className="page chat-page">
+    <section className="chat-shell" aria-label="Chat de la porra">
+      <header className="chat-compact-header">
+        <div><span><MessageCircle size={14}/> Chat de la porra</span><small>{messages.length ? `${messages.length} mensajes recientes` : "Vestuario mundialista"}</small></div>
+      </header>
+
+      <div className="chat-stream" ref={streamRef}>
+        {messages.length ? messages.map(renderMessage) : <div className="chat-empty"><MessageCircle/><strong>Abre la conversacion</strong><span>Se la primera persona en dejar un mensaje.</span></div>}
+        <div className="chat-end" ref={endRef} aria-hidden="true"/>
+      </div>
+
+      {!user.is_read_only && <form className="chat-composer" ref={composerRef} onSubmit={submit}>
+        {reply && <div className="chat-replying"><div><span>Respondiendo a <strong>{reply.username}</strong></span><small>{reply.message || "Contenido multimedia"}</small></div><button type="button" onClick={() => setReply(null)} aria-label="Cancelar respuesta"><X size={16}/></button></div>}
+        {media && <div className="chat-selected-media"><img src={media.preview_url || media.url} alt="Archivo seleccionado"/><button type="button" onClick={() => discardMedia()} aria-label="Quitar archivo"><X size={15}/></button></div>}
+        {mentions.length > 0 && <div className="chat-mentions" role="listbox">
+          {mentions.map((item, index) => <button type="button" role="option" aria-selected={index === mentionIndex} className={index === mentionIndex ? "active" : ""} key={item.id} onMouseEnter={() => setMentionIndex(index)} onClick={() => chooseMention(item)}>
+            <Avatar user={{ ...item, username: item.display_name }}/>
+            <span><strong>{item.display_name}</strong><small>@{item.username}</small></span>
+          </button>)}
+        </div>}
+        {gifOpen && <div className="chat-gif-picker">
+          <div className="chat-gif-tabs"><button type="button" className={gifType === "gif" ? "active" : ""} onClick={() => setGifType("gif")}>GIF</button><button type="button" className={gifType === "sticker" ? "active" : ""} onClick={() => setGifType("sticker")}>Stickers</button><button type="button" className="chat-gif-close" onClick={() => setGifOpen(false)} aria-label="Cerrar selector"><X size={17}/></button></div>
+          <div className="chat-gif-search"><input value={gifQuery} onChange={event => setGifQuery(event.target.value)} placeholder="Buscar..."/><button type="button" onClick={searchGiphy} disabled={gifLoading}>{gifLoading ? "..." : "Buscar"}</button></div>
+          {gifError && <small className="chat-gif-error">{gifError}</small>}
+          <div className="chat-gif-results">{gifItems.map(item => <button type="button" key={item.id} onClick={async () => { await discardMedia(media); setMedia(item); setGifOpen(false); }}><img src={item.preview_url || item.url} alt={item.title || item.type}/></button>)}</div>
+        </div>}
+        <div className="chat-compose-row">
+          <div className="chat-attachment-control">
+            <button type="button" className={`chat-add-trigger ${attachmentOpen ? "active" : ""}`} onClick={() => setAttachmentOpen(value => !value)} aria-label="Anadir contenido" aria-expanded={attachmentOpen}><Plus size={22}/></button>
+            {attachmentOpen && <div className="chat-attachment-menu"><button type="button" onClick={() => { setAttachmentOpen(false); fileRef.current?.click(); }}><ImagePlus size={17}/><span>Foto</span></button><button type="button" onClick={() => { setAttachmentOpen(false); setGifOpen(true); }}><Smile size={17}/><span>GIF / sticker</span></button></div>}
+            <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={uploadImage}/>
+          </div>
+          <textarea ref={textareaRef} maxLength={500} rows={1} value={text} onFocus={() => setAttachmentOpen(false)} onChange={event => { setAttachmentOpen(false); setText(event.target.value); }} placeholder="Escribe algo para toda la porra..." onKeyDown={handleTextKeyDown}/>
+          <button className="primary chat-send-button" disabled={(!text.trim() && !media) || sending} aria-label="Enviar mensaje"><Send size={17}/></button>
+        </div>
+      </form>}
+    </section>
+    {viewer && <div className="chat-image-viewer" role="dialog" onClick={() => setViewer(null)}><button aria-label="Cerrar"><X/></button><img src={viewer} alt="Imagen ampliada"/></div>}
+  </div>;
 }
