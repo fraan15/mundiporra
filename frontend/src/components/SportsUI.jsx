@@ -49,8 +49,10 @@ export function Flag({ team, teamData }) {
   const imageCode = flagImageCode(team, teamData);
   const fallback = teamData?.flag_icon || flags[team] || flags[teamData?.name] || "⚽";
 
+  const imageClass = imageCode && !failed ? `has-flag-image flag-code-${imageCode.toLowerCase()}` : "";
+
   return (
-    <span className={`real-flag ${imageCode && !failed ? "has-flag-image" : ""}`} aria-label={team || teamData?.name}>
+    <span className={`real-flag ${imageClass}`} aria-label={team || teamData?.name}>
       {imageCode && !failed ? <img src={`/flags/${imageCode}.png`} alt="" onError={() => setFailed(true)} /> : fallback}
     </span>
   );
