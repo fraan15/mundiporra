@@ -2557,13 +2557,13 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 .profile-side-avatar{margin:0;background:linear-gradient(145deg,#ffe4e7,#fff);transition:transform .16s ease,box-shadow .16s ease}
 .profile-side-header h2{max-width:calc(100% - 48px);color:#251719}
 .profile-side-role{justify-self:start;background:linear-gradient(135deg,rgba(169,31,50,.12),rgba(244,201,93,.18));color:#9f2030}
-.profile-side-nav button{grid-template-columns:28px minmax(0,1fr) auto;text-align:left;background:rgba(255,255,255,.38)}
+.profile-side-nav button{grid-template-columns:28px minmax(0,1fr) auto;text-align:left;background:transparent}
 .profile-side-nav button:hover{background:linear-gradient(90deg,rgba(169,31,50,.05),rgba(169,31,50,.13));color:var(--cup-red)}
 .profile-side-nav button svg{grid-column:1;grid-row:1;justify-self:start}
 .profile-side-nav button span{grid-column:2;grid-row:1;text-align:left}
 .profile-side-news-badge{grid-column:3;grid-row:1;background:linear-gradient(135deg,#ff6c73,var(--cup-red));box-shadow:0 8px 18px rgba(169,31,50,.24)}
 .profile-side-footer{padding-bottom:calc(14px + env(safe-area-inset-bottom))}
-.profile-side-logout{justify-content:flex-start;background:rgba(255,255,255,.46)}
+.profile-side-logout{justify-content:flex-start;background:transparent}
 .profile-side-logout:hover{background:rgba(169,31,50,.12)}
 @keyframes profile-side-slide-right{from{transform:translateX(102%)}}
 [data-theme="dark"] .profile-side-backdrop{background:linear-gradient(90deg,rgba(2,8,17,.32),rgba(255,154,167,.1))}
@@ -2571,9 +2571,9 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 [data-theme="dark"] .profile-side-header{background:radial-gradient(circle at 100% 0,rgba(255,154,167,.13),transparent 44%);border-color:rgba(255,154,167,.12)}
 [data-theme="dark"] .profile-side-close{background:rgba(255,255,255,.06)}
 [data-theme="dark"] .profile-side-avatar-button:hover .profile-side-avatar{box-shadow:0 10px 28px rgba(255,154,167,.2),0 0 0 4px rgba(255,154,167,.1)}
-[data-theme="dark"] .profile-side-nav button,[data-theme="dark"] .profile-side-logout{background:rgba(255,255,255,.035)}
-@media(max-width:800px){.profile-side-drawer{border-radius:26px 0 0 26px;padding-bottom:calc(104px + env(safe-area-inset-bottom))}.profile-side-footer{padding-bottom:0}}
-@media(max-width:380px){.profile-side-drawer{border-radius:22px 0 0 22px;padding-bottom:calc(100px + env(safe-area-inset-bottom))}}
+[data-theme="dark"] .profile-side-nav button,[data-theme="dark"] .profile-side-logout{background:transparent}
+@media(max-width:800px){.profile-side-drawer{border-radius:26px 0 0 26px;padding-bottom:calc(14px + env(safe-area-inset-bottom))}.profile-side-footer{padding-bottom:0}}
+@media(max-width:380px){.profile-side-drawer{border-radius:22px 0 0 22px;padding-bottom:calc(14px + env(safe-area-inset-bottom))}}
 @media(max-width:800px){body.profile-menu-open .main-nav,body.profile-menu-open .bottom-nav-bubble{opacity:0;pointer-events:none;transform:translate3d(-50%,110%,0)}body.profile-menu-open .main-nav:not(.app-bottom-nav){transform:translateY(110%)}}
 
 /* Definitive dashboard calendar carousel fix */
@@ -2594,6 +2594,8 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
   align-items:stretch;
   will-change:transform;
   backface-visibility:hidden;
+  contain:none;
+  overflow:visible;
   transition:transform .34s cubic-bezier(.22,1,.36,1);
 }
 .dashboard-calendar-carousel .calendar-days-track.is-dragging{
@@ -2605,9 +2607,9 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
   flex:0 0 100%;
   width:100%;
   min-width:100%;
-  height:auto;
+  height:0;
   min-height:0;
-  overflow:visible;
+  overflow:hidden;
   opacity:.58;
   visibility:visible;
   transform:translate3d(0,0,0) scale(.97);
@@ -2615,6 +2617,8 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
   pointer-events:none;
 }
 .dashboard-calendar-carousel .calendar-day-slide.active{
+  height:auto;
+  overflow:visible;
   opacity:1;
   visibility:visible;
   transform:translate3d(0,0,0) scale(1);
