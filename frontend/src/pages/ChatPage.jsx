@@ -74,16 +74,26 @@ export function ChatPage() {
   const [attachmentOpen, setAttachmentOpen] = useState(false);
   const [gifOpen, setGifOpen] = useState(false), [gifQuery, setGifQuery] = useState(""), [gifType, setGifType] = useState("gif"), [gifItems, setGifItems] = useState([]), [gifError, setGifError] = useState(""), [gifLoading, setGifLoading] = useState(false);
   const streamRef = useRef(null), endRef = useRef(null), composerRef = useRef(null), textareaRef = useRef(null), fileRef = useRef(null);
-  const initialLoad = useRef(true), scrollRequest = useRef("initial"), pointer = useRef(null), mentionRange = useRef(null);
+  const initialLoad = useRef(true), scrollRequest = useRef("initial"), stickToBottom = useRef(true), pointer = useRef(null), mentionRange = useRef(null);
 
   const isNearBottom = () => {
     const stream = streamRef.current;
     return !stream || stream.scrollHeight - stream.scrollTop - stream.clientHeight < 90;
   };
-  const scrollToLatest = (behavior = "auto") => requestAnimationFrame(() => endRef.current?.scrollIntoView({ block: "end", behavior }));
-  const keepBottomIfNeeded = () => { if (isNearBottom()) scrollToLatest("auto"); };
+  const scrollToLatest = (behavior = "auto") => {
+    const applyScroll = () => {
+      const stream = streamRef.current;
+      if (!stream) return;
+      const top = Math.max(0, stream.scrollHeight - stream.clientHeight);
+      if (behavior === "smooth") stream.scrollTo({ top, behavior: "smooth" });
+      else stream.scrollTop = top;
+      stickToBottom.current = true;
+    };
+    requestAnimationFrame(() => requestAnimationFrame(applyScroll));
+  };
+  const keepBottomIfNeeded = () => { if (scrollRequest.current !== "none" || stickToBottom.current || isNearBottom()) scrollToLatest("auto"); };
   const load = async () => {
-    const wasInitial = initialLoad.current, shouldStick = wasInitial || scrollRequest.current !== "none" || isNearBottom();
+    const wasInitial = initialLoad.current, shouldStick = wasInitial || scrollRequest.current !== "none" || stickToBottom.current || isNearBottom();
     const data = await api("/chat");
     if (shouldStick && scrollRequest.current === "none") scrollRequest.current = wasInitial ? "initial" : "auto";
     setMessages(data);
@@ -101,19 +111,27 @@ export function ChatPage() {
     textarea.style.height = "auto";
     textarea.style.height = `${Math.min(textarea.scrollHeight, 128)}px`;
   }, [text]);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!messages.length || scrollRequest.current === "none") return;
     scrollToLatest(scrollRequest.current === "smooth" ? "smooth" : "auto");
-    const done = setTimeout(() => { scrollRequest.current = "none"; }, 220);
+    const done = setTimeout(() => { scrollRequest.current = "none"; stickToBottom.current = isNearBottom(); }, scrollRequest.current === "smooth" ? 520 : 700);
     return () => clearTimeout(done);
   }, [messages.at(-1)?.id]);
   useEffect(() => {
     const observer = new ResizeObserver(() => {
-      if (scrollRequest.current !== "none" || isNearBottom()) scrollToLatest("auto");
+      if (scrollRequest.current !== "none" || stickToBottom.current) scrollToLatest("auto");
     });
     if (streamRef.current) observer.observe(streamRef.current);
     if (composerRef.current) observer.observe(composerRef.current);
     return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
+    const stream = streamRef.current;
+    if (!stream) return;
+    const updateStickiness = () => { stickToBottom.current = isNearBottom(); };
+    stream.addEventListener("scroll", updateStickiness, { passive: true });
+    updateStickiness();
+    return () => stream.removeEventListener("scroll", updateStickiness);
   }, []);
 
   const getMentionMatch = () => {
