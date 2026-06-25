@@ -2100,24 +2100,25 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
   }
 }
 
-.leaderboard-page .table-card table{min-width:780px}
+.leaderboard-page .table-card table{min-width:820px}
 .leaderboard-page .table-card tbody tr{height:54px}
 .leaderboard-page .table-card th,.leaderboard-page .table-card td{padding:7px 11px;vertical-align:middle}
 .leaderboard-page .table-card th:first-child,.leaderboard-page .table-card td:first-child{width:58px;min-width:58px;padding-left:16px}
-.leaderboard-page .table-card th:nth-child(2),.leaderboard-page .table-card td:nth-child(2){width:210px;max-width:210px}
-.leaderboard-page .clickable-user{min-width:0;line-height:1.15}
-.leaderboard-page .clickable-user strong{display:inline-block;max-width:150px;overflow:hidden;text-overflow:ellipsis;vertical-align:middle;white-space:nowrap}
-.leaderboard-page .clickable-user small{display:block;max-width:150px;height:13px;margin:2px 0 0 36px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:13px}
+.leaderboard-page .table-card th:nth-child(2),.leaderboard-page .table-card td:nth-child(2){width:250px;max-width:250px}
+.leaderboard-page .clickable-user{display:grid;grid-template-columns:28px minmax(0,1fr);grid-template-rows:17px 13px;align-items:center;column-gap:9px;min-width:0;line-height:1.15}
+.leaderboard-page .clickable-user .mini-avatar{grid-row:1/3;grid-column:1;width:28px;height:28px;margin:0}
+.leaderboard-page .clickable-user strong{grid-column:2;display:block;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.leaderboard-page .clickable-user small{grid-column:2;display:block;max-width:190px;height:13px;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:13px}
 .leaderboard-page .table-card th:nth-child(3),.leaderboard-page .table-card td:nth-child(3){width:86px;min-width:86px;text-align:left}
 .leaderboard-page .table-total{min-width:74px;justify-content:flex-start;gap:5px}
 .leaderboard-page .table-total .last-match-points{flex:0 0 auto;margin-left:0;font-size:10px}
 @media(max-width:800px){
-  .leaderboard-page .table-card table{min-width:720px}
+  .leaderboard-page .table-card table{min-width:760px}
   .leaderboard-page .table-card tbody tr{height:52px}
   .leaderboard-page .table-card th,.leaderboard-page .table-card td{padding:7px 9px}
   .leaderboard-page .table-card th:first-child,.leaderboard-page .table-card td:first-child{width:54px;min-width:54px;padding-left:14px}
-  .leaderboard-page .table-card th:nth-child(2),.leaderboard-page .table-card td:nth-child(2){width:178px;max-width:178px}
-  .leaderboard-page .clickable-user strong,.leaderboard-page .clickable-user small{max-width:118px}
+  .leaderboard-page .table-card th:nth-child(2),.leaderboard-page .table-card td:nth-child(2){width:210px;max-width:210px}
+  .leaderboard-page .clickable-user strong,.leaderboard-page .clickable-user small{max-width:150px}
   .leaderboard-page .table-card th:nth-child(3),.leaderboard-page .table-card td:nth-child(3){width:82px;min-width:82px}
   .leaderboard-page .table-total{min-width:70px}
 }
