@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { CornerUpLeft, ImagePlus, MessageCircle, Plus, Send, Smile, Trash2, X } from "lucide-react";
+import { ArrowLeft, CornerUpLeft, ImagePlus, MessageCircle, Plus, Send, Smile, Trash2, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../App";
 import { Avatar } from "../components/Avatar";
@@ -66,6 +67,7 @@ const sendChatImage = async (file, contentType) => {
 
 export function ChatPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [messages, setMessages] = useState([]), [text, setText] = useState(""), [reply, setReply] = useState(null), [sending, setSending] = useState(false);
   const [media, setMedia] = useState(null), [viewer, setViewer] = useState(null), [mentions, setMentions] = useState([]);
   const [mentionIndex, setMentionIndex] = useState(0);
@@ -227,24 +229,32 @@ export function ChatPage() {
   const removeMessage = async (message) => { if (!window.confirm("Estas seguro de que deseas borrar el mensaje?")) return; await api(`/chat/${message.id}`, { method: "DELETE" }); if (reply?.id === message.id) setReply(null); await load(); };
   const startSwipe = (event, message) => {
     if (event.pointerType === "mouse") return;
-    pointer.current = { id: event.pointerId, x: event.clientX, y: event.clientY, message, horizontal: null };
-    setSwipe({ id: message.id, offset: 0, ready: false });
+    pointer.current = { id: event.pointerId, x: event.clientX, y: event.clientY, message, horizontal: null, ready: false };
   };
   const moveSwipe = (event) => {
     const state = pointer.current;
     if (!state || state.id !== event.pointerId) return;
     const dx = event.clientX - state.x, dy = event.clientY - state.y;
-    if (state.horizontal === null && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) state.horizontal = dx > 0 && Math.abs(dx) > Math.abs(dy) * 1.25;
+    const absDx = Math.abs(dx), absDy = Math.abs(dy);
+    if (state.horizontal === null) {
+      if (absDy > 10 && absDy > absDx) {
+        state.horizontal = false;
+        return;
+      }
+      if (absDx <= 20 || absDx <= absDy * 1.65) return;
+      state.horizontal = dx > 0;
+    }
     if (!state.horizontal) return;
     event.currentTarget.setPointerCapture?.(event.pointerId);
     event.preventDefault();
     const distance = Math.max(0, dx), offset = Math.min(92, 92 * (1 - Math.exp(-distance / 76)));
-    setSwipe({ id: state.message.id, offset, ready: distance > 68 });
+    state.ready = distance > 82;
+    setSwipe({ id: state.message.id, offset: distance > 16 ? offset : 0, ready: state.ready });
   };
   const endSwipe = (event) => {
     const state = pointer.current;
     if (!state || state.id !== event.pointerId) return;
-    if (swipe.ready) setReply(state.message);
+    if (state.ready) setReply(state.message);
     pointer.current = null;
     setSwipe({ id: null, offset: 0, ready: false });
   };
@@ -303,9 +313,11 @@ export function ChatPage() {
 
   return <div className="page chat-page">
     <section className="chat-shell" aria-label="Chat de la porra">
-      <header className="chat-compact-header">
-        <div><span><MessageCircle size={14}/> Chat de la porra</span><small>{messages.length ? `${messages.length} mensajes recientes` : "Vestuario mundialista"}</small></div>
-      </header>
+      <div className="chat-mini-bar">
+        <button type="button" className="chat-back-button" onClick={() => navigate("/")} aria-label="Volver al inicio" title="Volver al inicio">
+          <ArrowLeft size={18}/>
+        </button>
+      </div>
 
       <div className="chat-stream" ref={streamRef}>
         {messages.length ? messages.map(renderMessage) : <div className="chat-empty"><MessageCircle/><strong>Abre la conversacion</strong><span>Se la primera persona en dejar un mensaje.</span></div>}

@@ -313,6 +313,7 @@ function MainLayout() {
   const { user, settings } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const isChatRoute = location.pathname === "/chat";
   const [theme,setTheme]=useState(()=>localStorage.getItem("theme")||"light");
   const [pendingAlert,setPendingAlert]=useState(false);
   const [unreadChat,setUnreadChat]=useState(0);
@@ -591,11 +592,11 @@ function MainLayout() {
       </button>
       <div className="user-area"><button className="icon-btn" title="Cambiar tema" onClick={()=>setTheme(theme==="dark"?"light":"dark")}>{theme==="dark"?<Sun size={18}/>:<Moon size={18}/>}</button><NotificationsBell/><ProfileMenu unreadNews={newsData.unread_count} onOpenNews={()=>setNewsOpen(true)}/></div>
     </header>
-    <nav ref={navRef} className={`main-nav app-bottom-nav bottom-nav-glass${navExpanded?" is-expanded":""}${isNavDragging?" is-dragging":""}`} style={{ "--nav-items": items.length, "--bubble-x": `${bubble.x}px`, "--bubble-width": `${bubble.width}px`, "--bubble-height": `${bubble.height}px` }} onPointerDown={handleNavPointerDown} onPointerMove={handleNavPointerMove} onPointerUp={finishNavDrag} onPointerCancel={finishNavDrag} onClickCapture={handleNavClickCapture}>
+    {!isChatRoute&&<nav ref={navRef} className={`main-nav app-bottom-nav bottom-nav-glass${navExpanded?" is-expanded":""}${isNavDragging?" is-dragging":""}`} style={{ "--nav-items": items.length, "--bubble-x": `${bubble.x}px`, "--bubble-width": `${bubble.width}px`, "--bubble-height": `${bubble.height}px` }} onPointerDown={handleNavPointerDown} onPointerMove={handleNavPointerMove} onPointerUp={finishNavDrag} onPointerCancel={finishNavDrag} onClickCapture={handleNavClickCapture}>
       {activeNavIndex>=0&&<span className="bottom-nav-bubble" aria-hidden="true"/>}
       {items.map(([to, label, Icon],index) => <NavLink ref={node=>{navItemRefs.current[index]=node;}} key={to} to={to} end={to==="/"} aria-label={label} title={label} className={({isActive})=>isActive?"active":""}><span className="nav-icon"><Icon size={18}/>{to==="/chat"&&unreadChat>0&&<i className="chat-unread-dot" aria-label={`${unreadChat} mensajes sin leer`}/>}</span><span className="nav-label">{label}</span></NavLink>)}
-    </nav>
-    <main className={location.pathname === "/chat" ? "chat-main" : ""}><Outlet /></main>
+    </nav>}
+    <main className={isChatRoute ? "chat-main" : ""}><Outlet /></main>
   </div>;
 }
 

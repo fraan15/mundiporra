@@ -96,9 +96,22 @@ const consumePointsReturn = () => {
   return returning;
 };
 
+const SWIPE_MIN_DISTANCE = 16;
+const SWIPE_VERTICAL_TOLERANCE = 0.75;
+
+const swipeDirection = (start, event) => {
+  if (!start) return 0;
+  const deltaX = event.clientX - start.x;
+  const deltaY = event.clientY - start.y;
+  if (Math.abs(deltaX) < SWIPE_MIN_DISTANCE || Math.abs(deltaX) < Math.abs(deltaY) * SWIPE_VERTICAL_TOLERANCE) return 0;
+  return deltaX < 0 ? 1 : -1;
+};
+
 function MatchSimulationOverlay({ match, players, user, onClose }) {
   const [matches, setMatches] = useState([match]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [matchDirection, setMatchDirection] = useState(1);
+  const [matchAnimation, setMatchAnimation] = useState(0);
   const [scores, setScores] = useState({ [match.id]: { g1: "0", g2: "0" } });
   const [scorerIdsByMatch, setScorerIdsByMatch] = useState({ [match.id]: [] });
   const [activeByMatch, setActiveByMatch] = useState({ [match.id]: true });
@@ -164,6 +177,12 @@ function MatchSimulationOverlay({ match, players, user, onClose }) {
     points = simulation?.per_match_points?.find(item => String(item.match_id) === String(currentMatch.id))?.points || { winner_points: 0, exact_result_points: 0, scorer_points: 0, total_points: 0 };
   const addScorer = (matchId, playerId) => playerId && setScorerIdsByMatch(current => ({ ...current, [matchId]: [...(current[matchId] || []), playerId] }));
   const removeScorer = (matchId, playerId) => setScorerIdsByMatch(current => ({ ...current, [matchId]: (current[matchId] || []).filter(id => id !== playerId) }));
+  const moveMatch = (direction) => {
+    if (orderedMatches.length < 2) return;
+    setMatchDirection(direction);
+    setMatchAnimation(value => value + 1);
+    setCurrentIndex(index => (index + direction + orderedMatches.length) % orderedMatches.length);
+  };
   const isSwipeInteractiveTarget = (target) =>
     target.closest("button,input,select,textarea,a,.horizontal-score-value,.scorer-picker-backdrop");
   const beginSwipe = (event) => {
@@ -176,9 +195,18 @@ function MatchSimulationOverlay({ match, players, user, onClose }) {
     swipeRef.current = null;
     event.currentTarget.releasePointerCapture?.(event.pointerId);
     if (!start || start.pointerId !== event.pointerId || orderedMatches.length < 2) return;
-    const deltaX = event.clientX - start.x, deltaY = event.clientY - start.y;
-    if (Math.abs(deltaX) < 45 || Math.abs(deltaX) < Math.abs(deltaY) * 1.2) return;
-    setCurrentIndex(index => deltaX < 0 ? Math.min(orderedMatches.length - 1, index + 1) : Math.max(0, index - 1));
+    const direction = swipeDirection(start, event);
+    if (direction) moveMatch(direction);
+  };
+  const moveSwipe = (event) => {
+    const start = swipeRef.current;
+    if (!start || start.pointerId !== event.pointerId || orderedMatches.length < 2) return;
+    const direction = swipeDirection(start, event);
+    if (!direction) return;
+    event.preventDefault();
+    swipeRef.current = null;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    moveMatch(direction);
   };
   const swipeStart = (event) => {
     if (isSwipeInteractiveTarget(event.target)) return;
@@ -197,7 +225,7 @@ function MatchSimulationOverlay({ match, players, user, onClose }) {
   return <div className="movement-overlay simulation-overlay" role="dialog" aria-modal="true" aria-labelledby="simulation-title">
     <section className="movement-card simulation-card">
       <header className="movement-head"><div><span><Calculator size={13}/> SIMULACIÓN PRIVADA</span><h2 id="simulation-title">Cálculo del resultado</h2></div><button onClick={onClose} aria-label="Cerrar cálculo"><X size={21}/></button></header>
-      <div className="movement-scroll" onPointerDown={hasMultipleMatches ? swipeStart : undefined} onPointerUp={hasMultipleMatches ? endSwipe : undefined} onPointerCancel={hasMultipleMatches ? cancelSwipe : undefined}>
+      <div className="movement-scroll" onPointerDown={hasMultipleMatches ? swipeStart : undefined} onPointerMove={hasMultipleMatches ? moveSwipe : undefined} onPointerUp={hasMultipleMatches ? endSwipe : undefined} onPointerCancel={hasMultipleMatches ? cancelSwipe : undefined}>
         <p className="simulation-disclaimer">Vista informativa. Nada de lo que introduzcas aquí se guarda.</p>
         {hasMultipleMatches && <div className="simulation-current-match">
           <strong><span><Flag team={item.team1} teamData={item.team1_team}/>{item.team1}</span><b>–</b><span><Flag team={item.team2} teamData={item.team2_team}/>{item.team2}</span></strong>
@@ -205,7 +233,7 @@ function MatchSimulationOverlay({ match, players, user, onClose }) {
           <label className="simulation-active-toggle" title={itemActive ? "Partido activo en la simulación" : "Partido fuera de la simulación"}><input type="checkbox" checked={itemActive} onChange={event => setActiveByMatch(current => ({ ...current, [item.id]: event.target.checked }))}/><span>{itemActive ? "Activo" : "Off"}</span></label>
         </div>}
         <div className="simulation-gesture-area">
-          <article className={itemActive ? "simulation-match-slide active" : "simulation-match-slide inactive"} key={item.id}>
+          <article className={`${itemActive ? "simulation-match-slide active" : "simulation-match-slide inactive"} ${matchDirection < 0 ? "from-left" : "from-right"}`} key={`${item.id}-${matchAnimation}`}>
               <div className="detail-score-picker horizontal simulation-score-editor">
                 <HorizontalScoreControl team={item.team1} value={itemScore.g1} onChange={value => updateScore(item.id, "g1", value)} onAdjust={delta => adjustScore(item.id, "g1", delta)}/>
                 <b>–</b>
