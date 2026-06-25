@@ -352,7 +352,7 @@ export function ChatPage() {
         </button>
       </div>
       {!chatReady && <div className="chat-loading-screen" role="status" aria-live="polite">
-        <MessageCircle/>
+        <div className="chat-loading-icon" aria-hidden="true"><MessageCircle/></div>
         <span>Cargando chat...</span>
       </div>}
 

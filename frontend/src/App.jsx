@@ -56,6 +56,37 @@ function ScrollToTopOnNavigation() {
   }, [location.hash, location.key, location.pathname]);
   return null;
 }
+function notificationTypeLabel(type) {
+  const labels = {
+    match_closed: "Partido",
+    match_available: "Partido",
+    match_reminder: "Recordatorio",
+    result_published: "Resultado",
+    points_earned: "Puntos",
+    top_three: "Podio",
+    points_adjustment: "Ajuste",
+    match_comment: "Comentario",
+    match_mention: "Mención",
+    chat: "Chat",
+    chat_reply: "Chat",
+    chat_mention: "Mención",
+    mention: "Mención",
+    reaction: "Reacción"
+  };
+  return labels[type] || "Aviso";
+}
+function NotificationTypeIcon({ type, size = 15 }) {
+  if (type === "points_earned" || type === "points_adjustment") return <Activity size={size} />;
+  if (type === "top_three") return <Trophy size={size} />;
+  if (type === "match_comment" || type === "chat" || type === "chat_reply" || type === "chat_mention") return <MessageCircle size={size} />;
+  if (type === "match_mention" || type === "mention") return <Megaphone size={size} />;
+  if (type === "match_closed" || type === "match_available" || type === "match_reminder" || type === "result_published") return <Goal size={size} />;
+  return <Bell size={size} />;
+}
+function formatNotificationDate(date) {
+  if (!date) return "";
+  return new Date(date).toLocaleString("es-ES", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+}
 function NotificationsBell() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -72,12 +103,20 @@ function NotificationsBell() {
   }, [user.is_read_only]);
   useEffect(() => setOpen(false), [location.pathname, location.search, location.hash]);
   useEffect(() => {
+    if (!open) return undefined;
     const close = (event) => {
       if (!notificationsRef.current?.contains(event.target)) setOpen(false);
     };
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setOpen(false);
+    };
     document.addEventListener("pointerdown", close);
-    return () => document.removeEventListener("pointerdown", close);
-  }, []);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
   if (user.is_read_only) return null;
   const read = async (notification) => {
     if (!notification.read) await api(`/notifications/${notification.id}/read`, { method: "PATCH" });
@@ -89,18 +128,29 @@ function NotificationsBell() {
     await api("/notifications/read-all", { method: "POST" });
     await load();
   };
+  const unreadLabel = data.unread === 1 ? "1 notificación sin leer" : `${data.unread} notificaciones sin leer`;
   return <div className="notifications" ref={notificationsRef}>
-    <button className="bell-btn" title="Notificaciones" onClick={() => setOpen(!open)}>
-      <Bell size={20}/>{data.unread > 0 && <span>{data.unread > 9 ? "9+" : data.unread}</span>}
+    <button className={`bell-btn ${data.unread > 0 ? "has-unread" : ""}`} title="Notificaciones" aria-label={`Notificaciones, ${unreadLabel}`} aria-expanded={open} aria-haspopup="dialog" onClick={() => setOpen(!open)}>
+      <Bell size={20}/>{data.unread > 0 && <span className="bell-btn-badge">{data.unread > 9 ? "9+" : data.unread}</span>}
     </button>
-    {open && <div className="notifications-panel">
-      <div className="notifications-head"><div><strong>Notificaciones</strong><small>{data.unread} sin leer</small></div><button onClick={() => setOpen(false)}><X size={18}/></button></div>
+    {open && <div className="notifications-panel" role="dialog" aria-label="Notificaciones">
+      <div className="notifications-head">
+        <div className="notifications-title-mark"><Bell size={18}/></div>
+        <div className="notifications-summary"><strong>Notificaciones</strong><small>{data.unread} sin leer</small></div>
+        <button className="notifications-close" type="button" aria-label="Cerrar notificaciones" onClick={() => setOpen(false)}><X size={18}/></button>
+      </div>
       {data.unread > 0 && <button className="read-all" onClick={readAll}><CheckCheck size={15}/>Marcar todo como leído</button>}
       <div className="notifications-list">{data.notifications.length ? data.notifications.map((item) =>
-        <button key={item.id} className={item.read ? "" : "unread"} onClick={() => read(item)}>
-          <span className={`notification-dot ${item.type}`}/><div><strong>{item.title}</strong><p>{item.message}</p><small>{new Date(item.created_at).toLocaleString("es-ES")}</small></div>
+        <button key={item.id} className={`notification-item ${item.read ? "read" : "unread"}`} aria-label={`${item.title}. ${item.message}. ${notificationTypeLabel(item.type)}. ${item.read ? "Leída" : "Sin leer"}`} onClick={() => read(item)}>
+          <span className={`notification-type ${item.type}`} aria-hidden="true"><span className={`notification-dot ${item.type}`}><NotificationTypeIcon type={item.type}/></span></span>
+          <span className="notification-content">
+            <span className="notification-meta"><em>{notificationTypeLabel(item.type)}</em><small>{formatNotificationDate(item.created_at)}</small></span>
+            <strong>{item.title}</strong>
+            <span className="notification-message">{item.message}</span>
+          </span>
+          {!item.read && <span className="notification-status" aria-hidden="true">Nuevo</span>}
         </button>
-      ) : <p className="empty-notifications">Todavía no hay notificaciones.</p>}</div>
+      ) : <div className="empty-notifications"><Bell size={24}/><strong>Todo al día</strong><span>No tienes notificaciones pendientes.</span></div>}</div>
     </div>}
   </div>;
 }
