@@ -73,6 +73,7 @@ export function ChatPage() {
   const [mentionIndex, setMentionIndex] = useState(0);
   const [swipe, setSwipe] = useState({ id: null, offset: 0, ready: false });
   const [highlightedId, setHighlightedId] = useState(null);
+  const [chatReady, setChatReady] = useState(false);
   const [attachmentOpen, setAttachmentOpen] = useState(false);
   const [gifOpen, setGifOpen] = useState(false), [gifQuery, setGifQuery] = useState(""), [gifType, setGifType] = useState("gif"), [gifItems, setGifItems] = useState([]), [gifError, setGifError] = useState(""), [gifLoading, setGifLoading] = useState(false);
   const streamRef = useRef(null), endRef = useRef(null), composerRef = useRef(null), textareaRef = useRef(null), fileRef = useRef(null);
@@ -108,9 +109,10 @@ export function ChatPage() {
       const timer = setTimeout(() => {
         requestAnimationFrame(() => {
           applyBottomScroll("auto");
-          if (delay === 1100) {
+      if (delay === 1100) {
             scrollRequest.current = "none";
             stickToBottom.current = isNearBottom();
+            setChatReady(true);
           }
         });
       }, delay);
@@ -125,6 +127,7 @@ export function ChatPage() {
     setMessages(data);
     if (wasInitial) {
       initialLoad.current = false;
+      if (!data.length) setChatReady(true);
       if (!user.is_read_only) await api("/chat/read", { method: "POST" });
     }
   };
@@ -341,13 +344,17 @@ export function ChatPage() {
   };
 
   return <div className="page chat-page">
-    <section className="chat-shell" aria-label="Chat de la porra">
+    <section className={`chat-shell ${chatReady ? "" : "chat-initializing"}`} aria-label="Chat de la porra" aria-busy={!chatReady}>
       <div className="chat-mini-bar">
         <button type="button" className="chat-back-button" onClick={() => navigate("/")} aria-label="Volver al inicio" title="Volver al inicio">
           <ArrowLeft size={18}/>
           <span>Volver</span>
         </button>
       </div>
+      {!chatReady && <div className="chat-loading-screen" role="status" aria-live="polite">
+        <MessageCircle/>
+        <span>Cargando chat...</span>
+      </div>}
 
       <div className="chat-stream" ref={streamRef}>
         {messages.length ? messages.map(renderMessage) : <div className="chat-empty"><MessageCircle/><strong>Abre la conversacion</strong><span>Se la primera persona en dejar un mensaje.</span></div>}
