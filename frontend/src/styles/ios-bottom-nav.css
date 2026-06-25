@@ -12,15 +12,23 @@
       right: auto;
       bottom: calc(5px + env(safe-area-inset-bottom, 0px));
       width: calc(100% - 24px);
-      max-width: 520px;
+      max-width: 500px;
       height: auto;
-      padding-bottom: 6px;
+      padding: 5px;
       transform: translateX(-50%);
       -webkit-transform: translateX(-50%);
       will-change: auto;
       contain: layout paint;
       backface-visibility: hidden;
       -webkit-backface-visibility: hidden;
+    }
+
+    .main-nav.app-bottom-nav.is-expanded {
+      width: calc(100% - 72px);
+      max-width: 420px;
+      padding: 4px;
+      transform: translateX(-50%) translateY(8px) scale(.92);
+      -webkit-transform: translateX(-50%) translateY(8px) scale(.92);
     }
 
     .page {

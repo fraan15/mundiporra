@@ -338,7 +338,9 @@ function MainLayout() {
       ticking=true;
       window.requestAnimationFrame(()=>{
         const currentY=window.scrollY;
-        if(currentY>lastY&&currentY>20)setNavExpanded(true);
+        const delta=currentY-lastY;
+        if(delta>4&&currentY>20)setNavExpanded(true);
+        else if(delta<-4)setNavExpanded(false);
         lastY=currentY;
         ticking=false;
         window.clearTimeout(restTimer);
@@ -456,7 +458,7 @@ function MainLayout() {
   useLayoutEffect(()=>{
     if(isNavDragging)return;
     moveBubbleToActive();
-  },[isNavDragging,items.length,location.pathname,moveBubbleToActive]);
+  },[isNavDragging,items.length,location.pathname,moveBubbleToActive,navExpanded]);
   useEffect(()=>{
     const reposition=()=>moveBubbleToActive();
     window.addEventListener("resize",reposition);

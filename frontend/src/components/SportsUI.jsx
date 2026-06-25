@@ -42,6 +42,8 @@ const holdersText = (holders = []) => {
 };
 
 const isDisputedBadge = (badge) => badge?.disputed || ["record", "leader"].includes(badge?.kind);
+const SWIPE_MIN_DISTANCE = 24;
+const SWIPE_VERTICAL_TOLERANCE = 1.75;
 
 export function BadgeCatalogDialog({ catalog = [], disputed = [], onClose }) {
   const [activeCategory, setActiveCategory] = useState(0);
@@ -81,7 +83,7 @@ export function BadgeCatalogDialog({ catalog = [], disputed = [], onClose }) {
     if (!start) return;
     const deltaX = event.clientX - start.x;
     const deltaY = event.clientY - start.y;
-    if (Math.abs(deltaX) < 42 || Math.abs(deltaX) < Math.abs(deltaY) * 1.25) return;
+    if (Math.abs(deltaX) < SWIPE_MIN_DISTANCE || Math.abs(deltaX) < Math.abs(deltaY) * SWIPE_VERTICAL_TOLERANCE) return;
     moveCategory(deltaX < 0 ? 1 : -1);
   };
 
@@ -132,7 +134,11 @@ export function BadgeCatalogDialog({ catalog = [], disputed = [], onClose }) {
       <h3 id="badge-catalog-title">Todas las medallas</h3>
       <div
         className="badge-catalog-carousel"
-        onPointerDown={(event) => { if (event.pointerType !== "mouse") catalogSwipeStart.current = { x: event.clientX, y: event.clientY }; }}
+        onPointerDown={(event) => {
+          if (event.pointerType === "mouse") return;
+          catalogSwipeStart.current = { x: event.clientX, y: event.clientY };
+          event.currentTarget.setPointerCapture?.(event.pointerId);
+        }}
         onPointerUp={endCatalogSwipe}
         onPointerCancel={() => { catalogSwipeStart.current = null; }}
       >
@@ -224,7 +230,7 @@ export function Badges({ badges = [], catalog = [], disputed = [] }) {
     if (!start) return;
     const deltaX = event.clientX - start.x;
     const deltaY = event.clientY - start.y;
-    if (Math.abs(deltaX) < 42 || Math.abs(deltaX) < Math.abs(deltaY) * 1.25) return;
+    if (Math.abs(deltaX) < SWIPE_MIN_DISTANCE || Math.abs(deltaX) < Math.abs(deltaY) * SWIPE_VERTICAL_TOLERANCE) return;
     ignoreBadgeClick.current = true;
     changePage(deltaX < 0 ? 1 : -1);
     window.setTimeout(() => { ignoreBadgeClick.current = false; }, 250);
@@ -263,7 +269,9 @@ export function Badges({ badges = [], catalog = [], disputed = [] }) {
         className="badges"
         aria-label="Medallas del jugador"
         onPointerDown={(event) => {
-          if (event.pointerType !== "mouse") swipeStart.current = { x: event.clientX, y: event.clientY };
+          if (event.pointerType === "mouse") return;
+          swipeStart.current = { x: event.clientX, y: event.clientY };
+          event.currentTarget.setPointerCapture?.(event.pointerId);
         }}
         onPointerUp={endBadgeSwipe}
         onPointerCancel={() => { swipeStart.current = null; }}

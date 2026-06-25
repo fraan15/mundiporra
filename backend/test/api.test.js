@@ -524,6 +524,40 @@ test("los administradores no aparecen en la clasificación", async () => {
   assert.equal(response.body.some((row) => row.username === "administrador"), false);
 });
 
+test("la clasificación general muestra los puntos ganados hoy junto al total", async () => {
+  const todayParts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Madrid",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(new Date()).reduce((acc, part) => ({ ...acc, [part.type]: part.value }), {});
+  const today = `${todayParts.year}-${todayParts.month}-${todayParts.day}`;
+  const stamp = new Date().toISOString();
+  const lucia = db.prepare("SELECT id FROM users WHERE username='lucia'").get();
+  const insertMatch = db.prepare(`
+    INSERT INTO matches(match_date,match_time,stadium,team1,team2,status,result_team1,result_team2,winner,auto_close_at,force_published,created_at,updated_at)
+    VALUES(?,?,?,?,?,'finished',1,0,'team1',?,1,?,?)
+  `);
+  const firstMatch = insertMatch.run(today, "10:00", "Test", "Hoy A", "Hoy B", stamp, stamp, stamp).lastInsertRowid;
+  const secondMatch = insertMatch.run(today, "12:00", "Test", "Hoy C", "Hoy D", stamp, stamp, stamp).lastInsertRowid;
+  db.prepare(`
+    INSERT INTO predictions(user_id,match_id,predicted_winner,predicted_team1_goals,predicted_team2_goals,winner_points,exact_result_points,total_points,locked,created_at,updated_at)
+    VALUES(?,?,'team1',1,0,3,5,8,1,?,?)
+  `).run(lucia.id, firstMatch, stamp, stamp);
+  db.prepare(`
+    INSERT INTO predictions(user_id,match_id,predicted_winner,predicted_team1_goals,predicted_team2_goals,winner_points,exact_result_points,total_points,locked,created_at,updated_at)
+    VALUES(?,?,'team1',1,0,3,0,3,1,?,?)
+  `).run(lucia.id, secondMatch, stamp, stamp);
+
+  const agent = request.agent(app);
+  await agent.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
+  const response = await agent.get("/api/leaderboard");
+  assert.equal(response.status, 200);
+  const row = response.body.find((item) => item.id === lucia.id);
+  assert.equal(row.last_match_points, 11);
+  assert.equal(row.today_points, 11);
+});
+
 test("la clasificación diaria muestra a todos con cero antes del primer resultado", async () => {
   const agent = request.agent(app);
   await agent.post("/api/auth/login").send({ username: "administrador", password: "yami" });

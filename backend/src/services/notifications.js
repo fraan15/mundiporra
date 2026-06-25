@@ -1,18 +1,24 @@
 import { db, now } from "../db/database.js";
 import { sendPushToUser } from "./push.js";
 
-export const leaderboardRows = () => db.prepare(`
-  WITH latest_finished_match AS (
-    SELECT id
-    FROM matches
-    WHERE status='finished'
-    ORDER BY match_date DESC, match_time DESC, id DESC
-    LIMIT 1
-  )
+const MATCH_TIME_ZONE = "Europe/Madrid";
+
+const dateInTimeZone = (date = new Date(), timeZone = MATCH_TIME_ZONE) => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(date).reduce((acc, part) => ({ ...acc, [part.type]: part.value }), {});
+  return `${parts.year}-${parts.month}-${parts.day}`;
+};
+
+export const leaderboardRows = (today = dateInTimeZone()) => db.prepare(`
   SELECT u.id,COALESCE(NULLIF(u.display_name,''),u.username) username,u.personal_phrase,u.avatar_filename,
     CASE WHEN u.avatar_filename IS NULL THEN NULL ELSE '/avatars/' || u.avatar_filename END avatar_url,
     COALESCE(SUM(p.total_points),0)+COALESCE(adj.adjustments,0) total_points,
-    COALESCE(last_match.total_points,0) last_match_points,
+    COALESCE(today_points.total_points,0) last_match_points,
+    COALESCE(today_points.total_points,0) today_points,
     COALESCE(SUM(p.winner_points),0) winner_points,
     COALESCE(SUM(p.exact_result_points),0) exact_result_points,
     COALESCE(SUM(p.scorer_points),0) scorer_points,
@@ -26,13 +32,15 @@ export const leaderboardRows = () => db.prepare(`
     AND p.match_id IN (SELECT id FROM matches WHERE status='finished')
   LEFT JOIN (SELECT user_id,SUM(points) adjustments FROM points_adjustments GROUP BY user_id) adj ON adj.user_id=u.id
   LEFT JOIN (
-    SELECT user_id,total_points
-    FROM predictions
-    WHERE match_id=(SELECT id FROM latest_finished_match)
-  ) last_match ON last_match.user_id=u.id
+    SELECT p.user_id,SUM(p.total_points) total_points
+    FROM predictions p
+    JOIN matches m ON m.id=p.match_id
+    WHERE m.status='finished' AND m.match_date=?
+    GROUP BY p.user_id
+  ) today_points ON today_points.user_id=u.id
   WHERE u.active=1 AND u.role='user'
   GROUP BY u.id ORDER BY total_points DESC,exact_hits DESC,winner_hits DESC,scorer_hits DESC,u.id
-`).all();
+`).all(today);
 
 export function saveRankingSnapshot(date = new Date().toISOString().slice(0, 10)) {
   const save = db.prepare(`
