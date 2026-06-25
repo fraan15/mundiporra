@@ -76,22 +76,46 @@ export function ChatPage() {
   const [attachmentOpen, setAttachmentOpen] = useState(false);
   const [gifOpen, setGifOpen] = useState(false), [gifQuery, setGifQuery] = useState(""), [gifType, setGifType] = useState("gif"), [gifItems, setGifItems] = useState([]), [gifError, setGifError] = useState(""), [gifLoading, setGifLoading] = useState(false);
   const streamRef = useRef(null), endRef = useRef(null), composerRef = useRef(null), textareaRef = useRef(null), fileRef = useRef(null);
-  const initialLoad = useRef(true), scrollRequest = useRef("initial"), stickToBottom = useRef(true), pointer = useRef(null), mentionRange = useRef(null);
+  const initialLoad = useRef(true), scrollRequest = useRef("initial"), stickToBottom = useRef(true), initialScrollTimers = useRef([]), pointer = useRef(null), mentionRange = useRef(null);
 
   const isNearBottom = () => {
     const stream = streamRef.current;
     return !stream || stream.scrollHeight - stream.scrollTop - stream.clientHeight < 90;
   };
+  const clearInitialScrollTimers = () => {
+    initialScrollTimers.current.forEach((timer) => clearTimeout(timer));
+    initialScrollTimers.current = [];
+  };
+  const applyBottomScroll = (behavior = "auto") => {
+    const stream = streamRef.current;
+    if (!stream) return;
+    const top = Math.max(0, stream.scrollHeight - stream.clientHeight);
+    if (behavior === "smooth") stream.scrollTo({ top, behavior: "smooth" });
+    else stream.scrollTop = top;
+    stickToBottom.current = true;
+  };
   const scrollToLatest = (behavior = "auto") => {
     const applyScroll = () => {
-      const stream = streamRef.current;
-      if (!stream) return;
-      const top = Math.max(0, stream.scrollHeight - stream.clientHeight);
-      if (behavior === "smooth") stream.scrollTo({ top, behavior: "smooth" });
-      else stream.scrollTop = top;
-      stickToBottom.current = true;
+      applyBottomScroll(behavior);
     };
     requestAnimationFrame(() => requestAnimationFrame(applyScroll));
+  };
+  const forceInitialScrollToLatest = () => {
+    clearInitialScrollTimers();
+    stickToBottom.current = true;
+    scrollRequest.current = "initial";
+    [0, 80, 180, 350, 700, 1100].forEach((delay) => {
+      const timer = setTimeout(() => {
+        requestAnimationFrame(() => {
+          applyBottomScroll("auto");
+          if (delay === 1100) {
+            scrollRequest.current = "none";
+            stickToBottom.current = isNearBottom();
+          }
+        });
+      }, delay);
+      initialScrollTimers.current.push(timer);
+    });
   };
   const keepBottomIfNeeded = () => { if (scrollRequest.current !== "none" || stickToBottom.current || isNearBottom()) scrollToLatest("auto"); };
   const load = async () => {
@@ -115,10 +139,15 @@ export function ChatPage() {
   }, [text]);
   useLayoutEffect(() => {
     if (!messages.length || scrollRequest.current === "none") return;
+    if (scrollRequest.current === "initial") {
+      forceInitialScrollToLatest();
+      return () => clearInitialScrollTimers();
+    }
     scrollToLatest(scrollRequest.current === "smooth" ? "smooth" : "auto");
     const done = setTimeout(() => { scrollRequest.current = "none"; stickToBottom.current = isNearBottom(); }, scrollRequest.current === "smooth" ? 520 : 700);
     return () => clearTimeout(done);
   }, [messages.at(-1)?.id]);
+  useEffect(() => () => clearInitialScrollTimers(), []);
   useEffect(() => {
     const observer = new ResizeObserver(() => {
       if (scrollRequest.current !== "none" || stickToBottom.current) scrollToLatest("auto");
@@ -316,6 +345,7 @@ export function ChatPage() {
       <div className="chat-mini-bar">
         <button type="button" className="chat-back-button" onClick={() => navigate("/")} aria-label="Volver al inicio" title="Volver al inicio">
           <ArrowLeft size={18}/>
+          <span>Volver</span>
         </button>
       </div>
 
