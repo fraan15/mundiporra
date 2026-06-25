@@ -107,6 +107,21 @@ const swipeDirection = (start, event) => {
   return deltaX < 0 ? 1 : -1;
 };
 
+const SIMULATION_TEAM_SHORT_NAMES = {
+  "Arabia Saudí": "Arabia S.",
+  "Bosnia y Herzegovina": "Bosnia",
+  "Corea del Sur": "Corea Sur",
+  "Costa de Marfil": "C. Marfil",
+  "Estados Unidos": "EE. UU.",
+  "Nueva Zelanda": "N. Zelanda",
+  "Países Bajos": "P. Bajos",
+  "RD del Congo": "RD Congo",
+  "R.D. del Congo": "RD Congo",
+  "República Checa": "R. Checa",
+};
+
+const simulationTeamLabel = (team = "") => SIMULATION_TEAM_SHORT_NAMES[team] || team;
+
 function MatchSimulationOverlay({ match, players, user, onClose }) {
   const [matches, setMatches] = useState([match]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -222,16 +237,18 @@ function MatchSimulationOverlay({ match, players, user, onClose }) {
     itemActive = activeByMatch[item.id] !== false,
     itemAvailableScorers = simulationPlayers.filter(player => scoringCodesFor(item, itemScore).includes(player.team_fifa_code) && !itemScorerIds.includes(player.id)),
     hasMultipleMatches = orderedMatches.length > 1;
+  const team1Label = simulationTeamLabel(item.team1),
+    team2Label = simulationTeamLabel(item.team2);
   return <div className="movement-overlay simulation-overlay" role="dialog" aria-modal="true" aria-labelledby="simulation-title">
     <section className="movement-card simulation-card">
       <header className="movement-head"><div><span><Calculator size={13}/> SIMULACIÓN PRIVADA</span><h2 id="simulation-title">Cálculo del resultado</h2></div><button onClick={onClose} aria-label="Cerrar cálculo"><X size={21}/></button></header>
       <div className="movement-scroll" onPointerDown={hasMultipleMatches ? swipeStart : undefined} onPointerMove={hasMultipleMatches ? moveSwipe : undefined} onPointerUp={hasMultipleMatches ? endSwipe : undefined} onPointerCancel={hasMultipleMatches ? cancelSwipe : undefined}>
         <p className="simulation-disclaimer">Vista informativa. Nada de lo que introduzcas aquí se guarda.</p>
-        {hasMultipleMatches && <div className="simulation-current-match">
-          <strong><span><Flag team={item.team1} teamData={item.team1_team}/>{item.team1}</span><b>–</b><span><Flag team={item.team2} teamData={item.team2_team}/>{item.team2}</span></strong>
+        <div className="simulation-current-match">
+          <strong><span title={item.team1}><Flag team={item.team1} teamData={item.team1_team}/><em>{team1Label}</em></span><b>–</b><span title={item.team2}><Flag team={item.team2} teamData={item.team2_team}/><em>{team2Label}</em></span></strong>
           <small>{item.match_date} · {item.match_time}</small>
-          <label className="simulation-active-toggle" title={itemActive ? "Partido activo en la simulación" : "Partido fuera de la simulación"}><input type="checkbox" checked={itemActive} onChange={event => setActiveByMatch(current => ({ ...current, [item.id]: event.target.checked }))}/><span>{itemActive ? "Activo" : "Off"}</span></label>
-        </div>}
+          {hasMultipleMatches && <label className="simulation-active-toggle" title={itemActive ? "Partido activo en la simulación" : "Partido fuera de la simulación"}><input type="checkbox" checked={itemActive} onChange={event => setActiveByMatch(current => ({ ...current, [item.id]: event.target.checked }))}/><span>{itemActive ? "Activo" : "Off"}</span></label>}
+        </div>
         <div className="simulation-gesture-area">
           <article className={`${itemActive ? "simulation-match-slide active" : "simulation-match-slide inactive"} ${matchDirection < 0 ? "from-left" : "from-right"}`} key={`${item.id}-${matchAnimation}`}>
               <div className="detail-score-picker horizontal simulation-score-editor">
