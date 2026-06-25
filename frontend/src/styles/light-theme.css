@@ -1996,6 +1996,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
   .app-shell main{padding-bottom:calc(82px + env(safe-area-inset-bottom))}
   .page{padding-bottom:calc(28px + env(safe-area-inset-bottom))}
   .main-nav.app-bottom-nav{
+    --bottom-nav-radius:999px;
     position:fixed;
     left:50%;
     right:auto;
@@ -2011,7 +2012,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
     gap:2px;
     padding:5px;
     border:1px solid rgba(255,255,255,.24);
-    border-radius:999px;
+    border-radius:var(--bottom-nav-radius);
     background:linear-gradient(135deg,rgba(255,255,255,.34),rgba(255,255,255,.18));
     box-shadow:0 14px 34px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.32);
     overflow:hidden;
@@ -2054,7 +2055,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
     margin:0;
     padding:5px 3px;
     border:0;
-    border-radius:999px;
+    border-radius:var(--bottom-nav-radius);
     background:transparent;
     color:rgba(30,30,30,.72);
     font-size:9.2px;
@@ -2074,7 +2075,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
     width:var(--bubble-width,58px);
     height:var(--bubble-height,52px);
     border:1px solid rgba(255,255,255,.36);
-    border-radius:17px;
+    border-radius:var(--bottom-nav-radius);
     background:linear-gradient(135deg,rgba(255,255,255,.58),rgba(255,255,255,.3));
     box-shadow:inset 0 1px 0 rgba(255,255,255,.42),0 5px 16px rgba(0,0,0,.12),0 0 18px rgba(215,25,32,.1);
     pointer-events:none;
@@ -2547,6 +2548,8 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 /* Right-side profile drawer refinement */
 .profile-side-backdrop{display:flex;justify-content:flex-end;background:linear-gradient(90deg,rgba(20,8,11,.18),rgba(169,31,50,.12))}
 .profile-side-drawer{margin-left:auto;border-right:0;border-left:1px solid rgba(169,31,50,.16);border-radius:28px 0 0 28px;background:linear-gradient(165deg,#fff 0%,#fff7f8 58%,#ffecee 100%);box-shadow:-22px 0 60px rgba(95,31,40,.24);animation:profile-side-slide-right .24s cubic-bezier(.2,.76,.2,1) both}
+.profile-side-backdrop{overscroll-behavior:contain;touch-action:none}
+.profile-side-drawer{touch-action:pan-y;overscroll-behavior:contain}
 .profile-side-drawer{transition:transform .22s cubic-bezier(.2,.76,.2,1)}
 .profile-side-drawer.is-dragging{animation:none;transition:none;will-change:transform}
 .profile-side-drawer.is-closing{animation:none;transform:translate3d(102%,0,0)!important;transition:transform .18s cubic-bezier(.4,0,1,1)}
@@ -2575,6 +2578,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 @media(max-width:800px){.profile-side-drawer{border-radius:26px 0 0 26px;padding-bottom:calc(14px + env(safe-area-inset-bottom))}.profile-side-footer{padding-bottom:0}}
 @media(max-width:380px){.profile-side-drawer{border-radius:22px 0 0 22px;padding-bottom:calc(14px + env(safe-area-inset-bottom))}}
 @media(max-width:800px){body.profile-menu-open .main-nav,body.profile-menu-open .bottom-nav-bubble{opacity:0;pointer-events:none;transform:translate3d(-50%,110%,0)}body.profile-menu-open .main-nav:not(.app-bottom-nav){transform:translateY(110%)}}
+html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavior:none}
 
 /* Definitive dashboard calendar carousel fix */
 .dashboard-calendar-carousel{

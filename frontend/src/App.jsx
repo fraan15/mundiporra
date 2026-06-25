@@ -221,6 +221,7 @@ function ProfileMenu({ unreadNews = 0, onOpenNews }) {
     setClosing(false);
     setDragging(false);
     setDragX(0);
+    swipeRef.current = null;
   };
   const closeMenuWithSlide = () => {
     setClosing(true);
@@ -230,7 +231,7 @@ function ProfileMenu({ unreadNews = 0, onOpenNews }) {
   };
   const startSwipe = (event) => {
     if (event.pointerType === "mouse") return;
-    swipeRef.current = { x: event.clientX, y: event.clientY };
+    swipeRef.current = { x: event.clientX, y: event.clientY, t: performance.now(), dx: 0 };
     setClosing(false);
   };
   const moveSwipe = (event) => {
@@ -250,8 +251,10 @@ function ProfileMenu({ unreadNews = 0, onOpenNews }) {
   const endSwipe = () => {
     if (!swipeRef.current) return;
     const finalX = swipeRef.current.dx || 0;
+    const elapsed = Math.max(1, performance.now() - swipeRef.current.t);
+    const velocity = finalX / elapsed;
     swipeRef.current = null;
-    if (finalX > 92) {
+    if (finalX > 54 || (finalX > 24 && velocity > 0.45)) {
       closeMenuWithSlide();
       return;
     }
@@ -268,7 +271,11 @@ function ProfileMenu({ unreadNews = 0, onOpenNews }) {
   }, [open]);
   useEffect(() => {
     document.body.classList.toggle("profile-menu-open", open);
-    return () => document.body.classList.remove("profile-menu-open");
+    document.documentElement.classList.toggle("profile-menu-open", open);
+    return () => {
+      document.body.classList.remove("profile-menu-open");
+      document.documentElement.classList.remove("profile-menu-open");
+    };
   }, [open]);
   const signOut = async () => {
     closeMenu();
