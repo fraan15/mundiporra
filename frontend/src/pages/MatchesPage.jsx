@@ -75,7 +75,7 @@ export function MatchesPage() {
     <nav className="matches-filter-rail" aria-label="Vista de partidos">{filters.map(([id,label,description,Icon,count])=><button key={id} className={view===id?"active":""} onClick={()=>selectView(id)}><span className="filter-card-icon"><Icon size={16}/></span><span className="filter-card-copy"><span>{label}</span><small>{description}</small></span><b>{count}</b></button>)}</nav>
 
     {view==="history"&&<section className="matches-toolbar">
-      <div className="matches-team-search"><SearchSelect label="Buscar selección" items={teams} value={selectedTeamId} onChange={team=>setSelectedTeamId(team?.id||"")} placeholder="Buscar selección…" renderItem={team=><><strong>{team.flag_icon} {team.name}</strong><small>{team.fifa_code||"Selección"}</small></>}/></div>
+      <div className="matches-team-search"><SearchSelect label="Buscar selección" items={teams} value={selectedTeamId} onChange={team=>setSelectedTeamId(team?.id||"")} placeholder="Buscar selección…" renderItem={team=><><strong><Flag team={team.name} teamData={team}/>{team.name}</strong><small>{team.fifa_code||"Selección"}</small></>}/></div>
       <label className="matches-date-filter"><span>Fecha del histórico</span><input type="date" value={historyDate} aria-label="Seleccionar fecha del histórico" onChange={event=>setHistoryDate(event.target.value)}/></label>
       {(selectedTeamId||historyDate!==yesterdayKey())&&<button onClick={()=>{setSelectedTeamId("");setHistoryDate(yesterdayKey())}}><X size={15}/> Restablecer</button>}
     </section>}

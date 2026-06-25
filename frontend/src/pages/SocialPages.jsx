@@ -1813,7 +1813,7 @@ export function TeamDetailOverlay({ teamId, onClose }) {
             <header className="team-profile-header">
               <div className="team-profile-main">
                 <span className="team-profile-flag">
-                  {detail.team.flag_icon}
+                  <Flag team={detail.team.name} teamData={detail.team} />
                 </span>
                 <div>
                   <span className="eyebrow">FICHA DE SELECCIÓN</span>
@@ -2079,7 +2079,7 @@ function TeamComparisonOverlay({ team1Id, team2Id, onClose }) {
             <div className="comparison-teams">
               {teams.map(({ team }) => (
                 <div key={team.id}>
-                  <span>{team.flag_icon}</span>
+                  <Flag team={team.name} teamData={team} />
                   <strong>{team.name}</strong>
                   <small>
                     {team.fifa_code} · {team.confed}

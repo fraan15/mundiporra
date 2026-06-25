@@ -93,6 +93,7 @@ function NotificationsBell() {
   const location = useLocation();
   const notificationsRef = useRef(null);
   const notificationSwipeRef = useRef(null);
+  const notificationSwipeListenersRef = useRef(null);
   const suppressNotificationClickRef = useRef(false);
   const [open, setOpen] = useState(false);
   const [swipe, setSwipe] = useState({ id: null, offset: 0, ready: false });
@@ -119,6 +120,9 @@ function NotificationsBell() {
     return () => {
       document.removeEventListener("pointerdown", close);
       document.removeEventListener("keydown", closeOnEscape);
+      cleanupNotificationSwipeListeners();
+      notificationSwipeRef.current = null;
+      setSwipe({ id: null, offset: 0, ready: false });
     };
   }, [open]);
   useEffect(() => {
@@ -179,14 +183,28 @@ function NotificationsBell() {
     await api("/notifications/read-all", { method: "POST" });
     await load();
   };
+  const cleanupNotificationSwipeListeners = () => {
+    const listeners = notificationSwipeListenersRef.current;
+    if (!listeners) return;
+    document.removeEventListener("pointermove", listeners.move);
+    document.removeEventListener("pointerup", listeners.end);
+    document.removeEventListener("pointercancel", listeners.end);
+    notificationSwipeListenersRef.current = null;
+  };
   const startNotificationSwipe = (event, notification) => {
     if (notification.read || dismissing[notification.id] || event.button > 0 || event.target.closest(".notification-read-button")) return;
-    notificationSwipeRef.current = { id: notification.id, x: event.clientX, y: event.clientY, lastX: event.clientX, lastTime: performance.now(), velocity: 0, horizontal: null, moved: false, ready: false };
-    event.currentTarget.setPointerCapture?.(event.pointerId);
+    cleanupNotificationSwipeListeners();
+    notificationSwipeRef.current = { id: notification.id, pointerId: event.pointerId, notification, x: event.clientX, y: event.clientY, lastX: event.clientX, lastTime: performance.now(), velocity: 0, horizontal: null, moved: false, ready: false };
+    const move = (moveEvent) => moveNotificationSwipe(moveEvent);
+    const end = (endEvent) => endNotificationSwipe(endEvent);
+    notificationSwipeListenersRef.current = { move, end };
+    document.addEventListener("pointermove", move, { passive: false });
+    document.addEventListener("pointerup", end);
+    document.addEventListener("pointercancel", end);
   };
   const moveNotificationSwipe = (event) => {
     const state = notificationSwipeRef.current;
-    if (!state) return;
+    if (!state || event.pointerId !== state.pointerId) return;
     const deltaX = event.clientX - state.x;
     const deltaY = event.clientY - state.y;
     if (state.horizontal === null && Math.max(Math.abs(deltaX), Math.abs(deltaY)) > 7) state.horizontal = Math.abs(deltaX) > Math.abs(deltaY) * 1.1;
@@ -203,17 +221,18 @@ function NotificationsBell() {
     state.ready = offset < -58 || (offset < -34 && state.velocity < -0.55);
     setSwipe({ id: state.id, offset, ready: state.ready });
   };
-  const endNotificationSwipe = (event, notification) => {
+  const endNotificationSwipe = (event) => {
     const state = notificationSwipeRef.current;
+    if (!state || event.pointerId !== state.pointerId) return;
+    cleanupNotificationSwipeListeners();
     notificationSwipeRef.current = null;
-    event.currentTarget.releasePointerCapture?.(event.pointerId);
-    if (state?.id === notification.id && state.ready) {
-      markRead(notification);
+    if (state.ready) {
+      markRead(state.notification);
       window.setTimeout(() => { suppressNotificationClickRef.current = false; }, 80);
       return;
     }
     setSwipe({ id: null, offset: 0, ready: false });
-    if (state?.moved) window.setTimeout(() => { suppressNotificationClickRef.current = false; }, 80);
+    if (state.moved) window.setTimeout(() => { suppressNotificationClickRef.current = false; }, 80);
   };
   const visibleNotifications = data.notifications.filter((item) => !item.read);
   const unreadLabel = data.unread === 1 ? "1 notificación sin leer" : `${data.unread} notificaciones sin leer`;
@@ -232,7 +251,7 @@ function NotificationsBell() {
         const isSwiping = swipe.id === item.id;
         const swipeOffset = isSwiping ? swipe.offset : 0;
         const isDismissing = Boolean(dismissing[item.id]);
-        return <div key={item.id} className={`notification-swipe-row ${isSwiping ? "swiping" : ""} ${isSwiping && swipe.ready ? "ready" : ""} ${isDismissing ? "dismissing" : ""}`} onPointerDown={(event) => startNotificationSwipe(event, item)} onPointerMove={moveNotificationSwipe} onPointerUp={(event) => endNotificationSwipe(event, item)} onPointerCancel={(event) => endNotificationSwipe(event, item)}>
+        return <div key={item.id} className={`notification-swipe-row ${isSwiping ? "swiping" : ""} ${isSwiping && swipe.ready ? "ready" : ""} ${isDismissing ? "dismissing" : ""}`} onPointerDown={(event) => startNotificationSwipe(event, item)}>
           <div className="notification-swipe-action" aria-hidden="true"><Check size={18}/><span>Leída</span></div>
           <div className="notification-swipe-card" style={{ transform: `translateX(${swipeOffset}px)` }}>
             <button className={`notification-item ${item.read ? "read" : "unread"}`} aria-label={`${item.title}. ${item.message}. ${notificationTypeLabel(item.type)}. ${item.read ? "Leída" : "Sin leer"}`} onClick={(event) => { if (suppressNotificationClickRef.current) { event.preventDefault(); suppressNotificationClickRef.current = false; return; } read(item); }}>

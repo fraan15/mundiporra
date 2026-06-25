@@ -14,9 +14,47 @@ const flags = {
   "Turquía": "🇹🇷", "Uruguay": "🇺🇾", "Uzbekistán": "🇺🇿"
 };
 
-export const Flag = ({ team, teamData }) => (
-  <span className="real-flag" aria-label={team}>{teamData?.flag_icon || flags[team] || "⚽"}</span>
-);
+const marcaFlagCodesByFifa = {
+  ARG: "ARG", AUS: "AUS", AUT: "AUT", BEL: "BEL", BIH: "BIH", BRA: "BRA", CAN: "CAN", CIV: "CIV",
+  COL: "COL", CPV: "CPV", CRO: "HRV", CZE: "CZE", DEN: "DNK", ECU: "ECU", EGY: "EGY", ENG: "ING",
+  ESP: "ESP", FRA: "FRA", GER: "DEU", GHA: "GHA", HAI: "HTI", IRN: "IRN", IRQ: "IRQ", JOR: "JOR",
+  JPN: "JPN", KOR: "KOR", MAR: "MAR", MEX: "MEX", NED: "NLD", NOR: "NOR", NZL: "NZL", PAN: "PAN",
+  PAR: "PRY", POR: "PRT", QAT: "QAT", COD: "COD", RSA: "ZAF", KSA: "SAU", SCO: "SCO", SEN: "SEN",
+  SUI: "CHE", SWE: "SWE", TUN: "TUN", TUR: "TUR", URU: "URY", USA: "USA", UZB: "UZB", CUW: "CUW",
+  ALG: "DZA"
+};
+
+const marcaFlagCodesByName = {
+  "Alemania": "DEU", "Arabia Saudí": "SAU", "Argelia": "DZA", "Argentina": "ARG", "Australia": "AUS",
+  "Austria": "AUT", "Bélgica": "BEL", "Bosnia Herzegovina": "BIH", "Bosnia y Herzegovina": "BIH",
+  "Brasil": "BRA", "Cabo Verde": "CPV", "Canadá": "CAN", "Catar": "QAT", "Colombia": "COL",
+  "Corea del Sur": "KOR", "Costa de Marfil": "CIV", "Croacia": "HRV", "Curazao": "CUW", "Curaçao": "CUW",
+  "Ecuador": "ECU", "Egipto": "EGY", "Escocia": "SCO", "España": "ESP", "Estados Unidos": "USA",
+  "Francia": "FRA", "Ghana": "GHA", "Haití": "HTI", "Inglaterra": "ING", "Irak": "IRQ", "Iraq": "IRQ",
+  "Irán": "IRN", "Japón": "JPN", "Jordania": "JOR", "Marruecos": "MAR", "México": "MEX",
+  "Noruega": "NOR", "Nueva Zelanda": "NZL", "Países Bajos": "NLD", "Panamá": "PAN", "Paraguay": "PRY",
+  "Portugal": "PRT", "Qatar": "QAT", "RD del Congo": "COD", "R.D. del Congo": "COD",
+  "República Checa": "CZE", "Senegal": "SEN", "Sudáfrica": "ZAF", "Suecia": "SWE", "Suiza": "CHE",
+  "Túnez": "TUN", "Turquía": "TUR", "Uruguay": "URY", "Uzbekistán": "UZB"
+};
+
+const flagImageCode = (team, teamData) =>
+  teamData?.flag_image_code ||
+  marcaFlagCodesByFifa[teamData?.fifa_code] ||
+  marcaFlagCodesByName[teamData?.name] ||
+  marcaFlagCodesByName[team];
+
+export function Flag({ team, teamData }) {
+  const [failed, setFailed] = useState(false);
+  const imageCode = flagImageCode(team, teamData);
+  const fallback = teamData?.flag_icon || flags[team] || flags[teamData?.name] || "⚽";
+
+  return (
+    <span className={`real-flag ${imageCode && !failed ? "has-flag-image" : ""}`} aria-label={team || teamData?.name}>
+      {imageCode && !failed ? <img src={`/flags/${imageCode}.png`} alt="" onError={() => setFailed(true)} /> : fallback}
+    </span>
+  );
+}
 
 export function MiniChart({ data = [], field = "points", inverse = false }) {
   const values = data.map((item) => Number(item[field]) || 0);

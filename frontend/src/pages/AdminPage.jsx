@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { api } from "../api/client";
 import { SearchSelect } from "../components/SearchSelect";
+import { Flag } from "../components/SportsUI";
 import { ScorerPicker } from "../components/ScorerPicker";
 import { HorizontalScoreControl } from "../components/MatchCard";
 import { NO_SCORER, NO_SCORER_ID } from "../constants/scorers";
@@ -631,7 +632,7 @@ function AdminMatches() {
               renderItem={(team) => (
                 <>
                   <strong>
-                    {team.flag_icon} {team.name}
+                    <Flag team={team.name} teamData={team} /> {team.name}
                   </strong>
                   <small>
                     {team.fifa_code} · Grupo {team.group_name}
@@ -653,7 +654,7 @@ function AdminMatches() {
               renderItem={(team) => (
                 <>
                   <strong>
-                    {team.flag_icon} {team.name}
+                    <Flag team={team.name} teamData={team} /> {team.name}
                   </strong>
                   <small>
                     {team.fifa_code} · Grupo {team.group_name}
