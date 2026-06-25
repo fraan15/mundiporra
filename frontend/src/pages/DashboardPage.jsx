@@ -330,7 +330,7 @@ function DashboardCalendar({ matches, calendarToday, onOpenMatch, restoreScrollT
               {match.predicted_scorer?.name&&<span className="calendar-scorer">Goleador: {match.predicted_scorer.name}</span>}
             </span>}
           </span>
-        </button>) : <p className="calendar-empty-day">No hay partidos para este día</p>}</div>
+        </button>) : <p className="calendar-empty-day">{day.offset === 0 || day.offset === 1 ? "No hay partidos publicados." : "No hay partidos para este día"}</p>}</div>
           </article>)}
         </div>
       </div>

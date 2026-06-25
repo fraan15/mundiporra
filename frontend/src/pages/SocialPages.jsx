@@ -2979,9 +2979,11 @@ export function MatchDetailPage() {
                       <div className="participant-result">
                         <small>RESULTADO</small>
                         <b>
+                          <Flag team={m.team1} teamData={m.team1_team} />
                           {p.predicted_team1_goals}
                           <i>–</i>
                           {p.predicted_team2_goals}
+                          <Flag team={m.team2} teamData={m.team2_team} />
                         </b>
                       </div>
                       <div className="participant-scorer">
