@@ -92,7 +92,11 @@ function NotificationsBell() {
   const navigate = useNavigate();
   const location = useLocation();
   const notificationsRef = useRef(null);
+  const notificationSwipeRef = useRef(null);
+  const suppressNotificationClickRef = useRef(false);
   const [open, setOpen] = useState(false);
+  const [swipe, setSwipe] = useState({ id: null, offset: 0, ready: false });
+  const [dismissing, setDismissing] = useState({});
   const [data, setData] = useState({ notifications: [], unread: 0 });
   const load = async () => setData(await api("/notifications"));
   useEffect(() => {
@@ -124,9 +128,61 @@ function NotificationsBell() {
     await load();
     if (notification.link) navigate(notification.link);
   };
+  const markRead = async (notification) => {
+    if (notification.read || dismissing[notification.id]) return;
+    setSwipe({ id: null, offset: 0, ready: false });
+    setDismissing((current) => ({ ...current, [notification.id]: true }));
+    window.setTimeout(() => {
+      setData((current) => ({
+        notifications: current.notifications.map((item) => item.id === notification.id ? { ...item, read: true, read_at: new Date().toISOString() } : item),
+        unread: Math.max(0, current.unread - 1)
+      }));
+    }, 220);
+    try {
+      await api(`/notifications/${notification.id}/read`, { method: "PATCH" });
+      await load();
+    } catch (error) {
+      setDismissing((current) => {
+        const next = { ...current };
+        delete next[notification.id];
+        return next;
+      });
+      await load().catch(() => {});
+    }
+  };
   const readAll = async () => {
     await api("/notifications/read-all", { method: "POST" });
     await load();
+  };
+  const startNotificationSwipe = (event, notification) => {
+    if (notification.read || dismissing[notification.id] || event.button > 0) return;
+    notificationSwipeRef.current = { id: notification.id, x: event.clientX, y: event.clientY, horizontal: null };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+  const moveNotificationSwipe = (event) => {
+    const state = notificationSwipeRef.current;
+    if (!state) return;
+    const deltaX = event.clientX - state.x;
+    const deltaY = event.clientY - state.y;
+    if (state.horizontal === null && Math.max(Math.abs(deltaX), Math.abs(deltaY)) > 8) state.horizontal = Math.abs(deltaX) > Math.abs(deltaY);
+    if (!state.horizontal) return;
+    event.preventDefault();
+    suppressNotificationClickRef.current = true;
+    const offset = Math.max(-104, Math.min(0, deltaX));
+    state.ready = offset < -68;
+    setSwipe({ id: state.id, offset, ready: state.ready });
+  };
+  const endNotificationSwipe = (event, notification) => {
+    const state = notificationSwipeRef.current;
+    notificationSwipeRef.current = null;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    if (state?.id === notification.id && state.ready) {
+      markRead(notification);
+      window.setTimeout(() => { suppressNotificationClickRef.current = false; }, 0);
+      return;
+    }
+    setSwipe({ id: null, offset: 0, ready: false });
+    window.setTimeout(() => { suppressNotificationClickRef.current = false; }, 0);
   };
   const visibleNotifications = data.notifications.filter((item) => !item.read);
   const unreadLabel = data.unread === 1 ? "1 notificación sin leer" : `${data.unread} notificaciones sin leer`;
@@ -141,17 +197,25 @@ function NotificationsBell() {
         <button className="notifications-close" type="button" aria-label="Cerrar notificaciones" onClick={() => setOpen(false)}><X size={18}/></button>
       </div>
       {data.unread > 0 && <button className="read-all" onClick={readAll}><CheckCheck size={15}/>Marcar todo como leído</button>}
-      <div className="notifications-list">{visibleNotifications.length ? visibleNotifications.map((item) =>
-        <button key={item.id} className={`notification-item ${item.read ? "read" : "unread"}`} aria-label={`${item.title}. ${item.message}. ${notificationTypeLabel(item.type)}. ${item.read ? "Leída" : "Sin leer"}`} onClick={() => read(item)}>
-          <span className={`notification-type ${item.type}`} aria-hidden="true"><span className={`notification-dot ${item.type}`}><NotificationTypeIcon type={item.type}/></span></span>
-          <span className="notification-content">
-            <span className="notification-meta"><em>{notificationTypeLabel(item.type)}</em><small>{formatNotificationDate(item.created_at)}</small></span>
-            <strong>{item.title}</strong>
-            <span className="notification-message">{item.message}</span>
-          </span>
-          {!item.read && <span className="notification-status" aria-hidden="true">Nuevo</span>}
-        </button>
-      ) : <div className="empty-notifications"><Bell size={24}/><strong>Todo al día</strong><span>No tienes notificaciones pendientes.</span></div>}</div>
+      <div className="notifications-list">{visibleNotifications.length ? visibleNotifications.map((item) => {
+        const isSwiping = swipe.id === item.id;
+        const swipeOffset = isSwiping ? swipe.offset : 0;
+        const isDismissing = Boolean(dismissing[item.id]);
+        return <div key={item.id} className={`notification-swipe-row ${isSwiping ? "swiping" : ""} ${isSwiping && swipe.ready ? "ready" : ""} ${isDismissing ? "dismissing" : ""}`} onPointerDown={(event) => startNotificationSwipe(event, item)} onPointerMove={moveNotificationSwipe} onPointerUp={(event) => endNotificationSwipe(event, item)} onPointerCancel={(event) => endNotificationSwipe(event, item)}>
+          <div className="notification-swipe-action" aria-hidden="true"><Check size={18}/><span>Leída</span></div>
+          <div className="notification-swipe-card" style={{ transform: `translateX(${swipeOffset}px)` }}>
+            <button className={`notification-item ${item.read ? "read" : "unread"}`} aria-label={`${item.title}. ${item.message}. ${notificationTypeLabel(item.type)}. ${item.read ? "Leída" : "Sin leer"}`} onClick={(event) => { if (suppressNotificationClickRef.current) { event.preventDefault(); suppressNotificationClickRef.current = false; return; } read(item); }}>
+              <span className={`notification-type ${item.type}`} aria-hidden="true"><span className={`notification-dot ${item.type}`}><NotificationTypeIcon type={item.type}/></span></span>
+              <span className="notification-content">
+                <span className="notification-meta"><em>{notificationTypeLabel(item.type)}</em><small>{formatNotificationDate(item.created_at)}</small></span>
+                <strong>{item.title}</strong>
+                <span className="notification-message">{item.message}</span>
+              </span>
+            </button>
+            <button className="notification-read-button" type="button" aria-label={`Marcar como leída: ${item.title}`} title="Marcar como leída" onClick={(event) => { event.stopPropagation(); markRead(item); }}><Check size={17}/></button>
+          </div>
+        </div>;
+      }) : <div className="empty-notifications"><Bell size={24}/><strong>Todo al día</strong><span>No tienes notificaciones pendientes.</span></div>}</div>
     </div>}
   </div>;
 }

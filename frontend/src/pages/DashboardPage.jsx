@@ -298,7 +298,7 @@ function DashboardCalendar({ matches, calendarToday, onOpenMatch, restoreScrollT
 
   return <section className="dashboard-calendar expanded" aria-label="Calendario de partidos">
     <header>
-      <div><span className="eyebrow"><CalendarDays size={14}/> CALENDARIO</span><h2>Agenda cercana</h2></div>
+      <div><span className="eyebrow"><CalendarDays size={14}/> CALENDARIO</span></div>
     </header>
     <div className="dashboard-calendar-carousel">
       <div className="calendar-day-tabs" aria-label="Días del calendario">
