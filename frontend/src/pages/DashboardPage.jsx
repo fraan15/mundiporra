@@ -41,6 +41,17 @@ const closeText = (match, current) => {
 const closeState = (match) => match.status === "finished" ? "finished" : match.in_play ? "playing" : match.betting_open ? "open" : "closed";
 
 function KnockoutInfoDialog({ onClose }) {
+  const examplesRef = useRef(null);
+  const [activeExample, setActiveExample] = useState(0);
+  const examples = [
+    ["Apuestas 1-1 y acaba 1-1 tras 120 minutos", "Aciertas empate y resultado exacto. Si luego un equipo gana en penaltis, no cambia nada para la porra."],
+    ["Apuestas 2-2, acaba 2-2 en 90 minutos y 3-3 tras prórroga", "El resultado válido es 3-3. Aciertas el empate, pero no el resultado exacto."],
+    ["Apuestas victoria 2-1 y el partido acaba 1-1 tras 120 minutos", "Para la porra es empate. No aciertas el signo aunque tu equipo pase en penaltis."],
+    ["Apuestas 1-2 y el partido acaba 1-2 en la prórroga", "Cuenta como victoria visitante 1-2. Puedes acertar signo, resultado exacto y goleador si coincide."],
+    ["Tu goleador marca en la prórroga", "Ese gol sí cuenta para el apartado de goleador."],
+    ["Tu goleador marca solo en la tanda de penaltis", "Ese penalti no cuenta como gol para la porra."]
+  ];
+
   useEffect(() => {
     const onKeyDown = (event) => {
       if (event.key === "Escape") onClose();
@@ -48,6 +59,27 @@ function KnockoutInfoDialog({ onClose }) {
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
+
+  const updateActiveExample = () => {
+    const scroller = examplesRef.current;
+    if (!scroller) return;
+    const cards = Array.from(scroller.querySelectorAll("article"));
+    if (!cards.length) return;
+    const center = scroller.scrollLeft + scroller.clientWidth / 2;
+    const closestIndex = cards.reduce((bestIndex, card, index) => {
+      const bestCard = cards[bestIndex];
+      const cardCenter = card.offsetLeft + card.offsetWidth / 2;
+      const bestCenter = bestCard.offsetLeft + bestCard.offsetWidth / 2;
+      return Math.abs(cardCenter - center) < Math.abs(bestCenter - center) ? index : bestIndex;
+    }, 0);
+    setActiveExample(closestIndex);
+  };
+
+  const goToExample = (index) => {
+    const card = examplesRef.current?.querySelectorAll("article")[index];
+    card?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "start" });
+    setActiveExample(index);
+  };
 
   return <div className="knockout-info-overlay" role="dialog" aria-modal="true" aria-labelledby="knockout-info-title" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }}>
     <section className="knockout-info-dialog">
@@ -83,18 +115,19 @@ function KnockoutInfoDialog({ onClose }) {
         </section>
         <section>
           <h3>Ejemplos rápidos</h3>
-          <div className="knockout-info-examples" aria-label="Ejemplos rápidos de eliminatorias">
-            <article><strong>Apuestas 1-1 y acaba 1-1 tras 120 minutos</strong><p>Aciertas empate y resultado exacto. Si luego un equipo gana en penaltis, no cambia nada para la porra.</p></article>
-            <article><strong>Apuestas 2-2, acaba 2-2 en 90 minutos y 3-3 tras prórroga</strong><p>El resultado válido es 3-3. Aciertas el empate, pero no el resultado exacto.</p></article>
-            <article><strong>Apuestas victoria 2-1 y el partido acaba 1-1 tras 120 minutos</strong><p>Para la porra es empate. No aciertas el signo aunque tu equipo pase en penaltis.</p></article>
-            <article><strong>Apuestas 1-2 y el partido acaba 1-2 en la prórroga</strong><p>Cuenta como victoria visitante 1-2. Puedes acertar signo, resultado exacto y goleador si coincide.</p></article>
-            <article><strong>Tu goleador marca en la prórroga</strong><p>Ese gol sí cuenta para el apartado de goleador.</p></article>
-            <article><strong>Tu goleador marca solo en la tanda de penaltis</strong><p>Ese penalti no cuenta como gol para la porra.</p></article>
+          <div className="knockout-info-examples" ref={examplesRef} aria-label="Ejemplos rápidos de eliminatorias" onScroll={updateActiveExample}>
+            {examples.map(([title, text]) => <article key={title}><strong>{title}</strong><p>{text}</p></article>)}
           </div>
-          <div className="knockout-info-example-hint" aria-hidden="true">
-            <span />
-            <span />
-            <span />
+          <div className="knockout-info-example-hint" aria-label="Páginas de ejemplos rápidos">
+            {examples.map(([title], index) => (
+              <button
+                type="button"
+                className={index === activeExample ? "active" : ""}
+                key={`knockout-example-dot-${title}`}
+                aria-label={`Ver ejemplo ${index + 1}`}
+                onClick={() => goToExample(index)}
+              />
+            ))}
           </div>
         </section>
       </div>
@@ -117,15 +150,16 @@ function DashboardCalendar({ matches, onOpenMatch, restoreScrollTop, user, curre
   const [activeDayIndex, setActiveDayIndex] = useState(() => {
     if (sessionStorage.getItem("dashboardCalendarReturn") !== "1") return 1;
     const storedIndex = Number(sessionStorage.getItem("dashboardCalendarActiveDayIndex"));
-    return Number.isInteger(storedIndex) && storedIndex >= 0 && storedIndex <= 4 ? storedIndex : 1;
+    return Number.isInteger(storedIndex) && storedIndex >= 0 && storedIndex <= 2 ? storedIndex : 1;
   });
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const today = new Date(currentTime);
-  const calendarDates = [-1, 0, 1, 2, 3].map(offset => addDays(today, offset));
+  const calendarOffsets = [-1, 0, 1];
+  const calendarDates = calendarOffsets.map(offset => addDays(today, offset));
   const calendarKeys = new Set(calendarDates.map(dateKey));
   const calendarMatches = matches.filter(match => isCalendarMatchVisible(match, calendarKeys));
-  const days = [-1, 0, 1, 2, 3].map(offset => {
+  const days = calendarOffsets.map(offset => {
     const date = addDays(today, offset), key = dateKey(date);
     return {
       offset,
@@ -136,8 +170,6 @@ function DashboardCalendar({ matches, onOpenMatch, restoreScrollTop, user, curre
     };
   });
   const activeDay = days[activeDayIndex] || days[1];
-  const previousDay = days[activeDayIndex - 1];
-  const nextDay = days[activeDayIndex + 1];
   const goToDay = (index) => {
     setActiveDayIndex(Math.max(0, Math.min(days.length - 1, index)));
     setDragOffset(0);
@@ -199,8 +231,8 @@ function DashboardCalendar({ matches, onOpenMatch, restoreScrollTop, user, curre
       const width = viewportRef.current?.clientWidth || 1;
       const atStart = activeDayIndex === 0 && deltaX > 0;
       const atEnd = activeDayIndex === days.length - 1 && deltaX < 0;
-      const resistance = atStart || atEnd ? 0.22 : 0.55;
-      setDragOffset(Math.max(-width * 0.22, Math.min(width * 0.22, deltaX * resistance)));
+      const resistance = atStart || atEnd ? 0.18 : 0.86;
+      setDragOffset(Math.max(-width * 0.34, Math.min(width * 0.34, deltaX * resistance)));
     }
   };
   const endSwipe = (event) => {
@@ -238,14 +270,18 @@ function DashboardCalendar({ matches, onOpenMatch, restoreScrollTop, user, curre
       <div><span className="eyebrow"><CalendarDays size={14}/> CALENDARIO</span><h2>Agenda cercana</h2></div>
     </header>
     <div className="dashboard-calendar-carousel">
-      {previousDay && <span className="calendar-day-side-label left">{previousDay.title}</span>}
-      {nextDay && <span className="calendar-day-side-label right">{nextDay.title}</span>}
+      <div className="calendar-day-tabs" aria-label="Días del calendario">
+        {days.map((day, index) => <button type="button" key={day.key} className={index === activeDayIndex ? "active" : ""} onClick={()=>goToDay(index)} aria-label={`Ver ${day.title}`}>
+          <strong>{day.title}</strong>
+          <span>{day.subtitle}</span>
+        </button>)}
+      </div>
       <div className="calendar-days-viewport" ref={viewportRef} onPointerDown={startSwipe} onPointerMove={moveSwipe} onPointerUp={endSwipe} onPointerCancel={cancelSwipe}>
         <div className={`calendar-days-track ${isDragging ? "is-dragging" : "is-animating"}`} style={{ transform: `translateX(calc(${-activeDayIndex * 100}% + ${dragOffset}px))` }}>
           {days.map((day, index) => <article className={`calendar-day-slide ${index === activeDayIndex ? "active" : ""} ${index === activeDayIndex - 1 ? "prev" : ""} ${index === activeDayIndex + 1 ? "next" : ""}`} key={day.key} aria-hidden={index !== activeDayIndex}>
             <header className="calendar-day-header">
               <h3>{day.title}</h3>
-              <span>{day.subtitle}</span>
+              <span>{day.matches.length ? `${day.matches.length} partido${day.matches.length === 1 ? "" : "s"}` : day.subtitle}</span>
             </header>
             <div className="calendar-day-matches">{day.matches.length ? day.matches.map(match => <button type="button" className="calendar-match" key={match.id} onPointerDown={startMatchPointer} onPointerMove={moveMatchPointer} onPointerCancel={()=>{pointerRef.current=null}} onClick={event=>clickMatch(event, match)} onKeyDown={event=>openMatchOnKey(event, match)} aria-label={`Ver detalle de ${match.team1} contra ${match.team2}`}>
           <span className="calendar-match-main">
@@ -268,11 +304,11 @@ function DashboardCalendar({ matches, onOpenMatch, restoreScrollTop, user, curre
         </div>
       </div>
       <div className="calendar-carousel-controls" aria-label="Cambiar día del calendario">
-        <button type="button" className="calendar-carousel-arrow" onClick={()=>goToDay(activeDayIndex - 1)} disabled={!previousDay} aria-label="Día anterior"><ChevronLeft size={18}/></button>
+        <button type="button" className="calendar-carousel-arrow" onClick={()=>goToDay(activeDayIndex - 1)} disabled={activeDayIndex === 0} aria-label="Ir a ayer"><ChevronLeft size={18}/></button>
         <div className="calendar-carousel-dots">
           {days.map((day, index) => <button type="button" key={day.key} className={index === activeDayIndex ? "active" : ""} onClick={()=>goToDay(index)} aria-label={`Ver ${day.title}`}/>)}
         </div>
-        <button type="button" className="calendar-carousel-arrow" onClick={()=>goToDay(activeDayIndex + 1)} disabled={!nextDay} aria-label="Día siguiente"><ChevronRight size={18}/></button>
+        <button type="button" className="calendar-carousel-arrow" onClick={()=>goToDay(activeDayIndex + 1)} disabled={activeDayIndex === days.length - 1} aria-label="Ir a mañana"><ChevronRight size={18}/></button>
       </div>
     </div>
   </section>;

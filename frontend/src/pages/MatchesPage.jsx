@@ -68,7 +68,7 @@ export function MatchesPage() {
 
   return <div className="page matches-page-redesign">
     <section className="matches-command-header">
-      <div><span className="eyebrow">CENTRO DE PARTIDOS</span><h1>Tu agenda del Mundial</h1><p>{user.is_read_only?"Todos los encuentros, resultados y datos en un solo lugar.":pendingCount?`Tienes ${pendingCount} pronóstico${pendingCount===1?"":"s"} por completar.`:"Todo al día. Ya puedes centrarte en la jornada."}</p></div>
+      <div><span className="eyebrow">CENTRO DE PARTIDOS</span><h1>Tu agenda del Mundial</h1></div>
       {!user.is_read_only&&<div className={`matches-pulse ${pendingCount?"attention":"complete"}`}><Target/><strong>{pendingCount}</strong><span>sin apostar</span></div>}
     </section>
 

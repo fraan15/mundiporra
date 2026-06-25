@@ -338,7 +338,7 @@ const isBettingOpenForMatch = (match) => isMatchPublished(match) && match.status
 
 const dashboardCalendarMatches = (matches, today = dateInTimeZone(new Date(), MATCH_TIME_ZONE)) => {
   const yesterday = addDays(today, -1);
-  const later = addDays(today, 3);
+  const later = addDays(today, 1);
   return matches.filter((match) =>
     match.match_date === today ||
     match.match_date === yesterday ||
@@ -1133,7 +1133,7 @@ app.get("/api/dashboard/calendar", requireAuth, (req, res) => {
   autoCloseExpired();
   const today = dateInTimeZone(new Date(), MATCH_TIME_ZONE);
   const yesterday = addDays(today, -1);
-  const later = addDays(today, 3);
+  const later = addDays(today, 1);
   const candidates = matchListForUser(req, "WHERE m.match_date BETWEEN ? AND ? OR m.status='open'", [yesterday, later]);
   const matches = dashboardCalendarMatches(candidates, today);
   res.json(serializeMatches(matches));
