@@ -322,13 +322,22 @@ function MainLayout() {
   const [messageError,setMessageError]=useState("");
   const [answering,setAnswering]=useState(false);
   const [navExpanded,setNavExpanded]=useState(false);
+  const navExpandedRef=useRef(false);
   const navRef=useRef(null);
   const navItemRefs=useRef([]);
   const dragStateRef=useRef(null);
   const suppressNavClickRef=useRef(false);
+  const isNavDraggingRef=useRef(false);
+  const lastViewportHeightRef=useRef(0);
   const [bubble,setBubble]=useState({x:0,width:58,height:52});
   const [isNavDragging,setIsNavDragging]=useState(false);
   useEffect(()=>{document.documentElement.dataset.theme=theme;localStorage.setItem("theme",theme)},[theme]);
+  useEffect(()=>{isNavDraggingRef.current=isNavDragging},[isNavDragging]);
+  const setNavExpandedSafe=useCallback(value=>{
+    if(navExpandedRef.current===value)return;
+    navExpandedRef.current=value;
+    setNavExpanded(value);
+  },[]);
   useEffect(()=>{
     let lastY=window.scrollY;
     let ticking=false;
@@ -339,12 +348,11 @@ function MainLayout() {
       window.requestAnimationFrame(()=>{
         const currentY=window.scrollY;
         const delta=currentY-lastY;
-        if(delta>4&&currentY>20)setNavExpanded(true);
-        else if(delta<-4)setNavExpanded(false);
+        if(!isNavDraggingRef.current&&delta>4&&currentY>20)setNavExpandedSafe(true);
         lastY=currentY;
         ticking=false;
         window.clearTimeout(restTimer);
-        restTimer=window.setTimeout(()=>setNavExpanded(false),260);
+        restTimer=window.setTimeout(()=>setNavExpandedSafe(false),220);
       });
     };
     window.addEventListener("scroll",onScroll,{passive:true});
@@ -352,7 +360,7 @@ function MainLayout() {
       window.removeEventListener("scroll",onScroll);
       window.clearTimeout(restTimer);
     };
-  },[]);
+  },[setNavExpandedSafe]);
   useEffect(()=>{
     let frame;
     const repairMobileNav=()=>{
@@ -362,8 +370,9 @@ function MainLayout() {
         const nav=document.querySelector(".main-nav");
         if(!nav)return;
         const viewportHeight=Math.round(window.visualViewport?.height||window.innerHeight);
+        if(Math.abs(viewportHeight-lastViewportHeightRef.current)<1)return;
+        lastViewportHeightRef.current=viewportHeight;
         nav.style.setProperty("--visual-viewport-height",`${viewportHeight}px`);
-        nav.dataset.viewportRepair=String(Date.now());
       });
     };
     repairMobileNav();
@@ -372,7 +381,6 @@ function MainLayout() {
     window.addEventListener("orientationchange",repairMobileNav);
     document.addEventListener("visibilitychange",repairMobileNav);
     window.visualViewport?.addEventListener("resize",repairMobileNav);
-    window.visualViewport?.addEventListener("scroll",repairMobileNav);
     return()=>{
       cancelAnimationFrame(frame);
       window.removeEventListener("focus",repairMobileNav);
@@ -380,7 +388,6 @@ function MainLayout() {
       window.removeEventListener("orientationchange",repairMobileNav);
       document.removeEventListener("visibilitychange",repairMobileNav);
       window.visualViewport?.removeEventListener("resize",repairMobileNav);
-      window.visualViewport?.removeEventListener("scroll",repairMobileNav);
     };
   },[]);
   useEffect(()=>{
@@ -440,21 +447,28 @@ function MainLayout() {
   const activeNavIndex=items.findIndex(([to])=>to==="/" ? location.pathname==="/" : location.pathname===to || location.pathname.startsWith(`${to}/`));
   const clamp=(value,min,max)=>Math.min(Math.max(value,min),max);
   const getBubbleForIndex=useCallback(index=>{
-    const nav=navRef.current;
     const item=navItemRefs.current[index];
-    if(!nav||!item)return null;
-    const navRect=nav.getBoundingClientRect();
-    const itemRect=item.getBoundingClientRect();
-    const width=itemRect.width;
-    const height=itemRect.height;
-    const x=clamp(itemRect.left-navRect.left,0,Math.max(0,navRect.width-width));
+    if(!item)return null;
+    const x=Math.round(item.offsetLeft);
+    const width=Math.round(item.offsetWidth);
+    const height=Math.round(item.offsetHeight);
     return {x,width,height};
+  },[]);
+  const updateBubble=useCallback(next=>{
+    if(!next)return;
+    setBubble(current=>{
+      if(Math.abs(current.x-next.x)<1&&Math.abs(current.width-next.width)<1&&Math.abs(current.height-next.height)<1)return current;
+      return next;
+    });
+  },[]);
+  const setBubbleXDom=useCallback(x=>{
+    navRef.current?.style.setProperty("--bubble-x",`${Math.round(x)}px`);
   },[]);
   const moveBubbleToActive=useCallback(()=>{
     if(activeNavIndex<0)return;
     const nextBubble=getBubbleForIndex(activeNavIndex);
-    if(nextBubble)setBubble(nextBubble);
-  },[activeNavIndex,getBubbleForIndex]);
+    updateBubble(nextBubble);
+  },[activeNavIndex,getBubbleForIndex,updateBubble]);
   useLayoutEffect(()=>{
     if(isNavDragging)return;
     moveBubbleToActive();
@@ -471,16 +485,12 @@ function MainLayout() {
     };
   },[moveBubbleToActive]);
   const getNearestNavIndex=useCallback((x,width)=>{
-    const nav=navRef.current;
-    if(!nav)return -1;
-    const navRect=nav.getBoundingClientRect();
     const bubbleCenter=x+width/2;
     let nearestIndex=-1;
     let nearestDistance=Infinity;
     navItemRefs.current.forEach((item,index)=>{
       if(!item)return;
-      const itemRect=item.getBoundingClientRect();
-      const itemCenter=itemRect.left-navRect.left+itemRect.width/2;
+      const itemCenter=item.offsetLeft+item.offsetWidth/2;
       const distance=Math.abs(itemCenter-bubbleCenter);
       if(distance<nearestDistance){
         nearestDistance=distance;
@@ -489,36 +499,45 @@ function MainLayout() {
     });
     const nearestItem=navItemRefs.current[nearestIndex];
     if(!nearestItem)return -1;
-    const threshold=Math.max(24,nearestItem.getBoundingClientRect().width*.46);
+    const threshold=Math.max(24,nearestItem.offsetWidth*.46);
     return nearestDistance<=threshold ? nearestIndex : -1;
   },[]);
   const handleNavPointerDown=event=>{
     if(event.button!==undefined&&event.button!==0)return;
     const nav=navRef.current;
     if(!nav||activeNavIndex<0||!window.matchMedia("(max-width: 800px)").matches)return;
-    dragStateRef.current={pointerId:event.pointerId,startX:event.clientX,startBubbleX:bubble.x,currentBubbleX:bubble.x,bubbleWidth:bubble.width,hasMoved:false};
-    event.currentTarget.setPointerCapture?.(event.pointerId);
+    dragStateRef.current={pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,startBubbleX:bubble.x,currentBubbleX:bubble.x,bubbleWidth:bubble.width,hasMoved:false};
   };
   const handleNavPointerMove=event=>{
     const drag=dragStateRef.current;
     const nav=navRef.current;
     if(!drag||drag.pointerId!==event.pointerId||!nav)return;
     const deltaX=event.clientX-drag.startX;
-    if(Math.abs(deltaX)<=6&&!drag.hasMoved)return;
-    drag.hasMoved=true;
-    suppressNavClickRef.current=true;
-    setIsNavDragging(true);
+    const deltaY=event.clientY-drag.startY;
+    let startedDrag=false;
+    if(!drag.hasMoved){
+      if(Math.abs(deltaY)>8&&Math.abs(deltaY)>Math.abs(deltaX)){
+        dragStateRef.current=null;
+        return;
+      }
+      if(Math.abs(deltaX)<=8||Math.abs(deltaX)<=Math.abs(deltaY)*1.25)return;
+      drag.hasMoved=true;
+      suppressNavClickRef.current=true;
+      setIsNavDragging(true);
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+      startedDrag=true;
+    }
     event.preventDefault();
-    const navRect=nav.getBoundingClientRect();
-    const nextX=clamp(drag.startBubbleX+deltaX,0,Math.max(0,navRect.width-drag.bubbleWidth));
+    const nextX=clamp(drag.startBubbleX+deltaX,0,Math.max(0,nav.offsetWidth-drag.bubbleWidth));
     drag.currentBubbleX=nextX;
-    setBubble(current=>({...current,x:nextX}));
+    if(startedDrag)setBubble(current=>({...current,x:Math.round(nextX)}));
+    setBubbleXDom(nextX);
   };
   const finishNavDrag=event=>{
     const drag=dragStateRef.current;
     if(!drag||drag.pointerId!==event.pointerId)return;
     dragStateRef.current=null;
-    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    if(event.currentTarget.hasPointerCapture?.(event.pointerId))event.currentTarget.releasePointerCapture?.(event.pointerId);
     if(!drag.hasMoved){
       setIsNavDragging(false);
       return;
@@ -531,6 +550,7 @@ function MainLayout() {
       navigate(items[nearestIndex][0]);
       return;
     }
+    setBubble(current=>({...current,x:Math.round(drag.currentBubbleX)}));
     moveBubbleToActive();
   };
   const handleNavClickCapture=event=>{

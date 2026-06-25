@@ -1,0 +1,7 @@
+
+> worldcup-porra-backend@1.0.0 dev
+> node --watch src/server.js
+
+Restarting 'src/server.js'
+Aplicación disponible en http://0.0.0.0:3001
+[worldcup] JSON sincronizado: 104 partidos.

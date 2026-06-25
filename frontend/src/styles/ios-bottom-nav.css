@@ -15,17 +15,17 @@
       max-width: 500px;
       height: auto;
       padding: 5px;
-      transform: translateX(-50%);
-      -webkit-transform: translateX(-50%);
-      will-change: auto;
+      transform: translate3d(-50%, 0, 0);
+      -webkit-transform: translate3d(-50%, 0, 0);
+      will-change: transform;
       contain: layout paint;
       backface-visibility: hidden;
       -webkit-backface-visibility: hidden;
     }
 
     .main-nav.app-bottom-nav.is-expanded {
-      transform: translateX(-50%) scale(1.012);
-      -webkit-transform: translateX(-50%) scale(1.012);
+      transform: translate3d(-50%, 0, 0);
+      -webkit-transform: translate3d(-50%, 0, 0);
     }
 
     .page {

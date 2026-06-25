@@ -45,40 +45,44 @@ export function LeaderboardPage() {
       </div>
     </section>
     <div className="table-card">
-      <table>
+      <table className="leaderboard-table">
         <thead>
           <tr>
-            <th>Pos.</th>
-            <th>Participante</th>
-            <th>Total</th>
-            <th>Ganador</th>
-            <th>Exacto</th>
-            <th>Goleador</th>
-            <th>Ajustes</th>
-            <th>Pronosticos</th>
-            <th className="leaderboard-hits-column">Aciertos G/E/GL</th>
+            <th className="leaderboard-position-cell">Pos.</th>
+            <th className="leaderboard-user-cell">Participante</th>
+            <th className="leaderboard-points-cell">Total</th>
+            <th className="leaderboard-number-cell">Ganador</th>
+            <th className="leaderboard-number-cell">Exacto</th>
+            <th className="leaderboard-number-cell">Goleador</th>
+            <th className="leaderboard-number-cell">Ajustes</th>
+            <th className="leaderboard-number-cell">Pronosticos</th>
+            <th className="leaderboard-hits-cell leaderboard-hits-column">Aciertos G/E/GL</th>
           </tr>
         </thead>
         <tbody>
-          {rows.map((row, index) => <tr key={row.id}>
-            <td><b><Position index={index} /></b></td>
-            <td className="clickable-user" onClick={() => navigate(`/usuario/${row.id}`)}>
-              <Avatar user={row} className="mini-avatar" />
-              <strong>{row.username}</strong>
-              {row.personal_phrase && <small>{row.personal_phrase}</small>}
+          {rows.map((row, index) => <tr className="leaderboard-row" key={row.id}>
+            <td className="leaderboard-position-cell"><b><Position index={index} /></b></td>
+            <td className="leaderboard-user-cell clickable-user" onClick={() => navigate(`/usuario/${row.id}`)}>
+              <span className="leaderboard-user-main">
+                <Avatar user={row} className="mini-avatar" />
+                <span className="leaderboard-user-text">
+                  <strong>{row.username}</strong>
+                  <small aria-hidden={!row.personal_phrase}>{row.personal_phrase || "\u00a0"}</small>
+                </span>
+              </span>
             </td>
-            <td>
+            <td className="leaderboard-points-cell">
               <span className="leaderboard-total table-total">
                 <strong className="points">{row.total_points}</strong>
                 <LastMatchPoints points={row.last_match_points} />
               </span>
             </td>
-            <td>{row.winner_points}</td>
-            <td>{row.exact_result_points}</td>
-            <td>{row.scorer_points}</td>
-            <td className={row.adjustments < 0 ? "negative" : ""}>{row.adjustments > 0 ? "+" : ""}{row.adjustments}</td>
-            <td>{row.predicted_matches}</td>
-            <td className="leaderboard-hits-column"><span className="hit"><Target size={14} />{row.winner_hits} / {row.exact_hits} / {row.scorer_hits}</span></td>
+            <td className="leaderboard-number-cell">{row.winner_points}</td>
+            <td className="leaderboard-number-cell">{row.exact_result_points}</td>
+            <td className="leaderboard-number-cell">{row.scorer_points}</td>
+            <td className={`leaderboard-number-cell ${row.adjustments < 0 ? "negative" : ""}`}>{row.adjustments > 0 ? "+" : ""}{row.adjustments}</td>
+            <td className="leaderboard-number-cell">{row.predicted_matches}</td>
+            <td className="leaderboard-hits-cell"><span className="hit"><Target size={14} />{row.winner_hits} / {row.exact_hits} / {row.scorer_hits}</span></td>
           </tr>)}
         </tbody>
       </table>
