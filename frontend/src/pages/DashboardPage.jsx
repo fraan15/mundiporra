@@ -31,7 +31,7 @@ const isCalendarMatchVisible = (match, calendarKeys) => {
 const predictionScoreText = (match, emptyText) => match.prediction_id ? `${match.predicted_team1_goals} – ${match.predicted_team2_goals}` : emptyText;
 const predictionScorerText = (match, user) => !user.is_read_only && Number(match.scorer_enabled) && match.prediction_id && match.predicted_scorer?.name ? `Gol: ${match.predicted_scorer.name}` : "";
 const closeText = (match, current) => {
-  if (match.status === "finished") return "Finalizado";
+  if (match.status === "finished") return match.match_time ? `Finalizado · ${match.match_time}` : "Finalizado";
   if (match.in_play) return "En juego";
   if (!match.betting_open) return "Cerrado";
   const ms = Math.max(0, new Date(match.effective_close_at) - current);

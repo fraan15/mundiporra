@@ -1099,7 +1099,8 @@ app.get("/api/dashboard", requireAuth, (req, res) => {
   `).get(req.user.id, today).points;
   const current = new Date();
   const yesterday = addDays(today, -1);
-  const relevantMatches = matchListForUser(req, "WHERE m.match_date IN (?,?) OR m.status!='finished'", [today, yesterday]);
+  const tomorrow = addDays(today, 1);
+  const relevantMatches = matchListForUser(req, "WHERE m.match_date BETWEEN ? AND ? OR m.status!='finished'", [yesterday, tomorrow]);
   const inPlaySource = relevantMatches
     .filter((match) => match.status !== "finished" && match.match_date <= today && isMatchInPlay(match, current));
   const futureSource = relevantMatches
