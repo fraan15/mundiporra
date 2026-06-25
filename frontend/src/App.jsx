@@ -224,34 +224,31 @@ function ProfileMenu({ unreadNews = 0, onOpenNews }) {
     await logout();
     navigate("/login", { replace: true });
   };
+  const roleLabel = user.is_read_only ? "Solo lectura" : user.role === "admin" ? "Administrador" : "Participante";
   return <div className="profile-menu" ref={menuRef}>
     <button className="profile-shortcut" aria-expanded={open} aria-haspopup="menu" onClick={toggle}>
       <span className="profile-avatar-wrap"><Avatar user={user}/>{unreadNews > 0 && <i className="profile-news-dot" aria-label={`${unreadNews} novedades pendientes`}/>}</span>
-      <span><strong>{user.display_name||user.username}</strong><small>{user.is_read_only ? "Solo lectura" : user.role === "admin" ? "Administrador" : "Participante"}</small></span>
+      <span><strong>{user.display_name||user.username}</strong><small>{roleLabel}</small></span>
       <ChevronDown className={open ? "open" : ""} size={15}/>
     </button>
-    {open && <div className="profile-drawer-backdrop" onPointerDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>
-      <aside className="profile-drawer" aria-label="Menú de perfil">
-        <header>
-          <div className="profile-drawer-user">
-            <Avatar user={user} className="profile-drawer-avatar"/>
-            <div>
-              <h2>{user.display_name||user.username}</h2>
-              <small>@{user.username}</small>
-              <span>{user.is_read_only ? "Solo lectura" : user.role === "admin" ? "Administrador" : "Participante"}</span>
-            </div>
-          </div>
-          <button type="button" aria-label="Cerrar menú" title="Cerrar" onClick={() => setOpen(false)}><X size={18}/></button>
+    {open && <div className="profile-side-backdrop" onPointerDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>
+      <aside className="profile-side-drawer" role="dialog" aria-modal="true" aria-label="Menú de perfil">
+        <header className="profile-side-header">
+          <button className="profile-side-close" type="button" aria-label="Cerrar menú" title="Cerrar" onClick={() => setOpen(false)}><X size={20}/></button>
+          <Avatar user={user} className="profile-side-avatar"/>
+          <h2>{user.display_name||user.username}</h2>
+          <p>@{user.username}</p>
+          <span className="profile-side-role">{roleLabel}</span>
         </header>
-        <nav className="profile-drawer-list" aria-label="Acciones de perfil">
-          <button className={unreadNews > 0 ? "has-news-dot" : ""} onClick={() => { setOpen(false); onOpenNews(); }}><span className="profile-dropdown-icon"><Megaphone size={20}/>{unreadNews > 0 && <i className="profile-news-dot" aria-label={`${unreadNews} novedades pendientes`}/>}</span><span><strong>Novedades</strong><small>{unreadNews > 0 ? `${unreadNews} sin leer` : "Últimos avisos publicados"}</small></span></button>
-          <button onClick={() => { setOpen(false); navigate("/perfil"); }}><User size={20}/><span><strong>Perfil</strong><small>Consulta tus estadísticas</small></span></button>
-          <button onClick={() => { setOpen(false); navigate("/mundial"); }}><Goal size={20}/><span><strong>Mundial</strong><small>Información equipos mundial</small></span></button>
-          {!user.is_read_only && <button onClick={() => { setOpen(false); navigate("/notificaciones"); }}><Bell size={20}/><span><strong>Notificaciones</strong><small>Configura los avisos push</small></span></button>}
-          {!user.is_read_only && <button onClick={() => { setOpen(false); navigate("/modificar-usuario"); }}><UserCog size={20}/><span><strong>Modificar usuario</strong><small>Datos visibles y contraseña</small></span></button>}
+        <nav className="profile-side-nav" aria-label="Acciones de perfil">
+          <button onClick={() => { setOpen(false); onOpenNews(); }}><Megaphone size={24}/><span>Novedades</span>{unreadNews > 0 && <b className="profile-side-news-badge" aria-label={`${unreadNews} novedades pendientes`}>{unreadNews > 9 ? "9+" : unreadNews}</b>}</button>
+          <button onClick={() => { setOpen(false); navigate("/perfil"); }}><User size={24}/><span>Perfil</span></button>
+          <button onClick={() => { setOpen(false); navigate("/mundial"); }}><Goal size={24}/><span>Mundial</span></button>
+          {!user.is_read_only && <button onClick={() => { setOpen(false); navigate("/notificaciones"); }}><Bell size={24}/><span>Notificaciones</span></button>}
+          {!user.is_read_only && <button onClick={() => { setOpen(false); navigate("/modificar-usuario"); }}><UserCog size={24}/><span>Modificar usuario</span></button>}
         </nav>
-        <footer>
-          <button className="sign-out" onClick={signOut}><LogOut size={18}/><span>Cerrar sesión</span></button>
+        <footer className="profile-side-footer">
+          <button className="profile-side-logout" onClick={signOut}><LogOut size={22}/><span>Cerrar sesión</span></button>
         </footer>
       </aside>
     </div>}

@@ -172,6 +172,10 @@ function DashboardCalendar({ matches, onOpenMatch, restoreScrollTop, user, curre
   });
   const activeDay = days[activeDayIndex] || days[1];
   const goToDay = (index) => {
+    if (dragFrameRef.current) {
+      cancelAnimationFrame(dragFrameRef.current);
+      dragFrameRef.current = null;
+    }
     setActiveDayIndex(Math.max(0, Math.min(days.length - 1, index)));
     setDragOffset(0);
     setIsDragging(false);
@@ -248,6 +252,10 @@ function DashboardCalendar({ matches, onOpenMatch, restoreScrollTop, user, curre
     const { x, y, dragging } = swipeRef.current;
     const deltaX = event.clientX - x, deltaY = event.clientY - y;
     swipeRef.current = null;
+    if (dragFrameRef.current) {
+      cancelAnimationFrame(dragFrameRef.current);
+      dragFrameRef.current = null;
+    }
     setIsDragging(false);
     setDragOffset(0);
     if (!dragging || Math.abs(deltaX) <= 45 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.25) return;
@@ -257,6 +265,10 @@ function DashboardCalendar({ matches, onOpenMatch, restoreScrollTop, user, curre
   };
   const cancelSwipe = () => {
     swipeRef.current = null;
+    if (dragFrameRef.current) {
+      cancelAnimationFrame(dragFrameRef.current);
+      dragFrameRef.current = null;
+    }
     setIsDragging(false);
     setDragOffset(0);
   };
