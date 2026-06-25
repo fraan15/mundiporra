@@ -210,7 +210,7 @@ function DashboardCalendar({ matches, onOpenMatch, restoreScrollTop, user, curre
     if (!pointerRef.current) return;
     const deltaX = Math.abs(event.clientX - pointerRef.current.x);
     const deltaY = Math.abs(event.clientY - pointerRef.current.y);
-    if (deltaX > 8 || deltaY > 8) pointerRef.current.moved = true;
+    if (deltaX > 12 || deltaY > 12) pointerRef.current.moved = true;
   };
   const clickMatch = (event, match) => {
     if (pointerRef.current?.moved) {
@@ -224,9 +224,7 @@ function DashboardCalendar({ matches, onOpenMatch, restoreScrollTop, user, curre
   };
   const startSwipe = (event) => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
-    viewportRef.current?.setPointerCapture?.(event.pointerId);
-    swipeRef.current = { x: event.clientX, y: event.clientY, dragging: false, vertical: false };
-    setIsDragging(true);
+    swipeRef.current = { x: event.clientX, y: event.clientY, dragging: false, vertical: false, pointerId: event.pointerId };
   };
   const moveSwipe = (event) => {
     if (!swipeRef.current) return;
@@ -234,8 +232,15 @@ function DashboardCalendar({ matches, onOpenMatch, restoreScrollTop, user, curre
     const deltaY = event.clientY - swipeRef.current.y;
     const absX = Math.abs(deltaX), absY = Math.abs(deltaY);
     if (!swipeRef.current.dragging && !swipeRef.current.vertical) {
-      if (absY > 10 && absY > absX) swipeRef.current.vertical = true;
-      if (absX > 10 && absX > absY * 1.25) swipeRef.current.dragging = true;
+      if (absY > 14 && absY > absX * 1.05) {
+        swipeRef.current = null;
+        return;
+      }
+      if (absX > 18 && absX > absY * 1.35) {
+        swipeRef.current.dragging = true;
+        setIsDragging(true);
+        viewportRef.current?.setPointerCapture?.(swipeRef.current.pointerId);
+      }
     }
     if (swipeRef.current.vertical) return;
     if (swipeRef.current.dragging) {
@@ -258,7 +263,7 @@ function DashboardCalendar({ matches, onOpenMatch, restoreScrollTop, user, curre
     }
     setIsDragging(false);
     setDragOffset(0);
-    if (!dragging || Math.abs(deltaX) <= 45 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.25) return;
+    if (!dragging || Math.abs(deltaX) <= 45 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.35) return;
     pointerRef.current = pointerRef.current ? { ...pointerRef.current, moved: true, blocked: true } : pointerRef.current;
     window.setTimeout(() => { pointerRef.current = null; }, 0);
     goToDay(activeDayIndex + (deltaX < 0 ? 1 : -1));
@@ -300,7 +305,7 @@ function DashboardCalendar({ matches, onOpenMatch, restoreScrollTop, user, curre
         </button>)}
       </div>
       <div className="calendar-days-viewport" ref={viewportRef} onPointerDown={startSwipe} onPointerMove={moveSwipe} onPointerUp={endSwipe} onPointerCancel={cancelSwipe}>
-        <div className={`calendar-days-track ${isDragging ? "is-dragging" : "is-animating"}`} style={{ transform: `translateX(calc(${-activeDayIndex * 100}% + ${dragOffset}px))` }}>
+        <div className={`calendar-days-track ${isDragging ? "is-dragging" : "is-animating"}`} style={{ transform: `translate3d(calc(${-activeDayIndex * 100}% + ${dragOffset}px),0,0)` }}>
           {days.map((day, index) => <article className={`calendar-day-slide ${index === activeDayIndex ? "active" : ""} ${index === activeDayIndex - 1 ? "prev" : ""} ${index === activeDayIndex + 1 ? "next" : ""}`} key={day.key} aria-hidden={index !== activeDayIndex}>
             <header className="calendar-day-header">
               <h3>{day.title}</h3>

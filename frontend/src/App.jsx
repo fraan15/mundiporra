@@ -128,6 +128,7 @@ function NotificationsBell() {
     await api("/notifications/read-all", { method: "POST" });
     await load();
   };
+  const visibleNotifications = data.notifications.filter((item) => !item.read);
   const unreadLabel = data.unread === 1 ? "1 notificación sin leer" : `${data.unread} notificaciones sin leer`;
   return <div className="notifications" ref={notificationsRef}>
     <button className={`bell-btn ${data.unread > 0 ? "has-unread" : ""}`} title="Notificaciones" aria-label={`Notificaciones, ${unreadLabel}`} aria-expanded={open} aria-haspopup="dialog" onClick={() => setOpen(!open)}>
@@ -140,7 +141,7 @@ function NotificationsBell() {
         <button className="notifications-close" type="button" aria-label="Cerrar notificaciones" onClick={() => setOpen(false)}><X size={18}/></button>
       </div>
       {data.unread > 0 && <button className="read-all" onClick={readAll}><CheckCheck size={15}/>Marcar todo como leído</button>}
-      <div className="notifications-list">{data.notifications.length ? data.notifications.map((item) =>
+      <div className="notifications-list">{visibleNotifications.length ? visibleNotifications.map((item) =>
         <button key={item.id} className={`notification-item ${item.read ? "read" : "unread"}`} aria-label={`${item.title}. ${item.message}. ${notificationTypeLabel(item.type)}. ${item.read ? "Leída" : "Sin leer"}`} onClick={() => read(item)}>
           <span className={`notification-type ${item.type}`} aria-hidden="true"><span className={`notification-dot ${item.type}`}><NotificationTypeIcon type={item.type}/></span></span>
           <span className="notification-content">
@@ -235,7 +236,9 @@ function ProfileMenu({ unreadNews = 0, onOpenNews }) {
       <aside className="profile-side-drawer" role="dialog" aria-modal="true" aria-label="Menú de perfil">
         <header className="profile-side-header">
           <button className="profile-side-close" type="button" aria-label="Cerrar menú" title="Cerrar" onClick={() => setOpen(false)}><X size={20}/></button>
-          <Avatar user={user} className="profile-side-avatar"/>
+          <button className="profile-side-avatar-button" type="button" aria-label="Modificar usuario" title="Modificar usuario" onClick={() => { setOpen(false); navigate("/modificar-usuario"); }}>
+            <Avatar user={user} className="profile-side-avatar"/>
+          </button>
           <h2>{user.display_name||user.username}</h2>
           <p>@{user.username}</p>
           <span className="profile-side-role">{roleLabel}</span>
