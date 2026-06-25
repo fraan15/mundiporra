@@ -1100,7 +1100,7 @@ app.get("/api/dashboard", requireAuth, (req, res) => {
   const current = new Date();
   const yesterday = addDays(today, -1);
   const tomorrow = addDays(today, 1);
-  const relevantMatches = matchListForUser(req, "WHERE m.match_date BETWEEN ? AND ? OR m.status!='finished'", [yesterday, tomorrow]);
+  const relevantMatches = matchListForUser(req, "WHERE (m.match_date BETWEEN ? AND ?) OR m.status!='finished'", [yesterday, tomorrow]);
   const inPlaySource = relevantMatches
     .filter((match) => match.status !== "finished" && match.match_date <= today && isMatchInPlay(match, current));
   const futureSource = relevantMatches
@@ -1117,6 +1117,7 @@ app.get("/api/dashboard", requireAuth, (req, res) => {
     next_match: nextMatches[0] || null,
     next_matches: nextMatches,
     activity_preview: activityPage(1, 5).items,
+    calendar_today: today,
     calendar_matches: serializeMatches(dashboardCalendarMatches(relevantMatches, today))
   });
 });
@@ -1135,9 +1136,12 @@ app.get("/api/dashboard/calendar", requireAuth, (req, res) => {
   const today = dateInTimeZone(new Date(), MATCH_TIME_ZONE);
   const yesterday = addDays(today, -1);
   const later = addDays(today, 1);
-  const candidates = matchListForUser(req, "WHERE m.match_date BETWEEN ? AND ? OR m.status='open'", [yesterday, later]);
+  const candidates = matchListForUser(req, "WHERE (m.match_date BETWEEN ? AND ?) OR m.status='open'", [yesterday, later]);
   const matches = dashboardCalendarMatches(candidates, today);
-  res.json(serializeMatches(matches));
+  res.json({
+    calendar_today: today,
+    matches: serializeMatches(matches)
+  });
 });
 
 app.get("/api/news", requireAuth, (req, res) => {

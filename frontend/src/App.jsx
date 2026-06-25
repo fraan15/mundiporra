@@ -220,6 +220,10 @@ function ProfileMenu({ unreadNews = 0, onOpenNews }) {
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [open]);
+  useEffect(() => {
+    document.body.classList.toggle("profile-menu-open", open);
+    return () => document.body.classList.remove("profile-menu-open");
+  }, [open]);
   const signOut = async () => {
     setOpen(false);
     await logout();

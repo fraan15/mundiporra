@@ -1122,7 +1122,8 @@ test("los partidos se publican 24 horas antes salvo publicación forzada", async
   assert.equal(created.body.published, false);
   assert.equal((await user.get("/api/matches")).body.some((match) => match.id === created.body.id), false);
   const calendar = await user.get("/api/dashboard/calendar");
-  assert.equal(calendar.body.some((match) => match.id === created.body.id), false);
+  const calendarMatches = Array.isArray(calendar.body) ? calendar.body : calendar.body.matches;
+  assert.equal(calendarMatches.some((match) => match.id === created.body.id), false);
   assert.equal((await user.get(`/api/matches/${created.body.id}/detail`)).status, 404);
   assert.equal((await user.post("/api/predictions").send({
     match_id: created.body.id,
@@ -1176,12 +1177,14 @@ test("los endpoints ligeros de partidos filtran calendario, vistas y ticker", as
   await admin.patch(`/api/matches/${closedTomorrow.body.id}/status`).send({ status: "closed" }).expect(200);
 
   const calendar = await user.get("/api/dashboard/calendar").expect(200);
-  assert.equal(calendar.body.some((match) => match.id === todayMatch.body.id), true);
-  assert.equal(calendar.body.some((match) => match.id === yesterdayLive.body.id), true);
-  assert.equal(calendar.body.some((match) => match.id === openTomorrow.body.id), true);
-  assert.equal(calendar.body.some((match) => match.id === closedTomorrow.body.id), true);
-  assert.equal(calendar.body.some((match) => match.id === hiddenLater.body.id), false);
-  assert.equal(calendar.body.some((match) => match.id === yesterdayFinished.body.id), true);
+  const calendarMatches = Array.isArray(calendar.body) ? calendar.body : calendar.body.matches;
+  assert.equal(typeof calendar.body.calendar_today, "string");
+  assert.equal(calendarMatches.some((match) => match.id === todayMatch.body.id), true);
+  assert.equal(calendarMatches.some((match) => match.id === yesterdayLive.body.id), true);
+  assert.equal(calendarMatches.some((match) => match.id === openTomorrow.body.id), true);
+  assert.equal(calendarMatches.some((match) => match.id === closedTomorrow.body.id), true);
+  assert.equal(calendarMatches.some((match) => match.id === hiddenLater.body.id), false);
+  assert.equal(calendarMatches.some((match) => match.id === yesterdayFinished.body.id), true);
 
   const todayTicker = await user.get("/api/matches/today").expect(200);
   assert.deepEqual(todayTicker.body.map((match) => match.id).filter((id) => [todayMatch.body.id, openTomorrow.body.id].includes(id)), [todayMatch.body.id]);
