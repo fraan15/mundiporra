@@ -341,7 +341,7 @@ const dashboardCalendarMatches = (matches, today = dateInTimeZone(new Date(), MA
   const later = addDays(today, 3);
   return matches.filter((match) =>
     match.match_date === today ||
-    (match.match_date === yesterday && isMatchInPlay(match)) ||
+    match.match_date === yesterday ||
     (match.status !== "finished" && match.match_date > today && match.match_date <= later) ||
     isBettingOpenForMatch(match)
   );

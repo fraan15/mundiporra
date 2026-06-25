@@ -1181,7 +1181,7 @@ test("los endpoints ligeros de partidos filtran calendario, vistas y ticker", as
   assert.equal(calendar.body.some((match) => match.id === openTomorrow.body.id), true);
   assert.equal(calendar.body.some((match) => match.id === closedTomorrow.body.id), true);
   assert.equal(calendar.body.some((match) => match.id === hiddenLater.body.id), false);
-  assert.equal(calendar.body.some((match) => match.id === yesterdayFinished.body.id), false);
+  assert.equal(calendar.body.some((match) => match.id === yesterdayFinished.body.id), true);
 
   const todayTicker = await user.get("/api/matches/today").expect(200);
   assert.deepEqual(todayTicker.body.map((match) => match.id).filter((id) => [todayMatch.body.id, openTomorrow.body.id].includes(id)), [todayMatch.body.id]);

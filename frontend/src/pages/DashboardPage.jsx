@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertCircle, ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, Clock3, Eye, Info, Medal, Radio, Sparkles, Star, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock3, Eye, Info, Medal, Radio, Sparkles, Star, X } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../App";
@@ -20,12 +20,13 @@ const dayTitle = (date, offset) => {
   if (offset === 1) return "Mañana";
   return date.toLocaleDateString("es-ES", { weekday: "long", day: "numeric" });
 };
+const shortDate = (date) => date.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
 const hasResult = (match) => match.result_team1 !== null && match.result_team2 !== null;
-const isCalendarMatchVisible = (match, todayKey) => {
+const isCalendarMatchVisible = (match, calendarKeys) => {
   if (!match.published) return false;
   if (match.in_play) return true;
   if (match.betting_open) return true;
-  return match.match_date === todayKey;
+  return calendarKeys.has(match.match_date);
 };
 const predictionScoreText = (match, emptyText) => match.prediction_id ? `${match.predicted_team1_goals} – ${match.predicted_team2_goals}` : emptyText;
 const predictionScorerText = (match, user) => !user.is_read_only && Number(match.scorer_enabled) && match.prediction_id && match.predicted_scorer?.name ? `Gol: ${match.predicted_scorer.name}` : "";
@@ -82,13 +83,18 @@ function KnockoutInfoDialog({ onClose }) {
         </section>
         <section>
           <h3>Ejemplos rápidos</h3>
-          <div className="knockout-info-examples">
+          <div className="knockout-info-examples" aria-label="Ejemplos rápidos de eliminatorias">
             <article><strong>Apuestas 1-1 y acaba 1-1 tras 120 minutos</strong><p>Aciertas empate y resultado exacto. Si luego un equipo gana en penaltis, no cambia nada para la porra.</p></article>
             <article><strong>Apuestas 2-2, acaba 2-2 en 90 minutos y 3-3 tras prórroga</strong><p>El resultado válido es 3-3. Aciertas el empate, pero no el resultado exacto.</p></article>
             <article><strong>Apuestas victoria 2-1 y el partido acaba 1-1 tras 120 minutos</strong><p>Para la porra es empate. No aciertas el signo aunque tu equipo pase en penaltis.</p></article>
             <article><strong>Apuestas 1-2 y el partido acaba 1-2 en la prórroga</strong><p>Cuenta como victoria visitante 1-2. Puedes acertar signo, resultado exacto y goleador si coincide.</p></article>
             <article><strong>Tu goleador marca en la prórroga</strong><p>Ese gol sí cuenta para el apartado de goleador.</p></article>
             <article><strong>Tu goleador marca solo en la tanda de penaltis</strong><p>Ese penalti no cuenta como gol para la porra.</p></article>
+          </div>
+          <div className="knockout-info-example-hint" aria-hidden="true">
+            <span />
+            <span />
+            <span />
           </div>
         </section>
       </div>
@@ -105,22 +111,42 @@ function DashboardPredictionValue({ match, user, emptyText }) {
 }
 
 function DashboardCalendar({ matches, onOpenMatch, restoreScrollTop, user, currentTime }) {
-  const daysRef = useRef(null);
+  const viewportRef = useRef(null);
   const pointerRef = useRef(null);
+  const swipeRef = useRef(null);
+  const [activeDayIndex, setActiveDayIndex] = useState(() => {
+    if (sessionStorage.getItem("dashboardCalendarReturn") !== "1") return 1;
+    const storedIndex = Number(sessionStorage.getItem("dashboardCalendarActiveDayIndex"));
+    return Number.isInteger(storedIndex) && storedIndex >= 0 && storedIndex <= 4 ? storedIndex : 1;
+  });
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
   const today = new Date(currentTime);
-  const todayKey = dateKey(today);
-  const calendarMatches = matches.filter(match => isCalendarMatchVisible(match, todayKey));
+  const calendarDates = [-1, 0, 1, 2, 3].map(offset => addDays(today, offset));
+  const calendarKeys = new Set(calendarDates.map(dateKey));
+  const calendarMatches = matches.filter(match => isCalendarMatchVisible(match, calendarKeys));
   const days = [-1, 0, 1, 2, 3].map(offset => {
     const date = addDays(today, offset), key = dateKey(date);
     return {
+      offset,
       key,
       title: dayTitle(date, offset),
-      matches: calendarMatches.filter(match => match.match_date === key && (offset !== -1 || match.in_play)).sort((a, b) => a.match_time.localeCompare(b.match_time))
+      subtitle: shortDate(date),
+      matches: calendarMatches.filter(match => match.match_date === key).sort((a, b) => a.match_time.localeCompare(b.match_time))
     };
   });
-  const daysWithMatches = days.filter(day => day.matches.length);
+  const activeDay = days[activeDayIndex] || days[1];
+  const previousDay = days[activeDayIndex - 1];
+  const nextDay = days[activeDayIndex + 1];
+  const goToDay = (index) => {
+    setActiveDayIndex(Math.max(0, Math.min(days.length - 1, index)));
+    setDragOffset(0);
+    setIsDragging(false);
+  };
   const saveScroll = () => {
-    sessionStorage.setItem("dashboardCalendarScrollTop", String(daysRef.current?.scrollTop || 0));
+    sessionStorage.setItem("dashboardCalendarScrollTop", String(window.scrollY || 0));
+    sessionStorage.setItem("dashboardCalendarActiveDayIndex", String(activeDayIndex));
+    sessionStorage.setItem("dashboardCalendarActiveDateKey", activeDay?.key || "");
     sessionStorage.setItem("dashboardCalendarReturn", "1");
   };
   const openMatch = (event, match) => {
@@ -134,7 +160,7 @@ function DashboardCalendar({ matches, onOpenMatch, restoreScrollTop, user, curre
     openMatch(event, match);
   };
   const startMatchPointer = (event) => {
-    pointerRef.current = { x: event.clientX, y: event.clientY, moved: false };
+    pointerRef.current = { x: event.clientX, y: event.clientY, moved: false, blocked: false };
   };
   const moveMatchPointer = (event) => {
     if (!pointerRef.current) return;
@@ -152,19 +178,76 @@ function DashboardCalendar({ matches, onOpenMatch, restoreScrollTop, user, curre
     pointerRef.current = null;
     openMatch(event, match);
   };
+  const startSwipe = (event) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    viewportRef.current?.setPointerCapture?.(event.pointerId);
+    swipeRef.current = { x: event.clientX, y: event.clientY, dragging: false, vertical: false };
+    setIsDragging(true);
+  };
+  const moveSwipe = (event) => {
+    if (!swipeRef.current) return;
+    const deltaX = event.clientX - swipeRef.current.x;
+    const deltaY = event.clientY - swipeRef.current.y;
+    const absX = Math.abs(deltaX), absY = Math.abs(deltaY);
+    if (!swipeRef.current.dragging && !swipeRef.current.vertical) {
+      if (absY > 10 && absY > absX) swipeRef.current.vertical = true;
+      if (absX > 10 && absX > absY * 1.25) swipeRef.current.dragging = true;
+    }
+    if (swipeRef.current.vertical) return;
+    if (swipeRef.current.dragging) {
+      pointerRef.current = pointerRef.current ? { ...pointerRef.current, moved: true, blocked: true } : pointerRef.current;
+      const width = viewportRef.current?.clientWidth || 1;
+      const atStart = activeDayIndex === 0 && deltaX > 0;
+      const atEnd = activeDayIndex === days.length - 1 && deltaX < 0;
+      const resistance = atStart || atEnd ? 0.22 : 0.55;
+      setDragOffset(Math.max(-width * 0.22, Math.min(width * 0.22, deltaX * resistance)));
+    }
+  };
+  const endSwipe = (event) => {
+    if (!swipeRef.current) return;
+    const { x, y, dragging } = swipeRef.current;
+    const deltaX = event.clientX - x, deltaY = event.clientY - y;
+    swipeRef.current = null;
+    setIsDragging(false);
+    setDragOffset(0);
+    if (!dragging || Math.abs(deltaX) <= 45 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.25) return;
+    pointerRef.current = pointerRef.current ? { ...pointerRef.current, moved: true, blocked: true } : pointerRef.current;
+    window.setTimeout(() => { pointerRef.current = null; }, 0);
+    goToDay(activeDayIndex + (deltaX < 0 ? -1 : 1));
+  };
+  const cancelSwipe = () => {
+    swipeRef.current = null;
+    setIsDragging(false);
+    setDragOffset(0);
+  };
   useEffect(() => {
-    if (restoreScrollTop === null || !daysRef.current) return;
-    daysRef.current.scrollTop = restoreScrollTop;
-  }, [restoreScrollTop, daysWithMatches.length]);
+    if (sessionStorage.getItem("dashboardCalendarReturn") !== "1") return;
+    const storedKey = sessionStorage.getItem("dashboardCalendarActiveDateKey");
+    const storedIndex = Number(sessionStorage.getItem("dashboardCalendarActiveDayIndex"));
+    const keyIndex = storedKey ? days.findIndex(day => day.key === storedKey) : -1;
+    if (keyIndex >= 0) setActiveDayIndex(keyIndex);
+    else if (Number.isInteger(storedIndex) && storedIndex >= 0 && storedIndex < days.length) setActiveDayIndex(storedIndex);
+  }, [days[0].key]);
+  useEffect(() => {
+    if (restoreScrollTop === null) return;
+    window.requestAnimationFrame(() => window.scrollTo({ top: restoreScrollTop, behavior: "auto" }));
+  }, [restoreScrollTop]);
 
   return <section className="dashboard-calendar expanded" aria-label="Calendario de partidos">
     <header>
       <div><span className="eyebrow"><CalendarDays size={14}/> CALENDARIO</span><h2>Agenda cercana</h2></div>
     </header>
-    <div className="calendar-days" ref={daysRef}>
-      {daysWithMatches.length ? daysWithMatches.map(day => <article className="calendar-day" key={day.key}>
-        <h3>{day.title}</h3>
-        <div>{day.matches.length ? day.matches.map(match => <button type="button" className="calendar-match" key={match.id} onPointerDown={startMatchPointer} onPointerMove={moveMatchPointer} onPointerCancel={()=>{pointerRef.current=null}} onClick={event=>clickMatch(event, match)} onKeyDown={event=>openMatchOnKey(event, match)} aria-label={`Ver detalle de ${match.team1} contra ${match.team2}`}>
+    <div className="dashboard-calendar-carousel">
+      {previousDay && <span className="calendar-day-side-label left">{previousDay.title}</span>}
+      {nextDay && <span className="calendar-day-side-label right">{nextDay.title}</span>}
+      <div className="calendar-days-viewport" ref={viewportRef} onPointerDown={startSwipe} onPointerMove={moveSwipe} onPointerUp={endSwipe} onPointerCancel={cancelSwipe}>
+        <div className={`calendar-days-track ${isDragging ? "is-dragging" : "is-animating"}`} style={{ transform: `translateX(calc(${-activeDayIndex * 100}% + ${dragOffset}px))` }}>
+          {days.map((day, index) => <article className={`calendar-day-slide ${index === activeDayIndex ? "active" : ""} ${index === activeDayIndex - 1 ? "prev" : ""} ${index === activeDayIndex + 1 ? "next" : ""}`} key={day.key} aria-hidden={index !== activeDayIndex}>
+            <header className="calendar-day-header">
+              <h3>{day.title}</h3>
+              <span>{day.subtitle}</span>
+            </header>
+            <div className="calendar-day-matches">{day.matches.length ? day.matches.map(match => <button type="button" className="calendar-match" key={match.id} onPointerDown={startMatchPointer} onPointerMove={moveMatchPointer} onPointerCancel={()=>{pointerRef.current=null}} onClick={event=>clickMatch(event, match)} onKeyDown={event=>openMatchOnKey(event, match)} aria-label={`Ver detalle de ${match.team1} contra ${match.team2}`}>
           <span className="calendar-match-main">
             <span className="calendar-team home"><strong>{match.team1}</strong><Flag team={match.team1} teamData={match.team1_team}/></span>
             <b>{hasResult(match) ? `${match.result_team1} - ${match.result_team2}` : match.match_time}</b>
@@ -180,8 +263,17 @@ function DashboardCalendar({ matches, onOpenMatch, restoreScrollTop, user, curre
               {match.predicted_scorer?.name&&<span className="calendar-scorer">Goleador: {match.predicted_scorer.name}</span>}
             </span>}
           </span>
-        </button>) : <p>No hay partidos cargados.</p>}</div>
-      </article>) : <p className="empty-state">No hay partidos cargados para los próximos días.</p>}
+        </button>) : <p className="calendar-empty-day">No hay partidos para este día</p>}</div>
+          </article>)}
+        </div>
+      </div>
+      <div className="calendar-carousel-controls" aria-label="Cambiar día del calendario">
+        <button type="button" className="calendar-carousel-arrow" onClick={()=>goToDay(activeDayIndex - 1)} disabled={!previousDay} aria-label="Día anterior"><ChevronLeft size={18}/></button>
+        <div className="calendar-carousel-dots">
+          {days.map((day, index) => <button type="button" key={day.key} className={index === activeDayIndex ? "active" : ""} onClick={()=>goToDay(index)} aria-label={`Ver ${day.title}`}/>)}
+        </div>
+        <button type="button" className="calendar-carousel-arrow" onClick={()=>goToDay(activeDayIndex + 1)} disabled={!nextDay} aria-label="Día siguiente"><ChevronRight size={18}/></button>
+      </div>
     </div>
   </section>;
 }
