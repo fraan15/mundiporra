@@ -105,11 +105,11 @@ export function ChatPage() {
     clearInitialScrollTimers();
     stickToBottom.current = true;
     scrollRequest.current = "initial";
-    [0, 80, 180, 350, 700, 1100].forEach((delay) => {
+    [0, 70, 160, 320, 620, 900].forEach((delay) => {
       const timer = setTimeout(() => {
         requestAnimationFrame(() => {
           applyBottomScroll("auto");
-      if (delay === 1100) {
+          if (delay === 900) {
             scrollRequest.current = "none";
             stickToBottom.current = isNearBottom();
             setChatReady(true);
