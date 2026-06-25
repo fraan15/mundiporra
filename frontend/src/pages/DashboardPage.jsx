@@ -152,6 +152,7 @@ function DashboardCalendar({ matches, onOpenMatch, restoreScrollTop, user, curre
     const storedIndex = Number(sessionStorage.getItem("dashboardCalendarActiveDayIndex"));
     return Number.isInteger(storedIndex) && storedIndex >= 0 && storedIndex <= 2 ? storedIndex : 1;
   });
+  const dragFrameRef = useRef(null);
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const today = new Date(currentTime);
@@ -174,6 +175,13 @@ function DashboardCalendar({ matches, onOpenMatch, restoreScrollTop, user, curre
     setActiveDayIndex(Math.max(0, Math.min(days.length - 1, index)));
     setDragOffset(0);
     setIsDragging(false);
+  };
+  const setSmoothDragOffset = (value) => {
+    if (dragFrameRef.current) cancelAnimationFrame(dragFrameRef.current);
+    dragFrameRef.current = requestAnimationFrame(() => {
+      setDragOffset(value);
+      dragFrameRef.current = null;
+    });
   };
   const saveScroll = () => {
     sessionStorage.setItem("dashboardCalendarScrollTop", String(window.scrollY || 0));
@@ -231,8 +239,8 @@ function DashboardCalendar({ matches, onOpenMatch, restoreScrollTop, user, curre
       const width = viewportRef.current?.clientWidth || 1;
       const atStart = activeDayIndex === 0 && deltaX > 0;
       const atEnd = activeDayIndex === days.length - 1 && deltaX < 0;
-      const resistance = atStart || atEnd ? 0.18 : 0.86;
-      setDragOffset(Math.max(-width * 0.34, Math.min(width * 0.34, deltaX * resistance)));
+      const resistance = atStart || atEnd ? 0.22 : 0.98;
+      setSmoothDragOffset(Math.max(-width * 0.42, Math.min(width * 0.42, deltaX * resistance)));
     }
   };
   const endSwipe = (event) => {
@@ -245,13 +253,16 @@ function DashboardCalendar({ matches, onOpenMatch, restoreScrollTop, user, curre
     if (!dragging || Math.abs(deltaX) <= 45 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.25) return;
     pointerRef.current = pointerRef.current ? { ...pointerRef.current, moved: true, blocked: true } : pointerRef.current;
     window.setTimeout(() => { pointerRef.current = null; }, 0);
-    goToDay(activeDayIndex + (deltaX < 0 ? -1 : 1));
+    goToDay(activeDayIndex + (deltaX < 0 ? 1 : -1));
   };
   const cancelSwipe = () => {
     swipeRef.current = null;
     setIsDragging(false);
     setDragOffset(0);
   };
+  useEffect(() => () => {
+    if (dragFrameRef.current) cancelAnimationFrame(dragFrameRef.current);
+  }, []);
   useEffect(() => {
     if (sessionStorage.getItem("dashboardCalendarReturn") !== "1") return;
     const storedKey = sessionStorage.getItem("dashboardCalendarActiveDateKey");
