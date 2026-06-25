@@ -42,8 +42,16 @@ const holdersText = (holders = []) => {
 };
 
 const isDisputedBadge = (badge) => badge?.disputed || ["record", "leader"].includes(badge?.kind);
-const SWIPE_MIN_DISTANCE = 24;
-const SWIPE_VERTICAL_TOLERANCE = 1.75;
+const SWIPE_MIN_DISTANCE = 16;
+const SWIPE_VERTICAL_TOLERANCE = 0.75;
+
+const swipeDirection = (start, event) => {
+  if (!start) return 0;
+  const deltaX = event.clientX - start.x;
+  const deltaY = event.clientY - start.y;
+  if (Math.abs(deltaX) < SWIPE_MIN_DISTANCE || Math.abs(deltaX) < Math.abs(deltaY) * SWIPE_VERTICAL_TOLERANCE) return 0;
+  return deltaX < 0 ? 1 : -1;
+};
 
 export function BadgeCatalogDialog({ catalog = [], disputed = [], onClose }) {
   const [activeCategory, setActiveCategory] = useState(0);
@@ -80,11 +88,16 @@ export function BadgeCatalogDialog({ catalog = [], disputed = [], onClose }) {
   const endCatalogSwipe = (event) => {
     const start = catalogSwipeStart.current;
     catalogSwipeStart.current = null;
-    if (!start) return;
-    const deltaX = event.clientX - start.x;
-    const deltaY = event.clientY - start.y;
-    if (Math.abs(deltaX) < SWIPE_MIN_DISTANCE || Math.abs(deltaX) < Math.abs(deltaY) * SWIPE_VERTICAL_TOLERANCE) return;
-    moveCategory(deltaX < 0 ? 1 : -1);
+    const direction = swipeDirection(start, event);
+    if (direction) moveCategory(direction);
+  };
+
+  const moveCatalogSwipe = (event) => {
+    const direction = swipeDirection(catalogSwipeStart.current, event);
+    if (!direction) return;
+    event.preventDefault();
+    catalogSwipeStart.current = null;
+    moveCategory(direction);
   };
 
   useEffect(() => {
@@ -139,6 +152,7 @@ export function BadgeCatalogDialog({ catalog = [], disputed = [], onClose }) {
           catalogSwipeStart.current = { x: event.clientX, y: event.clientY };
           event.currentTarget.setPointerCapture?.(event.pointerId);
         }}
+        onPointerMove={moveCatalogSwipe}
         onPointerUp={endCatalogSwipe}
         onPointerCancel={() => { catalogSwipeStart.current = null; }}
       >
@@ -227,12 +241,20 @@ export function Badges({ badges = [], catalog = [], disputed = [] }) {
   const endBadgeSwipe = (event) => {
     const start = swipeStart.current;
     swipeStart.current = null;
-    if (!start) return;
-    const deltaX = event.clientX - start.x;
-    const deltaY = event.clientY - start.y;
-    if (Math.abs(deltaX) < SWIPE_MIN_DISTANCE || Math.abs(deltaX) < Math.abs(deltaY) * SWIPE_VERTICAL_TOLERANCE) return;
+    const direction = swipeDirection(start, event);
+    if (!direction) return;
     ignoreBadgeClick.current = true;
-    changePage(deltaX < 0 ? 1 : -1);
+    changePage(direction);
+    window.setTimeout(() => { ignoreBadgeClick.current = false; }, 250);
+  };
+
+  const moveBadgeSwipe = (event) => {
+    const direction = swipeDirection(swipeStart.current, event);
+    if (!direction) return;
+    event.preventDefault();
+    swipeStart.current = null;
+    ignoreBadgeClick.current = true;
+    changePage(direction);
     window.setTimeout(() => { ignoreBadgeClick.current = false; }, 250);
   };
 
@@ -273,6 +295,7 @@ export function Badges({ badges = [], catalog = [], disputed = [] }) {
           swipeStart.current = { x: event.clientX, y: event.clientY };
           event.currentTarget.setPointerCapture?.(event.pointerId);
         }}
+        onPointerMove={moveBadgeSwipe}
         onPointerUp={endBadgeSwipe}
         onPointerCancel={() => { swipeStart.current = null; }}
       >

@@ -470,6 +470,28 @@ function MainLayout() {
       window.visualViewport?.removeEventListener("resize",reposition);
     };
   },[moveBubbleToActive]);
+  useEffect(()=>{
+    const nav=navRef.current;
+    if(!nav||activeNavIndex<0)return;
+    let frame;
+    let timer;
+    const reposition=()=>{
+      cancelAnimationFrame(frame);
+      frame=requestAnimationFrame(()=>moveBubbleToActive());
+    };
+    const observer=new ResizeObserver(reposition);
+    observer.observe(nav);
+    navItemRefs.current.forEach(item=>item&&observer.observe(item));
+    nav.addEventListener("transitionend",reposition);
+    reposition();
+    timer=window.setTimeout(reposition,260);
+    return()=>{
+      cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+      observer.disconnect();
+      nav.removeEventListener("transitionend",reposition);
+    };
+  },[activeNavIndex,items.length,moveBubbleToActive,navExpanded]);
   const getNearestNavIndex=useCallback((x,width)=>{
     const nav=navRef.current;
     if(!nav)return -1;

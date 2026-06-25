@@ -24,11 +24,11 @@
     }
 
     .main-nav.app-bottom-nav.is-expanded {
-      width: calc(100% - 72px);
-      max-width: 420px;
-      padding: 4px;
-      transform: translateX(-50%) translateY(8px) scale(.92);
-      -webkit-transform: translateX(-50%) translateY(8px) scale(.92);
+      width: calc(100% - 18px);
+      max-width: 510px;
+      padding: 6px;
+      transform: translateX(-50%) scale(1.012);
+      -webkit-transform: translateX(-50%) scale(1.012);
     }
 
     .page {
