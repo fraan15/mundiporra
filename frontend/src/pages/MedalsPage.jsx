@@ -73,42 +73,28 @@ function MedalsCompactHero({ onOpenInfo, hasInfo }) {
   </section>;
 }
 
-function MedalsStats({ achievedCount, disputedCount, achievedTierCount, tierCount, categoryCount }) {
-  const stats = [
-    ["Conseguidas", achievedCount],
-    ["Progreso", `${achievedTierCount}/${tierCount}`],
-    ["En disputa", disputedCount],
-    ["Categorias", categoryCount]
-  ];
-
-  return <section className="medals-compact-stats" aria-label="Resumen del medallero">
-    {stats.map(([label, value]) => <article className="medals-stat-chip" key={label}>
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </article>)}
-  </section>;
-}
-
 function MedalsFilters({ statusOptions, categoryOptions, activeStatusFilter, activeCategoryFilter, onStatusChange, onCategoryChange }) {
   return <section className="medals-filter-bar" aria-label="Filtros del medallero">
-    <div className="medals-filter-group" aria-label="Estado">
+    <div className="medals-filter-group medals-filter-group-primary" aria-label="Estado">
       {statusOptions.map((option) => <button
         type="button"
         className={`medals-filter-chip ${activeStatusFilter === option.value ? "active" : ""}`}
         onClick={() => onStatusChange(option.value)}
         key={option.value}
       >
-        {option.label}
+        <span>{option.label}</span>
+        <strong>{option.count}</strong>
       </button>)}
     </div>
-    <div className="medals-filter-group" aria-label="Categorias">
+    <div className="medals-filter-group medals-filter-group-secondary" aria-label="Categorias">
       {categoryOptions.map((option) => <button
         type="button"
         className={`medals-filter-chip ${activeCategoryFilter === option.value ? "active" : ""}`}
         onClick={() => onCategoryChange(option.value)}
         key={option.value}
       >
-        {option.label}
+        <span>{option.label}</span>
+        <strong>{option.count}</strong>
       </button>)}
     </div>
   </section>;
@@ -147,11 +133,24 @@ function MedalCollectionCard({ medal }) {
   </article>;
 }
 
-function MedalsCollectionGrid({ medals, layout = "grid" }) {
-  if (!medals.length) return <EmptyCollectionState />;
+const chunkMedals = (medals, size = 6) => {
+  const chunks = [];
+  for (let index = 0; index < medals.length; index += size) {
+    chunks.push(medals.slice(index, index + size));
+  }
+  return chunks;
+};
 
-  return <section className={`medals-collection-grid ${layout === "slider" ? "is-slider" : ""}`} aria-label="Medallas">
-    {medals.map((medal) => <MedalCollectionCard medal={medal} key={medal.id} />)}
+function MedalsCollectionGrid({ medals }) {
+  if (!medals.length) return <EmptyCollectionState />;
+  const pages = chunkMedals(medals, 6);
+
+  return <section className="medals-collection-slider" aria-label="Medallas">
+    {pages.map((page, index) => <div className="medals-collection-page-slide" key={`medals-page-${index}`}>
+      <div className="medals-collection-grid">
+        {page.map((medal) => <MedalCollectionCard medal={medal} key={medal.id} />)}
+      </div>
+    </div>)}
   </section>;
 }
 
@@ -262,22 +261,23 @@ export function MedalsPage() {
   const disputed = useMemo(() => sortBadges(data?.disputed_badges || []), [data]);
   const catalog = useMemo(() => sortCatalog(data?.badge_catalog || []), [data]);
   const collection = useMemo(() => buildCollection({ badges, catalog, disputed }), [badges, catalog, disputed]);
-  const achievedTierCount = catalog.reduce((sum, category) => sum + (category.tiers || []).filter((tier) => tier.achieved).length, 0);
-  const tierCount = catalog.reduce((sum, category) => sum + (category.tiers || []).length, 0);
 
-  const statusOptions = [
-    { value: "all", label: "Todas" },
-    { value: "achieved", label: "Conseguidas" },
-    { value: "locked", label: "Pendientes" },
-    { value: "disputed", label: "En disputa" }
-  ];
+  const statusOptions = useMemo(() => [
+    { value: "all", label: "Todas", count: collection.length },
+    { value: "achieved", label: "Conseguidas", count: collection.filter((medal) => medal.achieved).length },
+    { value: "locked", label: "Pendientes", count: collection.filter((medal) => !medal.achieved && medal.type !== "disputed").length },
+    { value: "disputed", label: "En disputa", count: collection.filter((medal) => medal.type === "disputed").length }
+  ], [collection]);
 
   const categoryOptions = useMemo(() => {
-    const groups = new Map([["all", "Todas"]]);
-    collection
-      .filter((medal) => statusMatches(medal, activeStatusFilter))
-      .forEach((medal) => groups.set(medal.group || "special", groupLabel(medal.group)));
-    return [...groups].map(([value, label]) => ({ value, label }));
+    const matchingStatus = collection.filter((medal) => statusMatches(medal, activeStatusFilter));
+    const groups = new Map([["all", { label: "Todas", count: matchingStatus.length }]]);
+    matchingStatus.forEach((medal) => {
+      const value = medal.group || "special";
+      const current = groups.get(value) || { label: groupLabel(value), count: 0 };
+      groups.set(value, { ...current, count: current.count + 1 });
+    });
+    return [...groups].map(([value, item]) => ({ value, label: item.label, count: item.count }));
   }, [activeStatusFilter, collection]);
 
   useEffect(() => {
@@ -291,7 +291,6 @@ export function MedalsPage() {
     const categoryMatch = activeCategoryFilter === "all" || medal.group === activeCategoryFilter;
     return statusMatch && categoryMatch;
   }), [activeCategoryFilter, activeStatusFilter, collection]);
-  const collectionLayout = activeStatusFilter === "all" && activeCategoryFilter === "all" ? "slider" : "grid";
   const hasInfo = Boolean(catalog.some((category) => category.tiers?.length) || disputed.length);
 
   return <div className="page medals-page medals-collection-page">
@@ -309,13 +308,6 @@ export function MedalsPage() {
     </div>}
 
     {!loading && !error && <>
-      <MedalsStats
-        achievedCount={badges.length}
-        disputedCount={disputed.length}
-        achievedTierCount={achievedTierCount}
-        tierCount={tierCount}
-        categoryCount={catalog.length}
-      />
       <MedalsFilters
         statusOptions={statusOptions}
         categoryOptions={categoryOptions}
@@ -324,7 +316,7 @@ export function MedalsPage() {
         onStatusChange={setActiveStatusFilter}
         onCategoryChange={setActiveCategoryFilter}
       />
-      <MedalsCollectionGrid medals={filteredMedals} layout={collectionLayout} />
+      <MedalsCollectionGrid medals={filteredMedals} />
     </>}
     {infoOpen && <BadgeCatalogDialog catalog={catalog} disputed={disputed} onClose={() => setInfoOpen(false)} />}
   </div>;

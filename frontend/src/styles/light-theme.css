@@ -2988,6 +2988,9 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
 }
 .medals-collection-page .medals-back-button{
   align-self:start;
+  justify-self:start;
+  width:max-content;
+  max-width:max-content;
   display:inline-flex;
   align-items:center;
   gap:6px;
@@ -3064,6 +3067,16 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
   background:rgba(250,247,247,.9);
   backdrop-filter:blur(16px) saturate(1.05);
 }
+.medals-filter-bar:before,
+.medals-filter-bar:after{
+  color:var(--album-muted);
+  font-size:9px;
+  font-weight:950;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+.medals-filter-bar:before{content:"Vista principal"}
+.medals-filter-bar:after{content:"Subcategoria";margin-top:1px}
 .medals-filter-group{
   display:flex;
   gap:6px;
@@ -3073,6 +3086,10 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
   -webkit-overflow-scrolling:touch;
   scrollbar-width:none;
 }
+.medals-filter-group-primary{order:1}
+.medals-filter-bar:before{order:0}
+.medals-filter-bar:after{order:2}
+.medals-filter-group-secondary{order:3}
 .medals-filter-chip{
   flex:0 0 auto;
   scroll-snap-align:start;
@@ -3084,6 +3101,35 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
   color:var(--album-muted);
   font-size:11px;
   font-weight:900;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+.medals-filter-chip strong{
+  display:inline-grid;
+  place-items:center;
+  min-width:19px;
+  height:19px;
+  padding:0 5px;
+  border-radius:999px;
+  background:rgba(80,45,49,.08);
+  color:inherit;
+  font-size:10px;
+  line-height:1;
+}
+.medals-filter-group-primary .medals-filter-chip{
+  min-height:38px;
+  padding:0 13px;
+  border-color:rgba(185,75,85,.2);
+  color:#5b393e;
+  font-size:12px;
+}
+.medals-filter-group-primary .medals-filter-chip strong{height:21px;min-width:21px;background:rgba(185,75,85,.1)}
+.medals-filter-group-secondary .medals-filter-chip{
+  min-height:29px;
+  padding:0 9px;
+  background:rgba(255,255,255,.68);
+  font-size:10px;
 }
 .medals-filter-chip:hover,
 .medals-filter-chip.active{
@@ -3091,25 +3137,26 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
   background:var(--album-accent);
   color:#fff;
 }
-.medals-collection-grid{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:10px;
-  align-items:stretch;
-}
-.medals-collection-grid.is-slider{
+.medals-collection-slider{
   display:flex;
   overflow-x:auto;
-  gap:10px;
+  gap:12px;
   padding:1px 2px 8px;
   scroll-snap-type:x mandatory;
   -webkit-overflow-scrolling:touch;
   scrollbar-width:none;
 }
-.medals-collection-grid.is-slider::-webkit-scrollbar{display:none}
-.medals-collection-grid.is-slider .medal-collection-card{
-  flex:0 0 min(43vw,172px);
+.medals-collection-slider::-webkit-scrollbar{display:none}
+.medals-collection-page-slide{
+  flex:0 0 100%;
+  min-width:100%;
   scroll-snap-align:start;
+}
+.medals-collection-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+  align-items:stretch;
 }
 .medal-collection-card{
   position:relative;
@@ -3276,9 +3323,8 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
 @media(min-width:760px){
   .medals-collection-page{width:min(1120px,calc(100% - 40px));gap:14px}
   .medals-compact-hero{grid-template-columns:auto minmax(0,1fr) auto;padding:17px 18px}
-  .medals-filter-bar{top:88px;grid-template-columns:auto minmax(0,1fr);align-items:center}
-  .medals-collection-grid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
-  .medals-collection-grid.is-slider .medal-collection-card{flex-basis:180px}
+  .medals-filter-bar{top:88px}
+  .medals-collection-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
   .medal-collection-card{min-height:146px;padding:13px}
   .medal-collection-icon{width:42px;height:42px;font-size:28px}
   .medal-collection-title{font-size:15px}
@@ -3286,6 +3332,7 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
 @media(max-width:420px){
   .medals-collection-page{width:calc(100% - 18px);gap:10px}
   .medals-compact-hero{grid-template-columns:1fr;gap:9px;padding:12px;border-radius:18px}
+  .medals-collection-page .medals-back-button{padding:0 9px}
   .medals-info-button{position:absolute;right:12px;top:12px}
   .medals-compact-hero h1{font-size:27px}
   .medals-collection-grid{gap:8px}
