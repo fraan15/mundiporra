@@ -128,25 +128,6 @@ function NotificationsBell() {
       setSwipe({ id: null, offset: 0, ready: false });
     };
   }, [open]);
-  useEffect(() => {
-    if (!open) return undefined;
-    const bodyStyle = document.body.style;
-    const htmlStyle = document.documentElement.style;
-    const previousBody = { overflow: bodyStyle.overflow, overscrollBehavior: bodyStyle.overscrollBehavior, width: bodyStyle.width };
-    const previousHtml = { overflow: htmlStyle.overflow, overscrollBehavior: htmlStyle.overscrollBehavior };
-    document.body.style.overflow = "hidden";
-    document.body.style.overscrollBehavior = "none";
-    document.body.style.width = "100%";
-    document.documentElement.style.overflow = "hidden";
-    document.documentElement.style.overscrollBehavior = "none";
-    return () => {
-      document.body.style.overflow = previousBody.overflow;
-      document.body.style.overscrollBehavior = previousBody.overscrollBehavior;
-      document.body.style.width = previousBody.width;
-      document.documentElement.style.overflow = previousHtml.overflow;
-      document.documentElement.style.overscrollBehavior = previousHtml.overscrollBehavior;
-    };
-  }, [open]);
   if (user.is_read_only) return null;
   const read = async (notification) => {
     if (!notification.read) await api(`/notifications/${notification.id}/read`, { method: "PATCH" });
