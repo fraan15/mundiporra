@@ -1459,15 +1459,20 @@ function MatchPredictionSummary({ match, user }) {
       </div>
     );
   return (
-    <div className="locked-prediction-summary">
-      <strong className="big-score prediction-score-card">
+    <div className={`locked-prediction-summary ${match.status === "finished" ? "finished-prediction-summary" : ""}`}>
+      <div className="prediction-score-shell">
+        <span>{match.status === "finished" ? "Tu marcador" : "Tu pronóstico"}</span>
+        <strong className="big-score prediction-score-card">
         {match.prediction_id
           ? `${match.predicted_team1_goals} – ${match.predicted_team2_goals}`
           : "Sin pronóstico"}
-      </strong>
+        </strong>
+      </div>
       {match.predicted_scorer && (
         <p className="prediction-scorer-pill">
-          Goleador elegido: <b>{match.predicted_scorer.name}</b>
+          <Goal size={16} />
+          <span>Goleador elegido</span>
+          <b>{match.predicted_scorer.name}</b>
         </p>
       )}
       {match.status === "finished" ? (
@@ -1487,10 +1492,11 @@ function MatchPredictionSummary({ match, user }) {
             <div className="prediction-points-breakdown">
               <strong>Desglose de puntos</strong>
               {rules.length ? (
-                rules.map(([label, text]) => (
+                rules.map(([label, text, points]) => (
                   <span key={label}>
                     <b>{label}</b>
                     <small>{text}</small>
+                    <em>+{points}</em>
                   </span>
                 ))
               ) : (
@@ -2567,7 +2573,7 @@ export function MatchDetailPage() {
         Todos los partidos
       </button>
       <section
-        className={`match-detail-hero ${m.is_star ? "star-match-detail" : ""}`}
+        className={`match-detail-hero ${m.status === "finished" ? "finished-match-detail-hero" : ""} ${m.is_star ? "star-match-detail" : ""}`}
       >
         <StarMatchTitle match={m} className="match-detail-star-title" />
         <span>
@@ -2629,10 +2635,10 @@ export function MatchDetailPage() {
         )}
         {m.status === "finished" && m.actual_scorers?.length > 0 && (
           <div className="match-result-scorers">
-            <strong>Goleadores</strong>
+            <strong><Goal size={15} /> Goleadores</strong>
             <span>
               {m.actual_scorers.map((player) => (
-                <b key={player.id}>{player.name}</b>
+                <b key={player.id}><Goal size={13} /> {player.name}</b>
               ))}
             </span>
           </div>
@@ -2786,7 +2792,7 @@ export function MatchDetailPage() {
       </section>
       <div className="detail-grid">
         <section
-          className={`content-card detail-prediction ${!m.betting_open ? "detail-prediction-locked" : ""}`}
+          className={`content-card detail-prediction ${m.status === "finished" ? "finished-detail-panel" : ""} ${!m.betting_open ? "detail-prediction-locked" : ""}`}
         >
           <div className="detail-prediction-heading"><h2>{user.is_read_only ? "Vista de espectador" : "Mi pronóstico"}</h2>{m.status === "closed" && Boolean(m.in_play) && <button type="button" className="simulation-trigger" onClick={() => setSimulationOpen(true)}><Calculator size={17}/><span>Simular</span></button>}</div>
           {m.betting_open && !user.is_read_only ? (
@@ -2895,7 +2901,7 @@ export function MatchDetailPage() {
             <MatchPredictionSummary match={m} user={user} />
           )}
         </section>
-        <section className="content-card">
+        <section className={`content-card ${m.status === "finished" ? "finished-detail-panel finished-distribution-panel" : ""}`}>
           <h2>Distribución</h2>
           {data.revealed ? (
             ["team1", "draw", "team2"].map((key) => {

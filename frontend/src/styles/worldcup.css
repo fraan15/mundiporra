@@ -129,6 +129,58 @@
 .mobile-bracket-board::-webkit-scrollbar,.mobile-bracket-mode::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}
 .mobile-bracket-match{transition:transform 95ms ease-out,opacity 95ms ease-out,left 95ms ease-out,top 95ms ease-out}
 .mobile-bracket-mode.is-phase-transitioning .mobile-bracket-match{transition:transform 110ms ease-out,opacity 110ms ease-out,left 110ms ease-out,top 110ms ease-out}
+
+.groups-page .worldcup-hero{margin-bottom:16px;background:radial-gradient(circle at 88% 8%,rgba(244,201,93,.2),transparent 28%),radial-gradient(circle at 12% 0%,rgba(38,137,118,.14),transparent 34%),linear-gradient(135deg,var(--panel),var(--panel2))}
+.groups-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 16px}
+.groups-summary-card{min-width:0;padding:15px 16px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(135deg,color-mix(in srgb,var(--panel) 92%,#fff 8%),var(--panel2));box-shadow:var(--surface-shadow,0 10px 26px rgba(0,0,0,.06))}
+.groups-summary-card strong,.groups-summary-card span{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.groups-summary-card strong{color:var(--text,#24191a);font-size:22px;line-height:1;font-weight:950;letter-spacing:0}
+.groups-summary-card span{margin-top:5px;color:var(--muted);font-size:11px;font-weight:850;text-transform:uppercase}
+.groups-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.group-card{min-width:0;overflow:hidden;border:1px solid var(--line);border-radius:18px;background:var(--panel);box-shadow:var(--surface-shadow,0 12px 30px rgba(0,0,0,.07))}
+.group-card header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 16px;border-bottom:1px solid var(--line);background:linear-gradient(135deg,color-mix(in srgb,var(--accent,var(--lime)) 12%,transparent),transparent)}
+.group-card header span,.group-card header small{display:block}
+.group-card header span{color:var(--text,#24191a);font-size:16px;font-weight:950}
+.group-card header small{margin-top:2px;color:var(--muted);font-size:11px;font-weight:850;text-transform:uppercase}
+.group-table{display:grid}
+.group-table-head,.group-table>div:not(.group-table-head){display:grid;grid-template-columns:32px minmax(0,1fr) 30px 32px 32px 36px 42px;align-items:center;gap:7px;padding:10px 12px;border-bottom:1px solid var(--line)}
+.group-table-head{color:var(--muted);font-size:9px;font-weight:950;text-transform:uppercase}
+.group-table>div:not(.group-table-head){position:relative;font-size:12px}
+.group-table>div:not(.group-table-head)::before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:transparent}
+.group-table>div.qualification-direct{background:color-mix(in srgb,var(--accent,var(--lime)) 10%,transparent)}
+.group-table>div.qualification-direct::before{background:#238d63}
+.group-table>div.qualification-possible{background:rgba(244,201,93,.1)}
+.group-table>div.qualification-possible::before{background:#d6a62f}
+.qualification-badge{display:grid;place-items:center;width:24px;height:24px;border-radius:999px;background:var(--panel2);color:var(--muted);font-size:11px;font-weight:950}
+.qualification-badge.qualification-direct{background:#238d63;color:#fff}
+.qualification-badge.qualification-possible{background:#f4c95d;color:#5b3c00}
+.group-team-button{display:flex;align-items:center;gap:8px;min-width:0;width:100%;padding:0;border:0;background:transparent;color:inherit;text-align:left}
+.group-team-button:not(:disabled){cursor:pointer}
+.group-team-button strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+.group-team-button:not(:disabled):hover strong,.group-team-button:not(:disabled):focus-visible strong{color:var(--accent,var(--lime))}
+.group-table .positive{color:#21865d;font-weight:950}
+.group-table .negative{color:var(--danger);font-weight:950}
+[data-theme="dark"] .groups-summary-card,[data-theme="dark"] .group-card{background:#10243a;color:#f2f7ff}
+[data-theme="dark"] .group-card header span,[data-theme="dark"] .groups-summary-card strong{color:#f2f7ff}
+[data-theme="dark"] .group-table>div.qualification-direct{background:rgba(47,182,126,.14)}
+[data-theme="dark"] .group-table>div.qualification-possible{background:rgba(244,201,93,.13)}
+@media(max-width:980px){
+  .groups-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .groups-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:640px){
+  .groups-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .groups-summary-card{padding:13px 12px;border-radius:14px}
+  .groups-summary-card strong{font-size:18px}
+  .groups-summary-card span{font-size:9px}
+  .groups-grid{grid-template-columns:1fr;gap:12px}
+  .group-card{border-radius:16px}
+  .group-card header{padding:13px 14px}
+  .group-table-head,.group-table>div:not(.group-table-head){grid-template-columns:28px minmax(0,1fr) 27px 29px 29px 32px 36px;gap:5px;padding:9px 8px}
+  .qualification-badge{width:22px;height:22px;font-size:10px}
+  .group-team-button{gap:6px}
+  .group-team-button strong{font-size:12px}
+}
 @media(max-width:640px){
   .worldcup-tabs{grid-template-columns:1fr 1fr;gap:0;padding:6px}
   .worldcup-tabs button{min-height:40px;border-radius:12px}

@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Navigate, NavLink, Outlet, Route, Routes, useLocation, useNavigate } from "react-router-dom";
-import { Activity, ArrowDown, ArrowRight, ArrowUp, BarChart3, Bell, Check, CheckCheck, ChevronDown, ChevronLeft, ChevronRight, Goal, House, LogOut, Megaphone, MessageCircle, Moon, Shield, Sparkles, Sun, Trophy, User, UserCog, X } from "lucide-react";
+import { Activity, ArrowDown, ArrowRight, ArrowUp, BarChart3, Bell, Check, CheckCheck, ChevronDown, ChevronLeft, ChevronRight, Goal, Grid3X3, House, ListTree, LogOut, Megaphone, MessageCircle, Moon, Shield, Sparkles, Sun, Trophy, User, UserCog, X } from "lucide-react";
 import { api } from "./api/client";
 import { LoginPage } from "./pages/LoginPage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -8,7 +8,9 @@ import { LeaderboardPage } from "./pages/LeaderboardPage";
 import { HistoryPage, DayHistoryPage } from "./pages/HistoryPage";
 import { AdminPage } from "./pages/AdminPage";
 import { MatchesPage } from "./pages/MatchesPage";
-import { WorldCupPage } from "./pages/WorldCupPage";
+import { WorldCupRedirect } from "./pages/WorldCupPage";
+import { GroupsPage } from "./pages/GroupsPage";
+import { KnockoutPage } from "./pages/KnockoutPage";
 import { ActivityPage, MatchDetailPage, ProfilePage, PublicProfilePage, UserSettingsPage } from "./pages/SocialPages";
 import { ChatPage } from "./pages/ChatPage";
 import { Avatar } from "./components/Avatar";
@@ -419,7 +421,8 @@ function ProfileMenu({ unreadNews = 0, onOpenNews }) {
         <nav className="profile-side-nav" aria-label="Acciones de perfil">
           <button onClick={() => { closeMenu(); onOpenNews(); }}><Megaphone size={24}/><span>Novedades</span>{unreadNews > 0 && <b className="profile-side-news-badge" aria-label={`${unreadNews} novedades pendientes`}>{unreadNews > 9 ? "9+" : unreadNews}</b>}</button>
           <button onClick={() => { closeMenu(); navigate("/perfil"); }}><User size={24}/><span>Perfil</span></button>
-          <button onClick={() => { closeMenu(); navigate("/mundial"); }}><Goal size={24}/><span>Mundial</span></button>
+          <button onClick={() => { closeMenu(); navigate("/grupos"); }}><Grid3X3 size={24}/><span>Grupos</span></button>
+          <button onClick={() => { closeMenu(); navigate("/eliminatorias"); }}><ListTree size={24}/><span>Eliminatorias</span></button>
           {!user.is_read_only && <button onClick={() => { closeMenu(); navigate("/notificaciones"); }}><Bell size={24}/><span>Notificaciones</span></button>}
           {!user.is_read_only && <button onClick={() => { closeMenu(); navigate("/modificar-usuario"); }}><UserCog size={24}/><span>Modificar usuario</span></button>}
         </nav>
@@ -862,7 +865,9 @@ export function App() {
       <Route element={<ProtectedRoute/>}><Route element={<MainLayout/>}>
         <Route index element={<DashboardPage/>}/>
         <Route path="partidos" element={<MatchesPage/>}/>
-        <Route path="mundial" element={<WorldCupPage/>}/>
+        <Route path="mundial" element={<WorldCupRedirect/>}/>
+        <Route path="grupos" element={<GroupsPage/>}/>
+        <Route path="eliminatorias" element={<KnockoutPage/>}/>
         <Route path="match/:id" element={<MatchDetailPage/>}/>
         <Route path="clasificacion" element={<LeaderboardPage/>}/>
         <Route path="perfil" element={<ProfilePage/>}/>
