@@ -457,7 +457,6 @@ function ProfileMenu({ unreadNews = 0, onOpenNews }) {
             </button>)}
           </nav>
           <section className="profile-side-secondary-section">
-            <h3 className="profile-side-section-title">Más opciones</h3>
             <nav className="profile-side-secondary-nav" aria-label="Opciones secundarias">
               {secondaryItems.map(({ label, path, Icon, onClick, badge, badgeLabel }) => <button
                 type="button"
