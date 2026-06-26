@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, CircleAlert } from "lucide-react";
+import { ArrowLeft, Check, CircleAlert, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 
@@ -12,22 +12,35 @@ const groupLabel = (group) => ({
   participation: "Participacion",
   record: "Record",
   leader: "Liderazgo",
-  milestone: "Hito"
+  milestone: "Hito",
+  special: "Especial"
 }[group] || "Logro");
 
+const compactDescription = (text = "") => text.replace(/\s+/g, " ").trim();
+
 const holdersText = (holders = []) => {
-  if (!holders.length) return "Sin titular";
+  if (!holders.length) return "";
   if (holders.length === 1) return holders[0];
   return `${holders.slice(0, -1).join(", ")} y ${holders[holders.length - 1]}`;
 };
 
 const missingForTier = (value, threshold) => Math.max(0, Number(threshold || 0) - Number(value || 0));
 
-const progressForTier = (value, threshold) => {
+const progressForTier = (value, threshold, achieved = false) => {
+  if (achieved) return 100;
   const total = Number(threshold || 0);
   if (!total) return 0;
   return Math.min(100, Math.max(0, (Number(value || 0) / total) * 100));
 };
+
+const medalIdentity = (medal = {}) => [
+  medal.group || medal.kind || "special",
+  medal.level ?? "",
+  medal.name || "",
+  medal.threshold ?? ""
+].join("|").toLowerCase();
+
+const sortCatalog = (catalog = []) => [...catalog].sort((a, b) => Number(a.order ?? 99) - Number(b.order ?? 99));
 
 const sortBadges = (badges = []) => [...badges].sort((a, b) =>
   Number(a.order ?? 99) - Number(b.order ?? 99) ||
@@ -35,185 +48,193 @@ const sortBadges = (badges = []) => [...badges].sort((a, b) =>
   String(a.name).localeCompare(String(b.name), "es")
 );
 
-const sortCatalog = (catalog = []) => [...catalog].sort((a, b) => Number(a.order ?? 99) - Number(b.order ?? 99));
-
-function HorizontalRail({ children, className = "", label }) {
-  return <div className={`medals-horizontal-rail ${className}`} aria-label={label}>
-    {children}
-  </div>;
-}
-
-function MedalsHero({ achievedCount }) {
+function MedalsCompactHero() {
   const navigate = useNavigate();
 
-  return <section className="medals-showcase-hero">
+  return <section className="medals-compact-hero">
+    <button type="button" className="medals-back-button" onClick={() => navigate("/")}>
+      <ArrowLeft size={15} /> Inicio
+    </button>
     <div>
-      <button type="button" className="medals-back-button" onClick={() => navigate("/")}>
-        <ArrowLeft size={16} /> Inicio
-      </button>
       <span className="eyebrow">MEDALLERO</span>
-      <h1>Tu vitrina</h1>
-      <p>Medallas, records y logros de la porra.</p>
+      <h1>Coleccion de medallas</h1>
+      <p>Logros, records y retos de la porra.</p>
     </div>
-    <aside className="medals-hero-count" aria-label={`${achievedCount} medallas conseguidas`}>
-      <strong>{achievedCount}</strong>
-      <span>conseguidas</span>
-    </aside>
   </section>;
 }
 
-function QuickStatCard({ label, value }) {
-  return <article className="medals-stat-pill">
-    <small>{label}</small>
-    <strong>{value}</strong>
+function MedalsStats({ achievedCount, disputedCount, achievedTierCount, tierCount, categoryCount }) {
+  const stats = [
+    ["Conseguidas", achievedCount],
+    ["Progreso", `${achievedTierCount}/${tierCount}`],
+    ["En disputa", disputedCount],
+    ["Categorias", categoryCount]
+  ];
+
+  return <section className="medals-compact-stats" aria-label="Resumen del medallero">
+    {stats.map(([label, value]) => <article className="medals-stat-chip" key={label}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </article>)}
+  </section>;
+}
+
+function MedalsFilters({ statusOptions, categoryOptions, activeStatusFilter, activeCategoryFilter, onStatusChange, onCategoryChange }) {
+  return <section className="medals-filter-bar" aria-label="Filtros del medallero">
+    <div className="medals-filter-group" aria-label="Estado">
+      {statusOptions.map((option) => <button
+        type="button"
+        className={`medals-filter-chip ${activeStatusFilter === option.value ? "active" : ""}`}
+        onClick={() => onStatusChange(option.value)}
+        key={option.value}
+      >
+        {option.label}
+      </button>)}
+    </div>
+    <div className="medals-filter-group" aria-label="Categorias">
+      {categoryOptions.map((option) => <button
+        type="button"
+        className={`medals-filter-chip ${activeCategoryFilter === option.value ? "active" : ""}`}
+        onClick={() => onCategoryChange(option.value)}
+        key={option.value}
+      >
+        {option.label}
+      </button>)}
+    </div>
+  </section>;
+}
+
+function MedalCollectionCard({ medal }) {
+  const progress = progressForTier(medal.value, medal.threshold, medal.achieved);
+  const holder = holdersText(medal.holders);
+  const statusText = medal.type === "disputed"
+    ? "En disputa"
+    : medal.achieved
+      ? "Ganada"
+      : medal.missing > 0
+        ? `Faltan ${medal.missing}`
+        : "Pendiente";
+
+  return <article className={`medal-collection-card ${medal.achieved ? "is-achieved" : "is-locked"} ${medal.type === "disputed" ? "is-disputed" : ""}`}>
+    <div className="medal-collection-top">
+      <span className="medal-collection-icon" aria-hidden="true">{medal.icon || "🏅"}</span>
+      <span className="medal-collection-status">
+        {medal.achieved ? <Check size={12} /> : <Lock size={12} />}
+        {statusText}
+      </span>
+    </div>
+    <div className="medal-collection-main">
+      <h2 className="medal-collection-title">{medal.name}</h2>
+      {medal.description && <p className="medal-collection-description">{compactDescription(medal.description)}</p>}
+    </div>
+    {(medal.threshold || medal.type === "disputed") && <div className="medal-collection-progress" aria-label={medal.threshold ? `${medal.value || 0} de ${medal.threshold}` : statusText}>
+      <i style={{ width: `${medal.type === "disputed" ? 100 : progress}%` }} />
+    </div>}
+    <div className="medal-collection-meta">
+      <span>{groupLabel(medal.group)}</span>
+      {medal.type === "disputed" && holder ? <small>Ahora: {holder}</small> : medal.threshold ? <small>Objetivo: {medal.threshold}</small> : medal.level ? <small>Nivel {medal.level}</small> : null}
+    </div>
   </article>;
 }
 
-function MedalsQuickStats({ badges, disputed, catalog, achievedTierCount, tierCount }) {
-  return <section className="medals-quick-stats" aria-label="Resumen del medallero">
-    <QuickStatCard label="Conseguidas" value={badges.length} />
-    <QuickStatCard label="En disputa" value={disputed.length} />
-    <QuickStatCard label="Progreso" value={`${achievedTierCount}/${tierCount}`} />
-    <QuickStatCard label="Categorias" value={catalog.length} />
+function MedalsCollectionGrid({ medals }) {
+  if (!medals.length) return <EmptyCollectionState />;
+
+  return <section className="medals-collection-grid" aria-label="Medallas">
+    {medals.map((medal) => <MedalCollectionCard medal={medal} key={medal.id} />)}
   </section>;
 }
 
-function EmptyShelf({ title, text }) {
-  return <div className="medals-empty-shelf">
-    <strong>{title}</strong>
-    {text && <p>{text}</p>}
+function EmptyCollectionState() {
+  return <div className="medals-empty-collection">
+    <strong>No hay medallas con estos filtros</strong>
+    <p>Prueba con otra categoria o estado.</p>
   </div>;
 }
 
-function MedalsShelf({ title, subtitle, count, children }) {
-  return <section className="medals-shelf">
-    <header className="medals-shelf-header">
-      <div>
-        <h2>{title}</h2>
-        {subtitle && <p>{subtitle}</p>}
-      </div>
-      {typeof count === "number" && <span>{count}</span>}
-    </header>
-    {children}
-  </section>;
-}
+function buildCollection({ badges, catalog, disputed }) {
+  const achievedCatalogKeys = new Set();
+  const collection = [];
 
-function ShowcaseMedalCard({ badge }) {
-  return <article className="medal-showcase-card achieved">
-    <span className="medal-showcase-icon" aria-hidden="true">{badge.icon || "🏅"}</span>
-    <div className="medal-showcase-copy">
-      <h3>{badge.name}</h3>
-      <p>{badge.description || "Medalla de Mundiporra."}</p>
-    </div>
-    <span className="medal-showcase-pill">{groupLabel(badge.group || badge.kind)}</span>
-  </article>;
-}
+  sortCatalog(catalog).forEach((category) => {
+    const tiers = [...(category.tiers || [])].sort((a, b) => Number(a.threshold || 0) - Number(b.threshold || 0));
+    tiers.forEach((tier) => {
+      const missing = missingForTier(category.value, tier.threshold);
+      const item = {
+        id: `tier-${category.group}-${tier.level}-${tier.threshold}-${tier.name}`,
+        source: "catalog",
+        type: "tier",
+        status: tier.achieved ? "achieved" : "locked",
+        group: category.group,
+        category: category.title || groupLabel(category.group),
+        value: category.value,
+        threshold: tier.threshold,
+        achieved: Boolean(tier.achieved),
+        missing,
+        icon: tier.icon,
+        name: tier.name,
+        description: tier.description,
+        level: tier.level,
+        order: Number(category.order ?? 99)
+      };
+      if (item.achieved) achievedCatalogKeys.add(medalIdentity(item));
+      collection.push(item);
+    });
+  });
 
-function DisputedMedalCard({ badge }) {
-  return <article className="medal-showcase-card disputed">
-    <span className="medal-showcase-icon" aria-hidden="true">{badge.icon || "🏅"}</span>
-    <div className="medal-showcase-copy">
-      <h3>{badge.name}</h3>
-      <p>{badge.description || "Puede cambiar de dueno."}</p>
-    </div>
-    <span className="medal-showcase-pill">Ahora: {holdersText(badge.holders)}</span>
-  </article>;
-}
+  sortBadges(disputed).forEach((badge, index) => {
+    collection.push({
+      id: `disputed-${badge.group || badge.kind || "special"}-${badge.name}-${index}`,
+      source: "disputed",
+      type: "disputed",
+      status: "disputed",
+      group: badge.group || badge.kind || "special",
+      achieved: false,
+      icon: badge.icon,
+      name: badge.name,
+      description: badge.description,
+      holders: badge.holders,
+      order: Number(badge.order ?? 88)
+    });
+  });
 
-function UpcomingMedalCard({ badge }) {
-  const progress = progressForTier(badge.value, badge.threshold);
-  return <article className="medal-showcase-card upcoming">
-    <span className="medal-showcase-icon" aria-hidden="true">{badge.icon || "🏅"}</span>
-    <div className="medal-showcase-copy">
-      <span>{badge.category}</span>
-      <h3>{badge.name}</h3>
-    </div>
-    <div className="medal-progress-mini" aria-label={`${badge.value || 0} de ${badge.threshold}`}>
-      <i style={{ width: `${progress}%` }} />
-    </div>
-    <span className="medal-showcase-pill">{badge.missing === 1 ? "A 1 de conseguirla" : `Faltan ${badge.missing}`}</span>
-  </article>;
-}
+  sortBadges(badges).forEach((badge, index) => {
+    const normalized = {
+      ...badge,
+      group: badge.group || badge.kind || "special",
+      threshold: badge.threshold
+    };
+    if (achievedCatalogKeys.has(medalIdentity(normalized))) return;
 
-function TierShowcaseCard({ tier, category }) {
-  const missing = missingForTier(category.value, tier.threshold);
-  const progress = progressForTier(category.value, tier.threshold);
+    collection.push({
+      id: `earned-${normalized.group}-${badge.name}-${index}`,
+      source: "earned",
+      type: "special",
+      status: "achieved",
+      group: ["record", "leader", "milestone"].includes(normalized.group) ? normalized.group : "special",
+      achieved: true,
+      icon: badge.icon,
+      name: badge.name,
+      description: badge.description,
+      level: badge.level,
+      order: Number(badge.order ?? 80)
+    });
+  });
 
-  return <article className={`medal-tier-showcase-card ${tier.achieved ? "achieved" : ""}`}>
-    <span className="medal-showcase-icon" aria-hidden="true">{tier.icon || "🏅"}</span>
-    <div className="medal-showcase-copy">
-      <h3>{tier.name}</h3>
-      <p>Objetivo: {tier.threshold}</p>
-    </div>
-    <div className="medal-progress-mini" aria-label={`${category.value || 0} de ${tier.threshold}`}>
-      <i style={{ width: `${progress}%` }} />
-    </div>
-    <span className="medal-showcase-pill">{tier.achieved ? "Ganada" : `Faltan ${missing}`}</span>
-  </article>;
-}
-
-function CatalogCategoryPanel({ category }) {
-  const tiers = [...(category?.tiers || [])].sort((a, b) => Number(a.threshold || 0) - Number(b.threshold || 0));
-  const achieved = tiers.filter((tier) => tier.achieved).length;
-
-  return <article className="medals-category-panel">
-    <header>
-      <div>
-        <span>{groupLabel(category?.group)}</span>
-        <h3>{category?.title || "Catalogo"}</h3>
-      </div>
-      <strong>{achieved}/{tiers.length}</strong>
-    </header>
-    <HorizontalRail className="medals-tier-rail" label={`Niveles de ${category?.title || "categoria"}`}>
-      {tiers.map((tier) => <TierShowcaseCard tier={tier} category={category} key={`${category.group}-${tier.level}`} />)}
-    </HorizontalRail>
-  </article>;
-}
-
-function CatalogShowcase({ catalog }) {
-  const [activeCategoryIndex, setActiveCategoryIndex] = useState(0);
-  const activeCategory = catalog[activeCategoryIndex] || catalog[0];
-
-  useEffect(() => {
-    if (activeCategoryIndex > Math.max(0, catalog.length - 1)) {
-      setActiveCategoryIndex(0);
-    }
-  }, [activeCategoryIndex, catalog.length]);
-
-  if (!catalog.length) {
-    return <MedalsShelf title="Catalogo" subtitle="Niveles y objetivos.">
-      <EmptyShelf title="Catalogo vacio" text="Aparecera aqui cuando haya medallas." />
-    </MedalsShelf>;
-  }
-
-  return <section className="medals-catalog-showcase">
-    <header className="medals-shelf-header">
-      <div>
-        <h2>Catalogo</h2>
-        <p>Elige una categoria.</p>
-      </div>
-      <span>{catalog.length}</span>
-    </header>
-    <div className="medals-category-chips" aria-label="Categorias del catalogo">
-      {catalog.map((category, index) => (
-        <button
-          type="button"
-          className={index === activeCategoryIndex ? "active" : ""}
-          onClick={() => setActiveCategoryIndex(index)}
-          key={category.group || category.title}
-        >
-          {category.title || groupLabel(category.group)}
-        </button>
-      ))}
-    </div>
-    <CatalogCategoryPanel category={activeCategory} />
-  </section>;
+  return collection.sort((a, b) =>
+    Number(a.order ?? 99) - Number(b.order ?? 99) ||
+    (a.achieved === b.achieved ? 0 : a.achieved ? -1 : 1) ||
+    Number(a.level ?? 0) - Number(b.level ?? 0) ||
+    String(a.name).localeCompare(String(b.name), "es")
+  );
 }
 
 export function MedalsPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [activeStatusFilter, setActiveStatusFilter] = useState("all");
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState("all");
 
   useEffect(() => {
     let mounted = true;
@@ -229,57 +250,63 @@ export function MedalsPage() {
   const badges = useMemo(() => sortBadges(data?.badges || []), [data]);
   const disputed = useMemo(() => sortBadges(data?.disputed_badges || []), [data]);
   const catalog = useMemo(() => sortCatalog(data?.badge_catalog || []), [data]);
-  const upcoming = useMemo(() => catalog
-    .flatMap((category) => (category.tiers || [])
-      .filter((tier) => !tier.achieved)
-      .map((tier) => ({
-        ...tier,
-        group: category.group,
-        category: category.title || groupLabel(category.group),
-        value: category.value,
-        missing: missingForTier(category.value, tier.threshold)
-      })))
-    .sort((a, b) => a.missing - b.missing || Number(a.threshold || 0) - Number(b.threshold || 0))
-    .slice(0, 8), [catalog]);
+  const collection = useMemo(() => buildCollection({ badges, catalog, disputed }), [badges, catalog, disputed]);
   const achievedTierCount = catalog.reduce((sum, category) => sum + (category.tiers || []).filter((tier) => tier.achieved).length, 0);
   const tierCount = catalog.reduce((sum, category) => sum + (category.tiers || []).length, 0);
 
-  return <div className="page medals-page medals-showcase-page">
-    <MedalsHero achievedCount={badges.length} />
+  const statusOptions = [
+    { value: "all", label: "Todas" },
+    { value: "achieved", label: "Conseguidas" },
+    { value: "locked", label: "Pendientes" },
+    { value: "disputed", label: "En disputa" }
+  ];
 
-    {loading && <div className="medals-loader" role="status">
+  const categoryOptions = useMemo(() => {
+    const groups = new Map([["all", "Todas"]]);
+    collection.forEach((medal) => groups.set(medal.group || "special", groupLabel(medal.group)));
+    return [...groups].map(([value, label]) => ({ value, label }));
+  }, [collection]);
+
+  const filteredMedals = useMemo(() => collection.filter((medal) => {
+    const statusMatch = activeStatusFilter === "all" ||
+      (activeStatusFilter === "achieved" && medal.achieved) ||
+      (activeStatusFilter === "locked" && !medal.achieved && medal.type !== "disputed") ||
+      (activeStatusFilter === "disputed" && medal.type === "disputed");
+    const categoryMatch = activeCategoryFilter === "all" || medal.group === activeCategoryFilter;
+    return statusMatch && categoryMatch;
+  }), [activeCategoryFilter, activeStatusFilter, collection]);
+
+  return <div className="page medals-page medals-collection-page">
+    <MedalsCompactHero />
+
+    {loading && <div className="medals-loader medals-collection-loader" role="status">
       <strong>Cargando medallero...</strong>
     </div>}
 
-    {!loading && error && <div className="medals-error" role="alert">
-      <CircleAlert size={22} />
-      <strong>No hemos podido cargar el medallero</strong>
+    {!loading && error && <div className="medals-error medals-collection-error" role="alert">
+      <CircleAlert size={20} />
+      <strong>No se pudo cargar el medallero</strong>
       <p>{error}</p>
       <button type="button" className="primary" onClick={() => window.location.reload()}>Reintentar</button>
     </div>}
 
     {!loading && !error && <>
-      <MedalsQuickStats badges={badges} disputed={disputed} catalog={catalog} achievedTierCount={achievedTierCount} tierCount={tierCount} />
-
-      <MedalsShelf title="Tu vitrina" subtitle="Las medallas que ya has ganado." count={badges.length}>
-        {badges.length ? <HorizontalRail label="Medallas conseguidas">
-          {badges.map((badge) => <ShowcaseMedalCard badge={badge} key={`${badge.name}-${badge.description}`} />)}
-        </HorizontalRail> : <EmptyShelf title="Aun no tienes medallas" text="Cuando desbloquees la primera aparecera aqui." />}
-      </MedalsShelf>
-
-      <MedalsShelf title="En disputa" subtitle="Pueden cambiar de dueno." count={disputed.length}>
-        {disputed.length ? <HorizontalRail label="Medallas en disputa">
-          {disputed.map((badge) => <DisputedMedalCard badge={badge} key={`${badge.name}-${badge.description}`} />)}
-        </HorizontalRail> : <EmptyShelf title="No hay medallas en disputa ahora mismo." />}
-      </MedalsShelf>
-
-      <MedalsShelf title="Cerca de desbloquear" subtitle="Tus siguientes objetivos." count={upcoming.length}>
-        {upcoming.length ? <HorizontalRail label="Medallas cerca de desbloquear">
-          {upcoming.map((badge) => <UpcomingMedalCard badge={badge} key={`${badge.group}-${badge.level}`} />)}
-        </HorizontalRail> : <EmptyShelf title="Todo el catalogo completado" text="No hay niveles pendientes." />}
-      </MedalsShelf>
-
-      <CatalogShowcase catalog={catalog} />
+      <MedalsStats
+        achievedCount={badges.length}
+        disputedCount={disputed.length}
+        achievedTierCount={achievedTierCount}
+        tierCount={tierCount}
+        categoryCount={catalog.length}
+      />
+      <MedalsFilters
+        statusOptions={statusOptions}
+        categoryOptions={categoryOptions}
+        activeStatusFilter={activeStatusFilter}
+        activeCategoryFilter={activeCategoryFilter}
+        onStatusChange={setActiveStatusFilter}
+        onCategoryChange={setActiveCategoryFilter}
+      />
+      <MedalsCollectionGrid medals={filteredMedals} />
     </>}
   </div>;
 }

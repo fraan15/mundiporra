@@ -413,7 +413,7 @@ function ProfileMenu({ unreadNews = 0, onOpenNews }) {
   };
   const isActiveRoute = (path) => path === "/" ? location.pathname === "/" : location.pathname === path || location.pathname.startsWith(`${path}/`);
   const mainItems = [
-    { label: "Perfil", path: "/perfil", Icon: User },
+    { label: "Inicio", path: "/", Icon: House },
     { label: "Partidos", path: "/partidos", Icon: Trophy },
     { label: "Medallero", path: "/medallero", Icon: Medal },
     { label: "Grupos", path: "/grupos", Icon: Grid3X3 },
@@ -437,14 +437,16 @@ function ProfileMenu({ unreadNews = 0, onOpenNews }) {
       <aside className={drawerClassName} style={drawerStyle} role="dialog" aria-modal="true" aria-label="Menú de perfil" onPointerDown={startSwipe} onPointerMove={moveSwipe} onPointerUp={endSwipe} onPointerCancel={endSwipe}>
         <header className="profile-side-header">
           <button className="profile-side-close" type="button" aria-label="Cerrar menú" title="Cerrar" onClick={closeMenu}><X size={20}/></button>
-          <button className="profile-side-avatar-button" type="button" aria-label="Modificar usuario" title="Modificar usuario" onClick={() => { closeMenu(); navigate("/modificar-usuario"); }}>
+          <button className="profile-side-avatar-button" type="button" aria-label="Ver perfil" title="Ver perfil" onClick={() => goTo("/perfil")}>
             <Avatar user={user} className="profile-side-avatar"/>
           </button>
-          <h2>{user.display_name||user.username}</h2>
-          <div className="profile-side-meta">
-            <p>@{user.username}</p>
-            <span className="profile-side-role">{roleLabel}</span>
-          </div>
+          <button className="profile-side-identity-button" type="button" onClick={() => goTo("/perfil")}>
+            <h2>{user.display_name||user.username}</h2>
+            <div className="profile-side-meta">
+              <p>@{user.username}</p>
+              <span className="profile-side-role">{roleLabel}</span>
+            </div>
+          </button>
         </header>
         <div className="profile-side-content">
           <nav className="profile-side-nav profile-side-main-nav" aria-label="Navegación principal de perfil">
