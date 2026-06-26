@@ -128,6 +128,29 @@ function NotificationsBell() {
       setSwipe({ id: null, offset: 0, ready: false });
     };
   }, [open]);
+  useEffect(() => {
+    if (!open) return undefined;
+    const allowPanelScroll = (event) => {
+      const list = event.target.closest?.(".notifications-list");
+      return list && notificationsRef.current?.contains(list);
+    };
+    const stopBackgroundScroll = (event) => {
+      if (!allowPanelScroll(event)) event.preventDefault();
+    };
+    const stopKeyboardScroll = (event) => {
+      const scrollKeys = ["ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", "End", " "];
+      if (!scrollKeys.includes(event.key) || allowPanelScroll(event)) return;
+      event.preventDefault();
+    };
+    document.addEventListener("wheel", stopBackgroundScroll, { passive: false });
+    document.addEventListener("touchmove", stopBackgroundScroll, { passive: false });
+    document.addEventListener("keydown", stopKeyboardScroll);
+    return () => {
+      document.removeEventListener("wheel", stopBackgroundScroll);
+      document.removeEventListener("touchmove", stopBackgroundScroll);
+      document.removeEventListener("keydown", stopKeyboardScroll);
+    };
+  }, [open]);
   if (user.is_read_only) return null;
   const read = async (notification) => {
     if (!notification.read) await api(`/notifications/${notification.id}/read`, { method: "PATCH" });
