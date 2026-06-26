@@ -2590,9 +2590,10 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 .profile-side-avatar-button{width:72px;height:72px;margin:0 0 8px;padding:0;border:0;border-radius:50%;background:transparent;display:grid;place-items:center}
 .profile-side-avatar-button:hover .profile-side-avatar{box-shadow:0 10px 26px rgba(169,31,50,.24),0 0 0 4px rgba(169,31,50,.1);transform:translateY(-1px)}
 .profile-side-avatar{margin:0;background:linear-gradient(145deg,#ffe4e7,#fff);transition:transform .16s ease,box-shadow .16s ease}
-.profile-side-identity-button{display:grid;justify-items:start;gap:2px;max-width:100%;min-height:0;padding:0;border:0;border-radius:10px;background:transparent;color:inherit;text-align:left}
+.profile-side-identity-button{display:grid;justify-items:start;gap:2px;width:100%;max-width:100%;min-height:0;padding:0 48px 0 0;border:0;border-radius:10px;background:transparent;color:inherit;text-align:left}
 .profile-side-identity-button:hover{background:transparent;color:var(--cup-red)}
-.profile-side-header h2{max-width:calc(100% - 48px);color:#251719}
+.profile-side-identity-button h2{width:100%;max-width:100%}
+.profile-side-header h2{max-width:100%;color:#251719}
 .profile-side-role{justify-self:start;background:linear-gradient(135deg,rgba(169,31,50,.12),rgba(244,201,93,.18));color:#9f2030}
 .profile-side-meta{display:flex;align-items:center;gap:8px;max-width:100%;min-width:0}
 .profile-side-meta p{min-width:0;max-width:172px;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -2974,8 +2975,9 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
   color:var(--album-ink);
 }
 .medals-compact-hero{
+  position:relative;
   display:grid;
-  grid-template-columns:auto minmax(0,1fr);
+  grid-template-columns:auto minmax(0,1fr) auto;
   align-items:end;
   gap:12px;
   padding:15px;
@@ -3000,6 +3002,21 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
   font-weight:900;
 }
 .medals-collection-page .medals-back-button:hover{background:#fff1f2;transform:translateY(-1px)}
+.medals-info-button{
+  align-self:start;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  min-height:34px;
+  padding:0 10px;
+  border:1px solid rgba(185,75,85,.18);
+  border-radius:999px;
+  background:#fff1f2;
+  color:var(--album-accent);
+  font-size:12px;
+  font-weight:950;
+}
+.medals-info-button:hover{background:var(--album-accent);color:#fff;transform:translateY(-1px)}
 .medals-compact-hero h1{
   margin:3px 0 2px;
   color:var(--album-ink);
@@ -3079,6 +3096,20 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
   grid-template-columns:repeat(2,minmax(0,1fr));
   gap:10px;
   align-items:stretch;
+}
+.medals-collection-grid.is-slider{
+  display:flex;
+  overflow-x:auto;
+  gap:10px;
+  padding:1px 2px 8px;
+  scroll-snap-type:x mandatory;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+}
+.medals-collection-grid.is-slider::-webkit-scrollbar{display:none}
+.medals-collection-grid.is-slider .medal-collection-card{
+  flex:0 0 min(43vw,172px);
+  scroll-snap-align:start;
 }
 .medal-collection-card{
   position:relative;
@@ -3244,9 +3275,10 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
 .medals-collection-error p{margin:0;color:var(--album-muted);font-size:12px}
 @media(min-width:760px){
   .medals-collection-page{width:min(1120px,calc(100% - 40px));gap:14px}
-  .medals-compact-hero{grid-template-columns:auto minmax(0,1fr);padding:17px 18px}
+  .medals-compact-hero{grid-template-columns:auto minmax(0,1fr) auto;padding:17px 18px}
   .medals-filter-bar{top:88px;grid-template-columns:auto minmax(0,1fr);align-items:center}
   .medals-collection-grid{grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+  .medals-collection-grid.is-slider .medal-collection-card{flex-basis:180px}
   .medal-collection-card{min-height:146px;padding:13px}
   .medal-collection-icon{width:42px;height:42px;font-size:28px}
   .medal-collection-title{font-size:15px}
@@ -3254,6 +3286,7 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
 @media(max-width:420px){
   .medals-collection-page{width:calc(100% - 18px);gap:10px}
   .medals-compact-hero{grid-template-columns:1fr;gap:9px;padding:12px;border-radius:18px}
+  .medals-info-button{position:absolute;right:12px;top:12px}
   .medals-compact-hero h1{font-size:27px}
   .medals-collection-grid{gap:8px}
   .medal-collection-card{min-height:128px;padding:10px;border-radius:16px}
@@ -3281,6 +3314,7 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
   box-shadow:none;
 }
 [data-theme="dark"] .medals-collection-page .medals-back-button,
+[data-theme="dark"] .medals-info-button,
 [data-theme="dark"] .medals-stat-chip,
 [data-theme="dark"] .medals-filter-chip,
 [data-theme="dark"] .medals-empty-collection,
@@ -3291,6 +3325,7 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
   color:var(--album-muted);
   box-shadow:none;
 }
+[data-theme="dark"] .medals-info-button:hover{background:var(--album-accent);color:#10243a}
 [data-theme="dark"] .medals-filter-chip.active,
 [data-theme="dark"] .medals-filter-chip:hover{background:var(--album-accent);border-color:var(--album-accent);color:#10243a}
 [data-theme="dark"] .medal-collection-card.is-achieved{

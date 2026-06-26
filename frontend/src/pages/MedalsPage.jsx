@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Check, CircleAlert, Lock } from "lucide-react";
+import { ArrowLeft, Check, CircleAlert, Info, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
+import { BadgeCatalogDialog } from "../components/SportsUI";
 
 const groupLabel = (group) => ({
   exact: "Exactos",
@@ -48,7 +49,12 @@ const sortBadges = (badges = []) => [...badges].sort((a, b) =>
   String(a.name).localeCompare(String(b.name), "es")
 );
 
-function MedalsCompactHero() {
+const statusMatches = (medal, statusFilter) => statusFilter === "all" ||
+  (statusFilter === "achieved" && medal.achieved) ||
+  (statusFilter === "locked" && !medal.achieved && medal.type !== "disputed") ||
+  (statusFilter === "disputed" && medal.type === "disputed");
+
+function MedalsCompactHero({ onOpenInfo, hasInfo }) {
   const navigate = useNavigate();
 
   return <section className="medals-compact-hero">
@@ -60,6 +66,10 @@ function MedalsCompactHero() {
       <h1>Coleccion de medallas</h1>
       <p>Logros, records y retos de la porra.</p>
     </div>
+    {hasInfo && <button type="button" className="medals-info-button" onClick={onOpenInfo} aria-label="Informacion de medallas">
+      <Info size={16} />
+      Info
+    </button>}
   </section>;
 }
 
@@ -137,10 +147,10 @@ function MedalCollectionCard({ medal }) {
   </article>;
 }
 
-function MedalsCollectionGrid({ medals }) {
+function MedalsCollectionGrid({ medals, layout = "grid" }) {
   if (!medals.length) return <EmptyCollectionState />;
 
-  return <section className="medals-collection-grid" aria-label="Medallas">
+  return <section className={`medals-collection-grid ${layout === "slider" ? "is-slider" : ""}`} aria-label="Medallas">
     {medals.map((medal) => <MedalCollectionCard medal={medal} key={medal.id} />)}
   </section>;
 }
@@ -235,6 +245,7 @@ export function MedalsPage() {
   const [error, setError] = useState("");
   const [activeStatusFilter, setActiveStatusFilter] = useState("all");
   const [activeCategoryFilter, setActiveCategoryFilter] = useState("all");
+  const [infoOpen, setInfoOpen] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -263,21 +274,28 @@ export function MedalsPage() {
 
   const categoryOptions = useMemo(() => {
     const groups = new Map([["all", "Todas"]]);
-    collection.forEach((medal) => groups.set(medal.group || "special", groupLabel(medal.group)));
+    collection
+      .filter((medal) => statusMatches(medal, activeStatusFilter))
+      .forEach((medal) => groups.set(medal.group || "special", groupLabel(medal.group)));
     return [...groups].map(([value, label]) => ({ value, label }));
-  }, [collection]);
+  }, [activeStatusFilter, collection]);
+
+  useEffect(() => {
+    if (activeCategoryFilter !== "all" && !categoryOptions.some((option) => option.value === activeCategoryFilter)) {
+      setActiveCategoryFilter("all");
+    }
+  }, [activeCategoryFilter, categoryOptions]);
 
   const filteredMedals = useMemo(() => collection.filter((medal) => {
-    const statusMatch = activeStatusFilter === "all" ||
-      (activeStatusFilter === "achieved" && medal.achieved) ||
-      (activeStatusFilter === "locked" && !medal.achieved && medal.type !== "disputed") ||
-      (activeStatusFilter === "disputed" && medal.type === "disputed");
+    const statusMatch = statusMatches(medal, activeStatusFilter);
     const categoryMatch = activeCategoryFilter === "all" || medal.group === activeCategoryFilter;
     return statusMatch && categoryMatch;
   }), [activeCategoryFilter, activeStatusFilter, collection]);
+  const collectionLayout = activeStatusFilter === "all" && activeCategoryFilter === "all" ? "slider" : "grid";
+  const hasInfo = Boolean(catalog.some((category) => category.tiers?.length) || disputed.length);
 
   return <div className="page medals-page medals-collection-page">
-    <MedalsCompactHero />
+    <MedalsCompactHero onOpenInfo={() => setInfoOpen(true)} hasInfo={hasInfo} />
 
     {loading && <div className="medals-loader medals-collection-loader" role="status">
       <strong>Cargando medallero...</strong>
@@ -306,7 +324,8 @@ export function MedalsPage() {
         onStatusChange={setActiveStatusFilter}
         onCategoryChange={setActiveCategoryFilter}
       />
-      <MedalsCollectionGrid medals={filteredMedals} />
+      <MedalsCollectionGrid medals={filteredMedals} layout={collectionLayout} />
     </>}
+    {infoOpen && <BadgeCatalogDialog catalog={catalog} disputed={disputed} onClose={() => setInfoOpen(false)} />}
   </div>;
 }
