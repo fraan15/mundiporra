@@ -11,11 +11,17 @@ const groupLabel = (group) => ({
   draw: "Empates",
   points: "Puntos",
   participation: "Participacion",
-  record: "Record",
-  leader: "Liderazgo",
-  milestone: "Hito",
-  special: "Especial"
+  record: "Records",
+  leader: "Liderazgo"
 }[group] || "Logro");
+
+const knownGroups = new Set(["exact", "winner", "scorer", "draw", "points", "participation", "record", "leader"]);
+const categoryOrder = ["all", "record", "leader", "exact", "winner", "scorer", "draw", "points", "participation"];
+const normalizeGroup = (group, kind) => {
+  if (knownGroups.has(group)) return group;
+  if (knownGroups.has(kind)) return kind;
+  return "";
+};
 
 const compactDescription = (text = "") => text.replace(/\s+/g, " ").trim();
 
@@ -33,13 +39,6 @@ const progressForTier = (value, threshold, achieved = false) => {
   if (!total) return 0;
   return Math.min(100, Math.max(0, (Number(value || 0) / total) * 100));
 };
-
-const medalIdentity = (medal = {}) => [
-  medal.group || medal.kind || "special",
-  medal.level ?? "",
-  medal.name || "",
-  medal.threshold ?? ""
-].join("|").toLowerCase();
 
 const sortCatalog = (catalog = []) => [...catalog].sort((a, b) => Number(a.order ?? 99) - Number(b.order ?? 99));
 
@@ -100,7 +99,7 @@ function MedalsFilters({ statusOptions, categoryOptions, activeStatusFilter, act
   </section>;
 }
 
-function MedalCollectionCard({ medal }) {
+function MedalCollectionCard({ medal, onOpenLevels }) {
   const progress = progressForTier(medal.value, medal.threshold, medal.achieved);
   const holder = holdersText(medal.holders);
   const statusText = medal.type === "disputed"
@@ -111,7 +110,18 @@ function MedalCollectionCard({ medal }) {
         ? `Faltan ${medal.missing}`
         : "Pendiente";
 
-  return <article className={`medal-collection-card ${medal.achieved ? "is-achieved" : "is-locked"} ${medal.type === "disputed" ? "is-disputed" : ""}`}>
+  return <article
+    className={`medal-collection-card ${medal.achieved ? "is-achieved" : "is-locked"} ${medal.type === "disputed" ? "is-disputed" : ""} ${medal.levels?.length ? "has-levels" : ""}`}
+    role={medal.levels?.length ? "button" : undefined}
+    tabIndex={medal.levels?.length ? 0 : undefined}
+    onClick={medal.levels?.length ? () => onOpenLevels(medal) : undefined}
+    onKeyDown={medal.levels?.length ? (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        onOpenLevels(medal);
+      }
+    } : undefined}
+  >
     <div className="medal-collection-top">
       <span className="medal-collection-icon" aria-hidden="true">{medal.icon || "🏅"}</span>
       <span className="medal-collection-status">
@@ -128,7 +138,7 @@ function MedalCollectionCard({ medal }) {
     </div>}
     <div className="medal-collection-meta">
       <span>{groupLabel(medal.group)}</span>
-      {medal.type === "disputed" && holder ? <small>Ahora: {holder}</small> : medal.threshold ? <small>Objetivo: {medal.threshold}</small> : medal.level ? <small>Nivel {medal.level}</small> : null}
+      {medal.levels?.length ? <small>{medal.levels.length} niveles</small> : medal.type === "disputed" && holder ? <small>Ahora: {holder}</small> : medal.threshold ? <small>Objetivo: {medal.threshold}</small> : medal.level ? <small>Nivel {medal.level}</small> : null}
     </div>
   </article>;
 }
@@ -141,7 +151,7 @@ const chunkMedals = (medals, size = 6) => {
   return chunks;
 };
 
-function MedalsCollectionGrid({ medals }) {
+function MedalsCollectionGrid({ medals, onOpenLevels }) {
   const sliderRef = useRef(null);
   const [activePage, setActivePage] = useState(0);
 
@@ -171,7 +181,7 @@ function MedalsCollectionGrid({ medals }) {
     <div className="medals-collection-slider" ref={sliderRef} onScroll={updateActivePage}>
       {pages.map((page, index) => <div className="medals-collection-page-slide" key={`medals-page-${index}`}>
         <div className="medals-collection-grid">
-          {page.map((medal) => <MedalCollectionCard medal={medal} key={medal.id} />)}
+          {page.map((medal) => <MedalCollectionCard medal={medal} onOpenLevels={onOpenLevels} key={medal.id} />)}
         </div>
       </div>)}
     </div>
@@ -190,6 +200,42 @@ function MedalsCollectionGrid({ medals }) {
   </section>;
 }
 
+function MedalLevelsDialog({ medal, onClose }) {
+  if (!medal) return null;
+
+  return <div className="medal-levels-overlay" role="dialog" aria-modal="true" aria-labelledby="medal-levels-title" onClick={onClose}>
+    <article className="medal-levels-dialog" onClick={(event) => event.stopPropagation()}>
+      <header>
+        <div>
+          <span className="medal-collection-icon" aria-hidden="true">{medal.icon || "🏅"}</span>
+          <div>
+            <small>{groupLabel(medal.group)}</small>
+            <h2 id="medal-levels-title">{medal.category || medal.name}</h2>
+          </div>
+        </div>
+        <button type="button" onClick={onClose} aria-label="Cerrar">×</button>
+      </header>
+      <div className="medal-levels-list">
+        {medal.levels.map((level) => {
+          const missing = missingForTier(medal.value, level.threshold);
+          const progress = progressForTier(medal.value, level.threshold, level.achieved);
+          return <div className={`medal-level-row ${level.achieved ? "is-achieved" : ""}`} key={`${medal.group}-${level.level}-${level.threshold}`}>
+            <span aria-hidden="true">{level.icon || medal.icon || "🏅"}</span>
+            <div>
+              <strong>{level.name}</strong>
+              <p>{compactDescription(level.description || `Objetivo: ${level.threshold}`)}</p>
+              <div className="medal-collection-progress" aria-label={`${medal.value || 0} de ${level.threshold}`}>
+                <i style={{ width: `${progress}%` }} />
+              </div>
+            </div>
+            <small>{level.achieved ? "Ganada" : `Faltan ${missing}`}</small>
+          </div>;
+        })}
+      </div>
+    </article>
+  </div>;
+}
+
 function EmptyCollectionState() {
   return <div className="medals-empty-collection">
     <strong>No hay medallas con estos filtros</strong>
@@ -198,42 +244,51 @@ function EmptyCollectionState() {
 }
 
 function buildCollection({ badges, catalog, disputed }) {
-  const achievedCatalogKeys = new Set();
+  const catalogNames = new Set();
   const collection = [];
 
   sortCatalog(catalog).forEach((category) => {
+    const group = normalizeGroup(category.group);
+    if (!group) return;
     const tiers = [...(category.tiers || [])].sort((a, b) => Number(a.threshold || 0) - Number(b.threshold || 0));
+    if (!tiers.length) return;
     tiers.forEach((tier) => {
-      const missing = missingForTier(category.value, tier.threshold);
-      const item = {
-        id: `tier-${category.group}-${tier.level}-${tier.threshold}-${tier.name}`,
-        source: "catalog",
-        type: "tier",
-        status: tier.achieved ? "achieved" : "locked",
-        group: category.group,
-        category: category.title || groupLabel(category.group),
-        value: category.value,
-        threshold: tier.threshold,
-        achieved: Boolean(tier.achieved),
-        missing,
-        icon: tier.icon,
-        name: tier.name,
-        description: tier.description,
-        level: tier.level,
-        order: Number(category.order ?? 99)
-      };
-      if (item.achieved) achievedCatalogKeys.add(medalIdentity(item));
-      collection.push(item);
+      catalogNames.add(String(tier.name || "").toLowerCase());
+    });
+    const achievedTiers = tiers.filter((tier) => tier.achieved);
+    const representative = achievedTiers[achievedTiers.length - 1] || tiers[0];
+    const nextTier = tiers.find((tier) => !tier.achieved) || representative;
+    const missing = missingForTier(category.value, nextTier.threshold);
+    const achieved = achievedTiers.length > 0;
+
+    collection.push({
+      id: `catalog-family-${group}`,
+      source: "catalog",
+      type: "tier-family",
+      status: achieved ? "achieved" : "locked",
+      group,
+      category: category.title || groupLabel(group),
+      value: category.value,
+      threshold: nextTier.threshold,
+      achieved,
+      missing,
+      icon: representative.icon,
+      name: representative.name,
+      description: representative.description,
+      level: representative.level,
+      levels: tiers,
+      order: Number(category.order ?? 99)
     });
   });
 
   sortBadges(disputed).forEach((badge, index) => {
+    const group = normalizeGroup(badge.group, badge.kind) || "record";
     collection.push({
-      id: `disputed-${badge.group || badge.kind || "special"}-${badge.name}-${index}`,
+      id: `disputed-${group}-${badge.name}-${index}`,
       source: "disputed",
       type: "disputed",
       status: "disputed",
-      group: badge.group || badge.kind || "special",
+      group,
       achieved: false,
       icon: badge.icon,
       name: badge.name,
@@ -244,19 +299,21 @@ function buildCollection({ badges, catalog, disputed }) {
   });
 
   sortBadges(badges).forEach((badge, index) => {
+    const group = normalizeGroup(badge.group, badge.kind);
+    if (!group) return;
     const normalized = {
       ...badge,
-      group: badge.group || badge.kind || "special",
+      group,
       threshold: badge.threshold
     };
-    if (achievedCatalogKeys.has(medalIdentity(normalized))) return;
+    if (catalogNames.has(String(badge.name || "").toLowerCase())) return;
 
     collection.push({
-      id: `earned-${normalized.group}-${badge.name}-${index}`,
+      id: `earned-${group}-${badge.name}-${index}`,
       source: "earned",
-      type: "special",
+      type: "earned",
       status: "achieved",
-      group: ["record", "leader", "milestone"].includes(normalized.group) ? normalized.group : "special",
+      group,
       achieved: true,
       icon: badge.icon,
       name: badge.name,
@@ -281,6 +338,7 @@ export function MedalsPage() {
   const [activeStatusFilter, setActiveStatusFilter] = useState("all");
   const [activeCategoryFilter, setActiveCategoryFilter] = useState("all");
   const [infoOpen, setInfoOpen] = useState(false);
+  const [levelMedal, setLevelMedal] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -300,20 +358,26 @@ export function MedalsPage() {
 
   const statusOptions = useMemo(() => [
     { value: "all", label: "Todas", count: collection.length },
+    { value: "disputed", label: "En disputa", count: collection.filter((medal) => medal.type === "disputed").length },
     { value: "achieved", label: "Conseguidas", count: collection.filter((medal) => medal.achieved).length },
-    { value: "locked", label: "Pendientes", count: collection.filter((medal) => !medal.achieved && medal.type !== "disputed").length },
-    { value: "disputed", label: "En disputa", count: collection.filter((medal) => medal.type === "disputed").length }
+    { value: "locked", label: "Pendientes", count: collection.filter((medal) => !medal.achieved && medal.type !== "disputed").length }
   ], [collection]);
 
   const categoryOptions = useMemo(() => {
     const matchingStatus = collection.filter((medal) => statusMatches(medal, activeStatusFilter));
     const groups = new Map([["all", { label: "Todas", count: matchingStatus.length }]]);
     matchingStatus.forEach((medal) => {
-      const value = medal.group || "special";
+      const value = medal.group;
       const current = groups.get(value) || { label: groupLabel(value), count: 0 };
       groups.set(value, { ...current, count: current.count + 1 });
     });
-    return [...groups].map(([value, item]) => ({ value, label: item.label, count: item.count }));
+    return [...groups]
+      .map(([value, item]) => ({ value, label: item.label, count: item.count }))
+      .sort((a, b) => {
+        const aIndex = categoryOrder.includes(a.value) ? categoryOrder.indexOf(a.value) : 99;
+        const bIndex = categoryOrder.includes(b.value) ? categoryOrder.indexOf(b.value) : 99;
+        return aIndex - bIndex || a.label.localeCompare(b.label, "es");
+      });
   }, [activeStatusFilter, collection]);
 
   useEffect(() => {
@@ -349,11 +413,15 @@ export function MedalsPage() {
         categoryOptions={categoryOptions}
         activeStatusFilter={activeStatusFilter}
         activeCategoryFilter={activeCategoryFilter}
-        onStatusChange={setActiveStatusFilter}
+        onStatusChange={(value) => {
+          setActiveStatusFilter(value);
+          setActiveCategoryFilter("all");
+        }}
         onCategoryChange={setActiveCategoryFilter}
       />
-      <MedalsCollectionGrid medals={filteredMedals} />
+      <MedalsCollectionGrid medals={filteredMedals} onOpenLevels={setLevelMedal} />
     </>}
     {infoOpen && <BadgeCatalogDialog catalog={catalog} disputed={disputed} onClose={() => setInfoOpen(false)} />}
+    {levelMedal && <MedalLevelsDialog medal={levelMedal} onClose={() => setLevelMedal(null)} />}
   </div>;
 }
