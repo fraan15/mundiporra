@@ -3170,6 +3170,7 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
   scroll-snap-type:x mandatory;
   -webkit-overflow-scrolling:touch;
   scrollbar-width:none;
+  transition:height .2s ease;
 }
 .medals-collection-slider::-webkit-scrollbar{display:none}
 .medals-collection-page-slide{
@@ -3191,22 +3192,24 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
   flex:0 0 auto;
   display:grid;
   place-items:center;
-  width:27px;
-  height:27px;
-  min-width:27px;
-  min-height:27px;
+  width:8px;
+  height:8px;
+  min-width:8px;
+  min-height:8px;
   padding:0;
   border:1px solid var(--album-line);
   border-radius:999px;
   background:#fff;
   color:var(--album-muted);
-  font-size:11px;
-  font-weight:950;
+  font-size:0;
+  overflow:hidden;
+  text-indent:-999px;
 }
 .medals-page-bubbles button.active{
   border-color:var(--album-accent);
   background:var(--album-accent);
   color:#fff;
+  transform:scale(1.35);
 }
 @media(hover:hover) and (pointer:fine){
   .medals-page-bubbles button:hover{
@@ -3262,18 +3265,8 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
   background:linear-gradient(150deg,#fff6de,#fff 58%,#f1f6ff);
   box-shadow:0 8px 19px rgba(80,45,49,.06);
 }
-.medal-collection-card.has-levels{cursor:pointer}
-.medal-collection-card.has-levels:after{
-  content:"Ver niveles";
-  position:absolute;
-  right:10px;
-  bottom:32px;
-  z-index:1;
-  color:var(--album-accent);
-  font-size:9px;
-  font-weight:950;
-  opacity:.72;
-}
+.medal-collection-card{cursor:pointer}
+.medal-collection-card:focus-visible{outline:3px solid rgba(185,75,85,.22);outline-offset:2px}
 .medal-collection-top{
   position:relative;
   z-index:1;
@@ -3405,8 +3398,8 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
   inset:0;
   z-index:2600;
   display:grid;
-  place-items:end center;
-  padding:18px;
+  place-items:start center;
+  padding:72px 18px 18px;
   background:rgba(20,8,11,.38);
   backdrop-filter:blur(5px);
 }
@@ -3422,6 +3415,24 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
   background:var(--album-paper);
   color:var(--album-ink);
   box-shadow:0 24px 70px rgba(55,24,30,.24);
+}
+.medal-info-summary{
+  display:grid;
+  gap:10px;
+  padding:12px;
+  border:1px solid rgba(80,45,49,.1);
+  border-radius:18px;
+  background:linear-gradient(145deg,#fff,#fff7f7);
+}
+.medal-info-summary p{margin:0;color:var(--album-muted);font-size:13px;line-height:1.35}
+.medal-info-facts{display:flex;flex-wrap:wrap;gap:6px}
+.medal-info-facts span{
+  padding:5px 8px;
+  border-radius:999px;
+  background:rgba(185,75,85,.09);
+  color:var(--album-accent);
+  font-size:11px;
+  font-weight:900;
 }
 .medal-levels-dialog>header{
   display:flex;
@@ -3602,6 +3613,8 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
   color:var(--album-ink);
   box-shadow:none;
 }
+[data-theme="dark"] .medal-info-summary{border-color:rgba(255,255,255,.1);background:#162033}
+[data-theme="dark"] .medal-info-facts span{background:rgba(255,154,167,.12);color:var(--album-accent)}
 [data-theme="dark"] .medal-level-row{border-color:rgba(255,255,255,.1);background:#162033}
 [data-theme="dark"] .medal-level-row.is-achieved{border-color:rgba(245,201,93,.26);background:#172a3e}
 [data-theme="dark"] .medal-level-row:not(.is-achieved)>span{background:#202b3d}
