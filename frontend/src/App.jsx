@@ -442,7 +442,7 @@ function ProfileMenu({ unreadNews = 0, onOpenNews }) {
               <Avatar user={user} className="profile-side-avatar"/>
             </button>
             <button className="profile-side-view-profile" type="button" onClick={() => goTo("/perfil")}>
-              <User size={14}/><span>Ver perfil</span>
+              Perfil
             </button>
           </div>
           <button className="profile-side-identity-button" type="button" onClick={() => goTo("/perfil")}>
