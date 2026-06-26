@@ -441,8 +441,10 @@ function ProfileMenu({ unreadNews = 0, onOpenNews }) {
             <Avatar user={user} className="profile-side-avatar"/>
           </button>
           <h2>{user.display_name||user.username}</h2>
-          <p>@{user.username}</p>
-          <span className="profile-side-role">{roleLabel}</span>
+          <div className="profile-side-meta">
+            <p>@{user.username}</p>
+            <span className="profile-side-role">{roleLabel}</span>
+          </div>
         </header>
         <div className="profile-side-content">
           <nav className="profile-side-nav profile-side-main-nav" aria-label="Navegación principal de perfil">
