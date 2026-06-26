@@ -132,25 +132,19 @@ function NotificationsBell() {
     if (!open) return undefined;
     const bodyStyle = document.body.style;
     const htmlStyle = document.documentElement.style;
-    const scrollY = window.scrollY;
-    const previousBody = { overflow: bodyStyle.overflow, overscrollBehavior: bodyStyle.overscrollBehavior, position: bodyStyle.position, top: bodyStyle.top, width: bodyStyle.width };
+    const previousBody = { overflow: bodyStyle.overflow, overscrollBehavior: bodyStyle.overscrollBehavior, width: bodyStyle.width };
     const previousHtml = { overflow: htmlStyle.overflow, overscrollBehavior: htmlStyle.overscrollBehavior };
     document.body.style.overflow = "hidden";
     document.body.style.overscrollBehavior = "none";
-    document.body.style.position = "fixed";
-    document.body.style.top = `-${scrollY}px`;
     document.body.style.width = "100%";
     document.documentElement.style.overflow = "hidden";
     document.documentElement.style.overscrollBehavior = "none";
     return () => {
       document.body.style.overflow = previousBody.overflow;
       document.body.style.overscrollBehavior = previousBody.overscrollBehavior;
-      document.body.style.position = previousBody.position;
-      document.body.style.top = previousBody.top;
       document.body.style.width = previousBody.width;
       document.documentElement.style.overflow = previousHtml.overflow;
       document.documentElement.style.overscrollBehavior = previousHtml.overscrollBehavior;
-      window.scrollTo(0, scrollY);
     };
   }, [open]);
   if (user.is_read_only) return null;
