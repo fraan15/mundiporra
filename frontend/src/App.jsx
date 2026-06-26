@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Navigate, NavLink, Outlet, Route, Routes, useLocation, useNavigate } from "react-router-dom";
-import { Activity, ArrowDown, ArrowRight, ArrowUp, BarChart3, Bell, Check, CheckCheck, ChevronDown, ChevronLeft, ChevronRight, Goal, Grid3X3, House, ListTree, LogOut, Megaphone, MessageCircle, Moon, Shield, Sparkles, Sun, Trophy, User, UserCog, X } from "lucide-react";
+import { Activity, ArrowDown, ArrowRight, ArrowUp, BarChart3, Bell, Check, CheckCheck, ChevronDown, ChevronLeft, ChevronRight, Goal, Grid3X3, House, ListTree, LogOut, Medal, Megaphone, MessageCircle, Moon, Shield, Sparkles, Sun, Trophy, User, UserCog, X } from "lucide-react";
 import { api } from "./api/client";
 import { LoginPage } from "./pages/LoginPage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -11,6 +11,7 @@ import { MatchesPage } from "./pages/MatchesPage";
 import { WorldCupRedirect } from "./pages/WorldCupPage";
 import { GroupsPage } from "./pages/GroupsPage";
 import { KnockoutPage } from "./pages/KnockoutPage";
+import { MedalsPage } from "./pages/MedalsPage";
 import { ActivityPage, MatchDetailPage, ProfilePage, PublicProfilePage, UserSettingsPage } from "./pages/SocialPages";
 import { ChatPage } from "./pages/ChatPage";
 import { Avatar } from "./components/Avatar";
@@ -316,6 +317,7 @@ function NewsDrawer({ open, items, unreadCount, onClose, onMarkRead, onMarkAllRe
 function ProfileMenu({ unreadNews = 0, onOpenNews }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const menuRef = useRef(null);
   const swipeRef = useRef(null);
   const [open, setOpen] = useState(false);
@@ -401,6 +403,30 @@ function ProfileMenu({ unreadNews = 0, onOpenNews }) {
   const roleLabel = user.is_read_only ? "Solo lectura" : user.role === "admin" ? "Administrador" : "Participante";
   const drawerClassName = `profile-side-drawer${dragging ? " is-dragging" : ""}${closing ? " is-closing" : ""}`;
   const drawerStyle = dragX > 0 ? { transform: `translate3d(${dragX}px,0,0)` } : undefined;
+  const goTo = (path) => {
+    closeMenu();
+    navigate(path);
+  };
+  const openNews = () => {
+    closeMenu();
+    onOpenNews();
+  };
+  const isActiveRoute = (path) => path === "/" ? location.pathname === "/" : location.pathname === path || location.pathname.startsWith(`${path}/`);
+  const mainItems = [
+    { label: "Perfil", path: "/perfil", Icon: User },
+    { label: "Partidos", path: "/partidos", Icon: Trophy },
+    { label: "Medallero", path: "/medallero", Icon: Medal },
+    { label: "Grupos", path: "/grupos", Icon: Grid3X3 },
+    { label: "Eliminatorias", path: "/eliminatorias", Icon: ListTree },
+    { label: "Chat", path: "/chat", Icon: MessageCircle }
+  ];
+  const secondaryItems = [
+    { label: "Novedades", Icon: Megaphone, onClick: openNews, badge: unreadNews > 0 ? (unreadNews > 9 ? "9+" : unreadNews) : null, badgeLabel: `${unreadNews} novedades pendientes` },
+    ...(!user.is_read_only ? [
+      { label: "Ajustes Notificaciones", path: "/notificaciones", Icon: Bell },
+      { label: "Modificar usuario", path: "/modificar-usuario", Icon: UserCog }
+    ] : [])
+  ];
   return <div className="profile-menu" ref={menuRef}>
     <button className="profile-shortcut" aria-expanded={open} aria-haspopup="menu" onClick={toggle}>
       <span className="profile-avatar-wrap"><Avatar user={user}/>{unreadNews > 0 && <i className="profile-news-dot" aria-label={`${unreadNews} novedades pendientes`}/>}</span>
@@ -418,14 +444,33 @@ function ProfileMenu({ unreadNews = 0, onOpenNews }) {
           <p>@{user.username}</p>
           <span className="profile-side-role">{roleLabel}</span>
         </header>
-        <nav className="profile-side-nav" aria-label="Acciones de perfil">
-          <button onClick={() => { closeMenu(); onOpenNews(); }}><Megaphone size={24}/><span>Novedades</span>{unreadNews > 0 && <b className="profile-side-news-badge" aria-label={`${unreadNews} novedades pendientes`}>{unreadNews > 9 ? "9+" : unreadNews}</b>}</button>
-          <button onClick={() => { closeMenu(); navigate("/perfil"); }}><User size={24}/><span>Perfil</span></button>
-          <button onClick={() => { closeMenu(); navigate("/grupos"); }}><Grid3X3 size={24}/><span>Grupos</span></button>
-          <button onClick={() => { closeMenu(); navigate("/eliminatorias"); }}><ListTree size={24}/><span>Eliminatorias</span></button>
-          {!user.is_read_only && <button onClick={() => { closeMenu(); navigate("/notificaciones"); }}><Bell size={24}/><span>Notificaciones</span></button>}
-          {!user.is_read_only && <button onClick={() => { closeMenu(); navigate("/modificar-usuario"); }}><UserCog size={24}/><span>Modificar usuario</span></button>}
-        </nav>
+        <div className="profile-side-content">
+          <nav className="profile-side-nav profile-side-main-nav" aria-label="Navegación principal de perfil">
+            {mainItems.map(({ label, path, Icon }) => <button
+              type="button"
+              className={`profile-side-nav-button ${isActiveRoute(path) ? "active" : ""}`}
+              aria-current={isActiveRoute(path) ? "page" : undefined}
+              key={path}
+              onClick={() => goTo(path)}
+            >
+              <Icon size={25}/><span>{label}</span>
+            </button>)}
+          </nav>
+          <section className="profile-side-secondary-section">
+            <h3 className="profile-side-section-title">Más opciones</h3>
+            <nav className="profile-side-secondary-nav" aria-label="Opciones secundarias">
+              {secondaryItems.map(({ label, path, Icon, onClick, badge, badgeLabel }) => <button
+                type="button"
+                className={`profile-side-secondary-button ${path && isActiveRoute(path) ? "active" : ""}`}
+                aria-current={path && isActiveRoute(path) ? "page" : undefined}
+                key={label}
+                onClick={onClick || (() => goTo(path))}
+              >
+                <Icon size={20}/><span>{label}</span>{badge && <b className="profile-side-news-badge" aria-label={badgeLabel}>{badge}</b>}
+              </button>)}
+            </nav>
+          </section>
+        </div>
         <footer className="profile-side-footer">
           <button className="profile-side-logout" onClick={signOut}><LogOut size={22}/><span>Cerrar sesión</span></button>
         </footer>
@@ -870,6 +915,7 @@ export function App() {
         <Route path="eliminatorias" element={<KnockoutPage/>}/>
         <Route path="match/:id" element={<MatchDetailPage/>}/>
         <Route path="clasificacion" element={<LeaderboardPage/>}/>
+        <Route path="medallero" element={<MedalsPage/>}/>
         <Route path="perfil" element={<ProfilePage/>}/>
         <Route path="modificar-usuario" element={<UserSettingsPage/>}/>
         <Route path="notificaciones" element={<PushSettingsPage/>}/>
