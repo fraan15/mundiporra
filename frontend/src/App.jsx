@@ -437,9 +437,14 @@ function ProfileMenu({ unreadNews = 0, onOpenNews }) {
       <aside className={drawerClassName} style={drawerStyle} role="dialog" aria-modal="true" aria-label="Menú de perfil" onPointerDown={startSwipe} onPointerMove={moveSwipe} onPointerUp={endSwipe} onPointerCancel={endSwipe}>
         <header className="profile-side-header">
           <button className="profile-side-close" type="button" aria-label="Cerrar menú" title="Cerrar" onClick={closeMenu}><X size={20}/></button>
-          <button className="profile-side-avatar-button" type="button" aria-label="Ver perfil" title="Ver perfil" onClick={() => goTo("/perfil")}>
-            <Avatar user={user} className="profile-side-avatar"/>
-          </button>
+          <div className="profile-side-avatar-row">
+            <button className="profile-side-avatar-button" type="button" aria-label="Ver perfil" title="Ver perfil" onClick={() => goTo("/perfil")}>
+              <Avatar user={user} className="profile-side-avatar"/>
+            </button>
+            <button className="profile-side-view-profile" type="button" onClick={() => goTo("/perfil")}>
+              <User size={14}/><span>Ver perfil</span>
+            </button>
+          </div>
           <button className="profile-side-identity-button" type="button" onClick={() => goTo("/perfil")}>
             <h2>{user.display_name||user.username}</h2>
             <div className="profile-side-meta">

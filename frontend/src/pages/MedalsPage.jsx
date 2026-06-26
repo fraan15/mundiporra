@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Check, CircleAlert, Info, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
@@ -142,15 +142,51 @@ const chunkMedals = (medals, size = 6) => {
 };
 
 function MedalsCollectionGrid({ medals }) {
+  const sliderRef = useRef(null);
+  const [activePage, setActivePage] = useState(0);
+
+  useEffect(() => {
+    setActivePage(0);
+    if (sliderRef.current) sliderRef.current.scrollTo({ left: 0 });
+  }, [medals]);
+
   if (!medals.length) return <EmptyCollectionState />;
   const pages = chunkMedals(medals, 6);
 
-  return <section className="medals-collection-slider" aria-label="Medallas">
-    {pages.map((page, index) => <div className="medals-collection-page-slide" key={`medals-page-${index}`}>
-      <div className="medals-collection-grid">
-        {page.map((medal) => <MedalCollectionCard medal={medal} key={medal.id} />)}
-      </div>
-    </div>)}
+  const updateActivePage = () => {
+    const slider = sliderRef.current;
+    if (!slider) return;
+    const pageWidth = slider.clientWidth || 1;
+    setActivePage(Math.round(slider.scrollLeft / pageWidth));
+  };
+
+  const goToPage = (index) => {
+    const slider = sliderRef.current;
+    if (!slider) return;
+    slider.scrollTo({ left: slider.clientWidth * index, behavior: "smooth" });
+    setActivePage(index);
+  };
+
+  return <section className="medals-collection-pager" aria-label="Medallas">
+    <div className="medals-collection-slider" ref={sliderRef} onScroll={updateActivePage}>
+      {pages.map((page, index) => <div className="medals-collection-page-slide" key={`medals-page-${index}`}>
+        <div className="medals-collection-grid">
+          {page.map((medal) => <MedalCollectionCard medal={medal} key={medal.id} />)}
+        </div>
+      </div>)}
+    </div>
+    {pages.length > 1 && <div className="medals-page-bubbles" aria-label="Paginas de medallas">
+      {pages.map((_, index) => <button
+        type="button"
+        className={activePage === index ? "active" : ""}
+        aria-label={`Ir a pagina ${index + 1}`}
+        aria-current={activePage === index ? "page" : undefined}
+        onClick={() => goToPage(index)}
+        key={`page-bubble-${index}`}
+      >
+        {index + 1}
+      </button>)}
+    </div>}
   </section>;
 }
 

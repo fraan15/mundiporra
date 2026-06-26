@@ -2587,9 +2587,12 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 .profile-side-drawer.is-closing{animation:none;transform:translate3d(102%,0,0)!important;transition:transform .18s cubic-bezier(.4,0,1,1)}
 .profile-side-header{justify-items:start;text-align:left;padding-top:12px;background:transparent}
 .profile-side-close{left:auto;right:0;width:42px;height:42px;min-width:42px;min-height:42px;padding:0;display:grid;place-items:center;border:1px solid rgba(169,31,50,.12);border-radius:50%;background:rgba(255,255,255,.58);box-shadow:inset 0 1px 0 rgba(255,255,255,.78)}
-.profile-side-avatar-button{width:72px;height:72px;margin:0 0 8px;padding:0;border:0;border-radius:50%;background:transparent;display:grid;place-items:center}
+.profile-side-avatar-row{display:flex;align-items:center;gap:10px;margin:0 0 8px}
+.profile-side-avatar-button{width:72px;height:72px;margin:0;padding:0;border:0;border-radius:50%;background:transparent;display:grid;place-items:center}
 .profile-side-avatar-button:hover .profile-side-avatar{box-shadow:0 10px 26px rgba(169,31,50,.24),0 0 0 4px rgba(169,31,50,.1);transform:translateY(-1px)}
 .profile-side-avatar{margin:0;background:linear-gradient(145deg,#ffe4e7,#fff);transition:transform .16s ease,box-shadow .16s ease}
+.profile-side-view-profile{display:inline-flex;align-items:center;gap:5px;min-height:30px;padding:0 10px;border:1px solid rgba(169,31,50,.12);border-radius:999px;background:rgba(255,255,255,.52);color:#9f2030;font-size:11px;font-weight:900;white-space:nowrap}
+.profile-side-view-profile:hover{background:rgba(169,31,50,.08);border-color:rgba(169,31,50,.2);transform:translateY(-1px)}
 .profile-side-identity-button{display:grid;justify-items:start;gap:2px;width:100%;max-width:100%;min-height:0;padding:0 48px 0 0;border:0;border-radius:10px;background:transparent;color:inherit;text-align:left}
 .profile-side-identity-button:hover{background:transparent;color:var(--cup-red)}
 .profile-side-identity-button h2{width:100%;max-width:100%}
@@ -2619,21 +2622,27 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 .profile-side-secondary-nav button svg{color:currentColor}
 .profile-side-footer{flex:0 0 auto;margin-top:0}
 .profile-side-logout{min-height:46px;padding:0 14px;font-size:15px}
+@media(hover:none){.profile-side-nav button:hover:not(.active),.profile-side-secondary-nav button:hover:not(.active){background:transparent;color:inherit}.profile-side-logout:hover{background:transparent}}
+@media(hover:hover){.profile-side-nav button:hover{background:linear-gradient(90deg,rgba(169,31,50,.05),rgba(169,31,50,.13));color:var(--cup-red)}.profile-side-secondary-nav button:hover{background:rgba(169,31,50,.08);color:var(--cup-red)}.profile-side-logout:hover{background:rgba(169,31,50,.12)}}
 @keyframes profile-side-slide-right{from{transform:translateX(102%)}}
 [data-theme="dark"] .profile-side-backdrop{background:linear-gradient(90deg,rgba(2,8,17,.32),rgba(255,154,167,.1))}
 [data-theme="dark"] .profile-side-drawer{border-left-color:rgba(255,154,167,.16);background:linear-gradient(165deg,#0c1a2b 0%,#10243a 64%,#211a2b 100%);box-shadow:-22px 0 70px rgba(0,0,0,.56)}
 [data-theme="dark"] .profile-side-header{background:transparent;border-color:rgba(255,154,167,.12)}
 [data-theme="dark"] .profile-side-close{border-color:rgba(255,154,167,.14);background:rgba(255,255,255,.06);box-shadow:none}
 [data-theme="dark"] .profile-side-avatar-button:hover .profile-side-avatar{box-shadow:0 10px 28px rgba(255,154,167,.2),0 0 0 4px rgba(255,154,167,.1)}
+[data-theme="dark"] .profile-side-view-profile{border-color:rgba(255,154,167,.14);background:rgba(255,255,255,.06);color:#ff9aa7}
+[data-theme="dark"] .profile-side-view-profile:hover{background:rgba(255,154,167,.12)}
 [data-theme="dark"] .profile-side-nav button,[data-theme="dark"] .profile-side-logout{background:transparent}
 [data-theme="dark"] .profile-side-meta .profile-side-role{background:rgba(255,154,167,.12);color:#ff9aa7}
 [data-theme="dark"] .profile-side-secondary-section{border-color:rgba(255,154,167,.12)}
 [data-theme="dark"] .profile-side-section-title{color:#aebed0}
 [data-theme="dark"] .profile-side-nav-button.active,[data-theme="dark"] .profile-side-secondary-button.active,[data-theme="dark"] .profile-side-secondary-nav button:hover{background:rgba(255,154,167,.12);color:#ff9aa7}
 [data-theme="dark"] .profile-side-secondary-nav button{color:#d8e6f5;background:transparent}
+@media(hover:none){[data-theme="dark"] .profile-side-nav button:hover:not(.active),[data-theme="dark"] .profile-side-secondary-nav button:hover:not(.active){background:transparent;color:#d8e6f5}[data-theme="dark"] .profile-side-main-nav button:hover:not(.active){color:#f2f7ff}}
+@media(hover:hover){[data-theme="dark"] .profile-side-nav button:hover,[data-theme="dark"] .profile-side-secondary-nav button:hover{background:rgba(255,154,167,.12);color:#ff9aa7}}
 @media(max-width:800px){.profile-side-drawer{border-radius:26px 0 0 26px;padding-bottom:calc(14px + env(safe-area-inset-bottom))}.profile-side-footer{padding-bottom:0}}
 @media(max-width:800px){.profile-side-content{gap:14px;padding-top:12px}.profile-side-nav.profile-side-main-nav{padding-bottom:12px}.profile-side-nav.profile-side-main-nav button{min-height:52px}.profile-side-secondary-nav button{min-height:38px}.profile-side-footer{padding-top:12px}.profile-side-logout{min-height:44px}}
-@media(max-width:380px){.profile-side-drawer{border-radius:22px 0 0 22px;padding-bottom:calc(14px + env(safe-area-inset-bottom))}.profile-side-meta{align-items:flex-start;flex-direction:column;gap:4px}.profile-side-meta p{max-width:100%}.profile-side-nav.profile-side-main-nav button{gap:13px}.profile-side-secondary-nav button{gap:10px}.profile-side-section-title{padding:0 12px}}
+@media(max-width:380px){.profile-side-drawer{border-radius:22px 0 0 22px;padding-bottom:calc(14px + env(safe-area-inset-bottom))}.profile-side-avatar-row{gap:8px}.profile-side-view-profile{padding:0 8px;font-size:10px}.profile-side-meta{align-items:flex-start;flex-direction:column;gap:4px}.profile-side-meta p{max-width:100%}.profile-side-nav.profile-side-main-nav button{gap:13px}.profile-side-secondary-nav button{gap:10px}.profile-side-section-title{padding:0 12px}}
 @media(max-width:800px){body.profile-menu-open .main-nav,body.profile-menu-open .bottom-nav-bubble{opacity:0;pointer-events:none;transform:translate3d(-50%,110%,0)}body.profile-menu-open .main-nav:not(.app-bottom-nav){transform:translateY(110%)}}
 html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavior:none}
 
@@ -3131,11 +3140,27 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
   background:rgba(255,255,255,.68);
   font-size:10px;
 }
-.medals-filter-chip:hover,
 .medals-filter-chip.active{
   border-color:var(--album-accent);
   background:var(--album-accent);
   color:#fff;
+}
+@media(hover:hover) and (pointer:fine){
+  .medals-filter-chip:hover{
+    border-color:rgba(185,75,85,.32);
+    background:#fff1f2;
+    color:var(--album-accent);
+  }
+  .medals-filter-chip.active:hover{
+    border-color:var(--album-accent);
+    background:var(--album-accent);
+    color:#fff;
+  }
+}
+.medals-collection-pager{
+  display:grid;
+  gap:9px;
+  min-width:0;
 }
 .medals-collection-slider{
   display:flex;
@@ -3151,6 +3176,49 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
   flex:0 0 100%;
   min-width:100%;
   scroll-snap-align:start;
+}
+.medals-page-bubbles{
+  display:flex;
+  justify-content:center;
+  gap:7px;
+  min-width:0;
+  overflow-x:auto;
+  padding:1px 2px 4px;
+  scrollbar-width:none;
+}
+.medals-page-bubbles::-webkit-scrollbar{display:none}
+.medals-page-bubbles button{
+  flex:0 0 auto;
+  display:grid;
+  place-items:center;
+  width:27px;
+  height:27px;
+  min-width:27px;
+  min-height:27px;
+  padding:0;
+  border:1px solid var(--album-line);
+  border-radius:999px;
+  background:#fff;
+  color:var(--album-muted);
+  font-size:11px;
+  font-weight:950;
+}
+.medals-page-bubbles button.active{
+  border-color:var(--album-accent);
+  background:var(--album-accent);
+  color:#fff;
+}
+@media(hover:hover) and (pointer:fine){
+  .medals-page-bubbles button:hover{
+    border-color:rgba(185,75,85,.32);
+    background:#fff1f2;
+    color:var(--album-accent);
+  }
+  .medals-page-bubbles button.active:hover{
+    border-color:var(--album-accent);
+    background:var(--album-accent);
+    color:#fff;
+  }
 }
 .medals-collection-grid{
   display:grid;
@@ -3364,6 +3432,7 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
 [data-theme="dark"] .medals-info-button,
 [data-theme="dark"] .medals-stat-chip,
 [data-theme="dark"] .medals-filter-chip,
+[data-theme="dark"] .medals-page-bubbles button,
 [data-theme="dark"] .medals-empty-collection,
 [data-theme="dark"] .medals-collection-loader,
 [data-theme="dark"] .medals-collection-error{
@@ -3373,8 +3442,32 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
   box-shadow:none;
 }
 [data-theme="dark"] .medals-info-button:hover{background:var(--album-accent);color:#10243a}
-[data-theme="dark"] .medals-filter-chip.active,
-[data-theme="dark"] .medals-filter-chip:hover{background:var(--album-accent);border-color:var(--album-accent);color:#10243a}
+[data-theme="dark"] .medals-page-bubbles button.active{background:var(--album-accent);border-color:var(--album-accent);color:#10243a}
+@media(hover:hover) and (pointer:fine){
+  [data-theme="dark"] .medals-page-bubbles button:hover{
+    background:rgba(255,154,167,.12);
+    border-color:rgba(255,154,167,.28);
+    color:var(--album-accent);
+  }
+  [data-theme="dark"] .medals-page-bubbles button.active:hover{
+    background:var(--album-accent);
+    border-color:var(--album-accent);
+    color:#10243a;
+  }
+}
+[data-theme="dark"] .medals-filter-chip.active{background:var(--album-accent);border-color:var(--album-accent);color:#10243a}
+@media(hover:hover) and (pointer:fine){
+  [data-theme="dark"] .medals-filter-chip:hover{
+    background:rgba(255,154,167,.12);
+    border-color:rgba(255,154,167,.28);
+    color:var(--album-accent);
+  }
+  [data-theme="dark"] .medals-filter-chip.active:hover{
+    background:var(--album-accent);
+    border-color:var(--album-accent);
+    color:#10243a;
+  }
+}
 [data-theme="dark"] .medal-collection-card.is-achieved{
   border-color:rgba(245,201,93,.28);
   background:linear-gradient(150deg,rgba(18,42,69,.95),rgba(48,40,34,.7));
