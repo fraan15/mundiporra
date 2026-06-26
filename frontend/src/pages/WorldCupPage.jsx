@@ -414,11 +414,7 @@ export function WorldCupRedirect() {
   return <Navigate to={target} replace />;
 }
 
-export function formatWorldCupSyncDate(value) {
-  return value ? new Date(value).toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "Pendiente";
-}
-
-export function WorldCupPageShell({ className = "", title, text, syncedAt, children }) {
+export function WorldCupPageShell({ className = "", title, text, children }) {
   const navigate = useNavigate();
   return <div className={`page worldcup-page ${className}`}>
     <section className="worldcup-hero">
@@ -428,7 +424,6 @@ export function WorldCupPageShell({ className = "", title, text, syncedAt, child
         <h1>{title}</h1>
         <p>{text}</p>
       </div>
-      <aside><span>Fecha actualizacion</span><strong>{formatWorldCupSyncDate(syncedAt)}</strong></aside>
     </section>
     {children}
   </div>;

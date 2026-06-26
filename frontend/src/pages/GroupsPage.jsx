@@ -12,7 +12,6 @@ export function GroupsPage() {
     className="groups-page"
     title="Fase de grupos"
     text="Consulta los grupos, la clasificacion provisional y el detalle de cada seleccion."
-    syncedAt={data?.synced_at}
   >
     {selectedTeamId && <TeamDetailOverlay teamId={selectedTeamId} onClose={() => setSelectedTeamId(null)}/>}
     {error ? <div className="alert error">{error}</div> : loading ? <div className="page-loader"><span/></div> : <GroupsView groups={data?.groups || []} teamIdByCode={teamIdByCode} onOpenTeam={setSelectedTeamId}/>}

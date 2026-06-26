@@ -131,6 +131,12 @@
 .mobile-bracket-mode.is-phase-transitioning .mobile-bracket-match{transition:transform 110ms ease-out,opacity 110ms ease-out,left 110ms ease-out,top 110ms ease-out}
 
 .groups-page .worldcup-hero{margin-bottom:16px;background:radial-gradient(circle at 88% 8%,rgba(244,201,93,.2),transparent 28%),radial-gradient(circle at 12% 0%,rgba(38,137,118,.14),transparent 34%),linear-gradient(135deg,var(--panel),var(--panel2))}
+.groups-page .worldcup-hero,.knockout-page .worldcup-hero{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:14px;margin-bottom:14px;padding:14px 16px;border-radius:16px;box-shadow:var(--surface-shadow,0 8px 20px rgba(0,0,0,.06))}
+.groups-page .worldcup-hero .back-btn,.knockout-page .worldcup-hero .back-btn{grid-column:auto;min-height:34px;padding:0 11px;border:1px solid var(--line);border-radius:999px;background:var(--panel2);font-size:12px;white-space:nowrap}
+.groups-page .worldcup-hero h1,.knockout-page .worldcup-hero h1{margin:3px 0 2px;font-size:clamp(24px,3vw,34px);letter-spacing:0}
+.groups-page .worldcup-hero p,.knockout-page .worldcup-hero p{max-width:760px;font-size:13px;line-height:1.35}
+.groups-page .worldcup-hero .eyebrow,.knockout-page .worldcup-hero .eyebrow{font-size:10px}
+.groups-page .worldcup-hero aside,.knockout-page .worldcup-hero aside{display:none}
 .groups-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 16px}
 .groups-summary-card{min-width:0;padding:15px 16px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(135deg,color-mix(in srgb,var(--panel) 92%,#fff 8%),var(--panel2));box-shadow:var(--surface-shadow,0 10px 26px rgba(0,0,0,.06))}
 .groups-summary-card strong,.groups-summary-card span{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -169,6 +175,10 @@
   .groups-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media(max-width:640px){
+  .groups-page .worldcup-hero,.knockout-page .worldcup-hero{grid-template-columns:1fr;gap:10px;padding:13px 14px;border-radius:15px}
+  .groups-page .worldcup-hero .back-btn,.knockout-page .worldcup-hero .back-btn{justify-self:start;min-height:32px}
+  .groups-page .worldcup-hero h1,.knockout-page .worldcup-hero h1{font-size:24px}
+  .groups-page .worldcup-hero p,.knockout-page .worldcup-hero p{font-size:12px}
   .groups-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
   .groups-summary-card{padding:13px 12px;border-radius:14px}
   .groups-summary-card strong{font-size:18px}
