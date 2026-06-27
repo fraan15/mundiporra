@@ -240,11 +240,11 @@ function DashboardCalendar({ matches, calendarToday, onOpenMatch, restoreScrollT
     const deltaY = event.clientY - swipeRef.current.y;
     const absX = Math.abs(deltaX), absY = Math.abs(deltaY);
     if (!swipeRef.current.dragging && !swipeRef.current.vertical) {
-      if (absY > 14 && absY > absX * 1.05) {
+      if (absY > 12 && absY > absX * 1.05) {
         swipeRef.current = null;
         return;
       }
-      if (absX > 18 && absX > absY * 1.35) {
+      if (absX >= 16 && absX > absY * 1.25) {
         swipeRef.current.dragging = true;
         setIsDragging(true);
         viewportRef.current?.setPointerCapture?.(swipeRef.current.pointerId);
@@ -253,6 +253,17 @@ function DashboardCalendar({ matches, calendarToday, onOpenMatch, restoreScrollT
     if (swipeRef.current.vertical) return;
     if (swipeRef.current.dragging) {
       pointerRef.current = pointerRef.current ? { ...pointerRef.current, moved: true, blocked: true } : pointerRef.current;
+      if (event.pointerType !== "mouse") {
+        event.preventDefault();
+        const direction = deltaX < 0 ? 1 : -1;
+        const nextIndex = activeDayIndex + direction;
+        swipeRef.current = null;
+        setIsDragging(false);
+        setDragOffset(0);
+        window.setTimeout(() => { pointerRef.current = null; }, 0);
+        if (nextIndex >= 0 && nextIndex < days.length) goToDay(nextIndex);
+        return;
+      }
       const width = viewportRef.current?.clientWidth || 1;
       const atStart = activeDayIndex === 0 && deltaX > 0;
       const atEnd = activeDayIndex === days.length - 1 && deltaX < 0;
@@ -271,7 +282,7 @@ function DashboardCalendar({ matches, calendarToday, onOpenMatch, restoreScrollT
     }
     setIsDragging(false);
     setDragOffset(0);
-    if (!dragging || Math.abs(deltaX) <= 45 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.35) return;
+    if (!dragging || Math.abs(deltaX) < 32 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.25) return;
     pointerRef.current = pointerRef.current ? { ...pointerRef.current, moved: true, blocked: true } : pointerRef.current;
     window.setTimeout(() => { pointerRef.current = null; }, 0);
     goToDay(activeDayIndex + (deltaX < 0 ? 1 : -1));
