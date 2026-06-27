@@ -1844,3 +1844,30 @@ test("la corrección de una apuesta finalizada recalcula sus puntos y está prot
   assert.ok(stored.exact_result_points > 0);
   assert.equal(stored.total_points, stored.winner_points + stored.exact_result_points);
 });
+
+test("un anuncio programado se entrega una sola vez a cada usuario", async () => {
+  const admin = request.agent(app), user = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  const username = `anuncio-${Date.now()}`;
+  await admin.post("/api/users").send({ username, password: "prueba-segura", role: "user" });
+  await user.post("/api/auth/login").send({ username, password: "prueba-segura" });
+
+  const created = await admin.post("/api/admin/announcements").send({
+    title: "¡Empiezan las eliminatorias!",
+    body: "Prueba de anuncio único.",
+    starts_at: "2020-01-01T12:00:00.000Z",
+    active: true,
+    confetti: true,
+    auto_close_seconds: 8
+  });
+  assert.equal(created.status, 201);
+
+  const first = await user.get("/api/announcements/pending");
+  assert.equal(first.status, 200);
+  assert.equal(first.body.announcement.id, created.body.id);
+  assert.equal(first.body.announcement.title, "¡Empiezan las eliminatorias!");
+
+  const second = await user.get("/api/announcements/pending");
+  assert.equal(second.status, 200);
+  assert.equal(second.body.announcement, null);
+});

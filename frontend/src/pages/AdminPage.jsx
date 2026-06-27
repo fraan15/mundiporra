@@ -8,6 +8,7 @@ import {
   Eye,
   Megaphone,
   MessageSquareText,
+  PartyPopper,
   Plus,
   Settings,
   Shield,
@@ -33,6 +34,7 @@ export function AdminPage() {
     ["matches", "Partidos", Shield],
     ["messages", "Mensajes y encuestas", MessageSquareText],
     ["news", "Novedades", Megaphone],
+    ["announcements", "Anuncios", PartyPopper],
     ["users", "Usuarios", Users],
     ["points", "Ajustes", Plus],
     ["recalculate", "Recálculo", Calculator],
@@ -60,6 +62,7 @@ export function AdminPage() {
       {tab === "matches" && <AdminMatches />}
       {tab === "messages" && <AdminMessages />}
       {tab === "news" && <AdminNews />}
+      {tab === "announcements" && <AdminAnnouncements />}
       {tab === "users" && <AdminUsers />}
       {tab === "points" && <AdminPoints />}
       {tab === "recalculate" && <AdminRecalculate />}
@@ -74,6 +77,77 @@ const Notice = ({ text, notice }) => {
   const value = typeof source === "string" ? { type: "success", text: source } : source;
   return value.text ? <div className={`alert ${value.type || "success"}`}>{value.text}</div> : null;
 };
+
+function AdminAnnouncements() {
+  const blank = { title: "¡Empiezan las eliminatorias!", body: "La fase decisiva ya está aquí. Recuerda que el resultado válido incluye la prórroga, pero no la tanda de penaltis.", starts_at: "", active: true, confetti: true, auto_close_seconds: 8 };
+  const [form, setForm] = useState(blank);
+  const [items, setItems] = useState([]);
+  const [editing, setEditing] = useState(null);
+  const [notice, setNotice] = useState("");
+  const load = () => api("/admin/announcements").then(setItems);
+  useEffect(() => { load(); }, []);
+  const save = async (event) => {
+    event.preventDefault();
+    const body = { ...form, starts_at: new Date(form.starts_at).toISOString(), auto_close_seconds: Number(form.auto_close_seconds) };
+    if (editing) await api(`/admin/announcements/${editing.id}`, { method: "PATCH", body });
+    else await api("/admin/announcements", { method: "POST", body });
+    setNotice(editing ? "Anuncio actualizado." : "Anuncio programado.");
+    setEditing(null);
+    setForm(blank);
+    load();
+  };
+  const beginEdit = (item) => {
+    const date = new Date(item.starts_at);
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    setEditing(item);
+    setForm({ title: item.title, body: item.body, starts_at: local, active: Boolean(item.active), confetti: Boolean(item.confetti), auto_close_seconds: item.auto_close_seconds });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+  const toggle = async (item) => {
+    await api(`/admin/announcements/${item.id}`, { method: "PATCH", body: { active: !item.active } });
+    load();
+  };
+  const remove = async (item) => {
+    if (!window.confirm(`¿Eliminar el anuncio "${item.title}"?`)) return;
+    await api(`/admin/announcements/${item.id}`, { method: "DELETE" });
+    if (editing?.id === item.id) { setEditing(null); setForm(blank); }
+    load();
+  };
+  return <section className="admin-section">
+    <Notice text={notice}/>
+    <form className="admin-form announcement-admin-form" onSubmit={save}>
+      <h3>{editing ? "Editar anuncio programado" : "Nuevo anuncio programado"}</h3>
+      <div className="form-grid">
+        <label className="message-title-field">Título<input required maxLength={120} value={form.title} onChange={event => setForm({ ...form, title: event.target.value })}/></label>
+        <label>Fecha y hora de aparición<input required type="datetime-local" value={form.starts_at} onChange={event => setForm({ ...form, starts_at: event.target.value })}/></label>
+        <label>Cierre automático (segundos)<input required type="number" min="3" max="60" value={form.auto_close_seconds} onChange={event => setForm({ ...form, auto_close_seconds: event.target.value })}/></label>
+        <label className="toggle"><input type="checkbox" checked={form.active} onChange={event => setForm({ ...form, active: event.target.checked })}/>Activo</label>
+        <label className="toggle"><input type="checkbox" checked={form.confetti} onChange={event => setForm({ ...form, confetti: event.target.checked })}/>Mostrar confeti</label>
+      </div>
+      <label>Mensaje<textarea required maxLength={1000} rows={4} value={form.body} onChange={event => setForm({ ...form, body: event.target.value })}/></label>
+      <div className="admin-news-actions">
+        <button className="primary">{editing ? "Guardar cambios" : "Programar anuncio"}</button>
+        {editing && <button type="button" className="secondary" onClick={() => { setEditing(null); setForm(blank); }}>Cancelar</button>}
+      </div>
+      <small>Cada usuario lo verá una sola vez: en su primera entrada posterior a la fecha programada.</small>
+    </form>
+    <div className="admin-news-list announcement-admin-list">
+      {items.length ? items.map(item => <article key={item.id}>
+        <div>
+          <span className={`news-status ${item.active ? "published" : "hidden"}`}>{item.active ? "Activo" : "Pausado"}</span>
+          <h3>{item.title}</h3>
+          <p>{item.body}</p>
+          <small>Aparece: {new Date(item.starts_at).toLocaleString("es-ES")} · Visto por {item.viewed_count}/{item.total_users} usuarios · Cierre: {item.auto_close_seconds}s {item.confetti ? "· Confeti" : ""}</small>
+        </div>
+        <div className="actions">
+          <button type="button" className="accent" onClick={() => beginEdit(item)}>Editar</button>
+          <button type="button" onClick={() => toggle(item)}>{item.active ? "Pausar" : "Activar"}</button>
+          <button type="button" className="danger" onClick={() => remove(item)}><Trash2 size={15}/></button>
+        </div>
+      </article>) : <div className="admin-list-empty">Todavía no hay anuncios programados.</div>}
+    </div>
+  </section>;
+}
 
 function AdminNews() {
   const blank = { title: "", body: "", published: true };

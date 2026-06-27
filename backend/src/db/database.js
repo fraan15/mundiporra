@@ -298,6 +298,24 @@ export function initDatabase() {
       read_at TEXT NOT NULL,
       PRIMARY KEY(news_id,user_id)
     );
+    CREATE TABLE IF NOT EXISTS scheduled_announcements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL,
+      starts_at TEXT NOT NULL,
+      active INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0,1)),
+      confetti INTEGER NOT NULL DEFAULT 1 CHECK(confetti IN (0,1)),
+      auto_close_seconds INTEGER NOT NULL DEFAULT 8,
+      created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS scheduled_announcement_views (
+      announcement_id INTEGER NOT NULL REFERENCES scheduled_announcements(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      viewed_at TEXT NOT NULL,
+      PRIMARY KEY(announcement_id,user_id)
+    );
     CREATE INDEX IF NOT EXISTS idx_matches_date ON matches(match_date, match_time);
     CREATE INDEX IF NOT EXISTS idx_matches_status_close ON matches(status, auto_close_at);
     CREATE INDEX IF NOT EXISTS idx_predictions_match ON predictions(match_id);
@@ -316,6 +334,8 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_admin_message_responses_user ON admin_message_responses(user_id, message_id);
     CREATE INDEX IF NOT EXISTS idx_news_items_published ON news_items(published, created_at);
     CREATE INDEX IF NOT EXISTS idx_news_reads_user ON news_reads(user_id, news_id);
+    CREATE INDEX IF NOT EXISTS idx_scheduled_announcements_active ON scheduled_announcements(active,starts_at);
+    CREATE INDEX IF NOT EXISTS idx_scheduled_announcement_views_user ON scheduled_announcement_views(user_id,announcement_id);
     CREATE INDEX IF NOT EXISTS idx_movement_summaries_pending ON movement_summaries(user_id,seen_at,created_at);
     CREATE INDEX IF NOT EXISTS idx_sessions_expire ON sessions(expire);
     CREATE INDEX IF NOT EXISTS idx_points_adjustments_user ON points_adjustments(user_id);

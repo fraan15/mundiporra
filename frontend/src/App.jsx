@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Navigate, NavLink, Outlet, Route, Routes, useLocation, useNavigate } from "react-router-dom";
-import { Activity, ArrowDown, ArrowRight, ArrowUp, BarChart3, Bell, Check, CheckCheck, ChevronDown, ChevronLeft, ChevronRight, Goal, Grid3X3, House, ListTree, LogOut, Medal, Megaphone, MessageCircle, Moon, Shield, Sparkles, Sun, Trophy, User, UserCog, X } from "lucide-react";
+import { Activity, ArrowDown, ArrowRight, ArrowUp, BarChart3, Bell, Check, CheckCheck, ChevronDown, ChevronLeft, ChevronRight, Goal, Grid3X3, House, ListTree, LogOut, Medal, Megaphone, MessageCircle, Moon, PartyPopper, Shield, Sparkles, Sun, Trophy, User, UserCog, X } from "lucide-react";
 import { api } from "./api/client";
 import { LoginPage } from "./pages/LoginPage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -44,6 +44,33 @@ function ProtectedRoute() {
   const { user, loading } = useAuth();
   if (loading) return <InitialLoadingScreen />;
   return user ? <Outlet /> : <Navigate to="/login" replace />;
+}
+
+function ScheduledAnnouncement({ announcement, onClose }) {
+  const [closing, setClosing] = useState(false);
+  const close = useCallback(() => {
+    if (closing) return;
+    setClosing(true);
+    window.setTimeout(onClose, 520);
+  }, [closing, onClose]);
+  useEffect(() => {
+    const timer = window.setTimeout(close, Number(announcement.auto_close_seconds || 8) * 1000);
+    const onKeyDown = event => { if (event.key === "Escape") close(); };
+    document.addEventListener("keydown", onKeyDown);
+    return () => { window.clearTimeout(timer); document.removeEventListener("keydown", onKeyDown); };
+  }, [announcement.id, announcement.auto_close_seconds, close]);
+  const confetti = Array.from({ length: 34 }, (_, index) => index);
+  return <div className={`scheduled-announcement-overlay${closing ? " is-closing" : ""}`} role="dialog" aria-modal="true" aria-labelledby="scheduled-announcement-title">
+    {Boolean(announcement.confetti) && <div className="scheduled-announcement-confetti" aria-hidden="true">{confetti.map(piece => <i key={piece} style={{ "--piece": piece, "--x": `${(piece * 37) % 100}%`, "--delay": `${(piece % 9) * .07}s`, "--spin": `${piece * 47}deg` }}/>)}</div>}
+    <section className="scheduled-announcement-card">
+      <button type="button" className="scheduled-announcement-close" aria-label="Cerrar anuncio" onClick={close}><X size={22}/></button>
+      <span><PartyPopper size={18}/> ANUNCIO ESPECIAL</span>
+      <h2 id="scheduled-announcement-title">{announcement.title}</h2>
+      <p>{announcement.body}</p>
+      <button type="button" className="scheduled-announcement-action" onClick={close}>¡Vamos!</button>
+      <small>Este anuncio solo se muestra una vez.</small>
+    </section>
+  </div>;
 }
 function AdminRoute() {
   const { user } = useAuth();
@@ -627,6 +654,7 @@ function MainLayout() {
   const [newsOpen,setNewsOpen]=useState(false);
   const [newsData,setNewsData]=useState({items:[],unread_count:0});
   const [adminMessage,setAdminMessage]=useState(null);
+  const [scheduledAnnouncement,setScheduledAnnouncement]=useState(null);
   const [messageError,setMessageError]=useState("");
   const [answering,setAnswering]=useState(false);
   const [navExpanded,setNavExpanded]=useState(false);
@@ -721,6 +749,10 @@ function MainLayout() {
   useEffect(()=>{
     if(user.role==="admin"||user.is_read_only)return;
     return startVisiblePolling(loadAdminMessage,15000);
+  },[user.role,user.is_read_only]);
+  useEffect(()=>{
+    if(user.role==="admin"||user.is_read_only)return;
+    api("/announcements/pending").then(data=>setScheduledAnnouncement(data.announcement)).catch(()=>{});
   },[user.role,user.is_read_only]);
   const answerAdminMessage=async optionId=>{
     setAnswering(true);setMessageError("");
@@ -869,6 +901,7 @@ function MainLayout() {
   return <div className="app-shell">
     <ScrollToTopOnNavigation/>
     <NewsDrawer open={newsOpen} items={newsData.items} unreadCount={newsData.unread_count} onClose={()=>setNewsOpen(false)} onMarkRead={markNewsRead} onMarkAllRead={markAllNewsRead}/>
+    {scheduledAnnouncement&&!adminMessage&&<ScheduledAnnouncement announcement={scheduledAnnouncement} onClose={()=>setScheduledAnnouncement(null)}/>}
     <MovementSummaryPanel enabled={!adminMessage}/>
     {adminMessage&&<div className="mandatory-message-overlay" role="dialog" aria-modal="true" aria-labelledby="mandatory-message-title">
       <section className="mandatory-message-card">

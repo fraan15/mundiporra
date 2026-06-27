@@ -2747,6 +2747,82 @@ app.delete("/api/admin/news/:id", requireAdmin, (req, res) => {
   res.json({ ok: true });
 });
 
+app.get("/api/announcements/pending", requireAuth, (req, res) => {
+  if (req.user.role === "admin" || req.user.is_read_only) return res.json({ announcement: null });
+  const announcement = db.transaction(() => {
+    const pending = db.prepare(`
+      SELECT a.* FROM scheduled_announcements a
+      WHERE a.active=1 AND a.starts_at<=?
+        AND NOT EXISTS (
+          SELECT 1 FROM scheduled_announcement_views v
+          WHERE v.announcement_id=a.id AND v.user_id=?
+        )
+      ORDER BY a.starts_at,a.id LIMIT 1
+    `).get(now(), req.user.id);
+    if (!pending) return null;
+    db.prepare(`
+      INSERT OR IGNORE INTO scheduled_announcement_views(announcement_id,user_id,viewed_at)
+      VALUES(?,?,?)
+    `).run(pending.id, req.user.id, now());
+    return pending;
+  })();
+  res.json({ announcement });
+});
+
+app.get("/api/admin/announcements", requireAdmin, (_req, res) => {
+  const totalUsers = db.prepare("SELECT COUNT(*) count FROM users WHERE role='user' AND active=1").get().count;
+  const rows = db.prepare(`
+    SELECT a.*,COUNT(v.user_id) viewed_count
+    FROM scheduled_announcements a
+    LEFT JOIN scheduled_announcement_views v ON v.announcement_id=a.id
+    GROUP BY a.id ORDER BY a.starts_at DESC,a.id DESC
+  `).all();
+  res.json(rows.map((row) => ({ ...row, total_users: totalUsers })));
+});
+
+app.post("/api/admin/announcements", requireAdmin, (req, res) => {
+  const title = String(req.body.title || "").trim().slice(0, 120);
+  const body = String(req.body.body || "").trim().slice(0, 1000);
+  const startsAt = normalizeMatchInstant(req.body.starts_at);
+  const seconds = Number(req.body.auto_close_seconds);
+  if (!title || !body || !startsAt) return res.status(400).json({ error: "Título, mensaje y fecha de inicio son obligatorios." });
+  if (!Number.isInteger(seconds) || seconds < 3 || seconds > 60) return res.status(400).json({ error: "El cierre automático debe estar entre 3 y 60 segundos." });
+  const stamp = now();
+  const result = db.prepare(`
+    INSERT INTO scheduled_announcements(title,body,starts_at,active,confetti,auto_close_seconds,created_by,created_at,updated_at)
+    VALUES(?,?,?,?,?,?,?,?,?)
+  `).run(title, body, startsAt, requestBoolean(req.body.active) ? 1 : 0, requestBoolean(req.body.confetti) ? 1 : 0, seconds, req.user.id, stamp, stamp);
+  logAction(req.user.id, "create_announcement", "scheduled_announcement", Number(result.lastInsertRowid), `Anuncio programado: ${title}`);
+  res.status(201).json({ id: Number(result.lastInsertRowid) });
+});
+
+app.patch("/api/admin/announcements/:id", requireAdmin, (req, res) => {
+  const current = db.prepare("SELECT * FROM scheduled_announcements WHERE id=?").get(req.params.id);
+  if (!current) return res.status(404).json({ error: "Anuncio no encontrado." });
+  const title = req.body.title === undefined ? current.title : String(req.body.title || "").trim().slice(0, 120);
+  const body = req.body.body === undefined ? current.body : String(req.body.body || "").trim().slice(0, 1000);
+  const startsAt = req.body.starts_at === undefined ? current.starts_at : normalizeMatchInstant(req.body.starts_at);
+  const seconds = req.body.auto_close_seconds === undefined ? current.auto_close_seconds : Number(req.body.auto_close_seconds);
+  if (!title || !body || !startsAt || !Number.isInteger(seconds) || seconds < 3 || seconds > 60) return res.status(400).json({ error: "Datos del anuncio no válidos." });
+  const next = {
+    title, body, starts_at: startsAt, auto_close_seconds: seconds,
+    active: req.body.active === undefined ? current.active : requestBoolean(req.body.active) ? 1 : 0,
+    confetti: req.body.confetti === undefined ? current.confetti : requestBoolean(req.body.confetti) ? 1 : 0
+  };
+  db.prepare("UPDATE scheduled_announcements SET title=?,body=?,starts_at=?,active=?,confetti=?,auto_close_seconds=?,updated_at=? WHERE id=?")
+    .run(next.title, next.body, next.starts_at, next.active, next.confetti, next.auto_close_seconds, now(), current.id);
+  logAction(req.user.id, "edit_announcement", "scheduled_announcement", current.id, `Anuncio actualizado: ${title}`, current, next);
+  res.json({ ok: true });
+});
+
+app.delete("/api/admin/announcements/:id", requireAdmin, (req, res) => {
+  const current = db.prepare("SELECT * FROM scheduled_announcements WHERE id=?").get(req.params.id);
+  if (!current) return res.status(404).json({ error: "Anuncio no encontrado." });
+  db.prepare("DELETE FROM scheduled_announcements WHERE id=?").run(current.id);
+  logAction(req.user.id, "delete_announcement", "scheduled_announcement", current.id, `Anuncio eliminado: ${current.title}`, current, null);
+  res.json({ ok: true });
+});
+
 if (fs.existsSync(path.join(frontendDist, "index.html"))) {
   app.use(express.static(frontendDist));
   app.get("*", (req, res, next) => {
