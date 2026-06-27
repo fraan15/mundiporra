@@ -183,16 +183,16 @@ test("las reacciones validan visibilidad, revelado, emojis, conteos y toggle", a
     match_id: openMatch.body.id, predicted_winner: "draw", predicted_team1_goals: 0, predicted_team2_goals: 0
   });
   assert.equal(prediction.status, 201);
-  assert.equal((await user.post("/api/reactions/toggle").send({ target_type: "prediction", target_id: prediction.body.id, emoji: "❤️" })).status, 400);
+  assert.equal((await user.post("/api/reactions/toggle").send({ target_type: "prediction", target_id: prediction.body.id, emoji: "🐙" })).status, 400);
   assert.equal((await user.post("/api/reactions/toggle").send({ target_type: "prediction", target_id: prediction.body.id, emoji: "😂" })).status, 403);
 
   await admin.patch(`/api/matches/${openMatch.body.id}/status`).send({ status: "closed" });
   assert.equal((await user.post("/api/reactions/toggle").send({ target_type: "prediction", target_id: prediction.body.id, emoji: "😂" })).status, 403);
-  const added = await admin.post("/api/reactions/toggle").send({ target_type: "prediction", target_id: prediction.body.id, emoji: "😂" });
+  const added = await admin.post("/api/reactions/toggle").send({ target_type: "prediction", target_id: prediction.body.id, emoji: "❤️" });
   assert.equal(added.status, 200);
-  assert.equal(added.body.reactions["😂"].count, 1);
-  assert.equal(added.body.reactions["😂"].reacted, true);
-  assert.equal(added.body.reactions["😂"].users[0].username, "administrador");
+  assert.equal(added.body.reactions["❤️"].count, 1);
+  assert.equal(added.body.reactions["❤️"].reacted, true);
+  assert.equal(added.body.reactions["❤️"].users[0].username, "administrador");
   const reactionNotifications = await user.get("/api/notifications");
   const reactionNotification = reactionNotifications.body.notifications.find((item) => item.event_key === `reaction:${
     db.prepare("SELECT id FROM reactions WHERE user_id=? AND target_type='prediction' AND target_id=?").get(
@@ -203,10 +203,10 @@ test("las reacciones validan visibilidad, revelado, emojis, conteos y toggle", a
   assert.match(reactionNotification.message, /administrador ha reaccionado a tu pronóstico/);
   assert.equal(reactionNotification.link, `/match/${openMatch.body.id}`);
   const listed = await admin.get(`/api/reactions?target_type=prediction&target_ids=${prediction.body.id}`);
-  assert.equal(listed.body.reactions[`prediction:${prediction.body.id}`]["😂"].count, 1);
-  assert.equal(listed.body.reactions[`prediction:${prediction.body.id}`]["😂"].reacted, true);
+  assert.equal(listed.body.reactions[`prediction:${prediction.body.id}`]["❤️"].count, 1);
+  assert.equal(listed.body.reactions[`prediction:${prediction.body.id}`]["❤️"].reacted, true);
   const changed = await admin.post("/api/reactions/toggle").send({ target_type: "prediction", target_id: prediction.body.id, emoji: "🔥" });
-  assert.equal(changed.body.reactions["😂"].count, 0);
+  assert.equal(changed.body.reactions["❤️"].count, 0);
   assert.equal(changed.body.reactions["🔥"].count, 1);
   assert.equal(changed.body.reactions["🔥"].reacted, true);
   assert.equal(db.prepare("SELECT COUNT(*) count FROM reactions WHERE user_id=? AND target_type='prediction' AND target_id=?").get(
@@ -220,10 +220,10 @@ test("las reacciones validan visibilidad, revelado, emojis, conteos y toggle", a
 
   const comment = await user.post(`/api/matches/${openMatch.body.id}/comments`).send({ comment: "Comentario reaccionable" });
   assert.equal(comment.status, 201);
-  const commentToggle = await admin.post("/api/reactions/toggle").send({ target_type: "match_comment", target_id: comment.body.id, emoji: "👏" });
+  const commentToggle = await admin.post("/api/reactions/toggle").send({ target_type: "match_comment", target_id: comment.body.id, emoji: "❤️" });
   assert.equal(commentToggle.status, 200);
-  assert.equal(commentToggle.body.reactions["👏"].count, 1);
-  assert.equal(commentToggle.body.reactions["👏"].reacted, true);
+  assert.equal(commentToggle.body.reactions["❤️"].count, 1);
+  assert.equal(commentToggle.body.reactions["❤️"].reacted, true);
 
   const hiddenMatch = await admin.post("/api/matches").send({
     match_date: "2099-07-01", match_time: "20:00", team1: "Oculto A", team2: "Oculto B"

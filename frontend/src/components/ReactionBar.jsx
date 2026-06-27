@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api/client";
 
-const FALLBACK_EMOJIS = ["😂", "🔥", "🤡", "👀", "😭", "👏"];
+const FALLBACK_EMOJIS = ["❤️", "😂", "🔥", "🤡", "👀", "😭", "👏"];
 const emptyReactions = (emojis = FALLBACK_EMOJIS) => Object.fromEntries(
   emojis.map((emoji) => [emoji, { count: 0, reacted: false }]),
 );

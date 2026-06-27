@@ -37,7 +37,7 @@ import { Countdown } from "../components/MatchCard";
 import { StarMatchTitle } from "../components/StarMatchTitle";
 import { ActivityAvatar, Avatar } from "../components/Avatar";
 import { ScorerPicker } from "../components/ScorerPicker";
-import { localMatchParts, localMatchTime } from "../utils/matchDateTime";
+import { formatLocalDateTime, localMatchParts, localMatchTime } from "../utils/matchDateTime";
 import { AvatarCropper } from "../components/AvatarCropper";
 import { ReactionBar } from "../components/ReactionBar";
 import { IMAGE_ACCEPT, inferImageType, optimizeImageForUpload, sendImage } from "../utils/imageUpload";
@@ -1049,6 +1049,7 @@ function PredictionHistoryRow({ prediction, detail, open, onToggle }) {
   );
 }
 function PointsDetailOverlay({ detail, username, onClose }) {
+  const { user } = useAuth();
   const savedUi = useMemo(() => {
       try {
         return JSON.parse(sessionStorage.getItem("pointsDetailUi") || "null");
@@ -1224,7 +1225,7 @@ function PointsDetailOverlay({ detail, username, onClose }) {
                   <strong>{signed(adjustment.points)} pts</strong>
                   <span>{adjustment.reason}</span>
                   <small>
-                    {new Date(adjustment.created_at).toLocaleString("es-ES")}
+                    {formatLocalDateTime(adjustment.created_at,user.country_code)}
                     {adjustment.created_by_username
                       ? ` · ${adjustment.created_by_username}`
                       : ""}
@@ -1359,6 +1360,7 @@ function PointsMatchRow({ match, open, onToggle }) {
   );
 }
 function ActivityFeedItem({ item }) {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false),
     breakdown = item.points_breakdown;
   const finalAddends = breakdown?.rules
@@ -1404,7 +1406,7 @@ function ActivityFeedItem({ item }) {
             </span>
           )}
         </span>
-        <small>{new Date(item.created_at).toLocaleString("es-ES")}</small>
+        <small>{formatLocalDateTime(item.created_at,user.country_code)}</small>
         {open && breakdown && (
           <div className="activity-breakdown">
             <strong>Desglose de puntos</strong>
@@ -3143,7 +3145,7 @@ export function MatchDetailPage() {
               <strong>{c.username}</strong>
               {c.comment && <p>{c.comment.split(/(@[\p{L}\p{N}_.-]+)/gu).map((part, index) => part.startsWith("@") ? <mark key={index}>{part}</mark> : part)}</p>}
               {c.media_url && (c.media_type === "image" ? <button type="button" className="comment-media-button" onClick={() => setImageViewer(c.media_url)} aria-label="Ampliar foto"><img className="comment-media image" src={c.media_preview_url || c.media_url} alt="Foto del comentario" loading="lazy" /></button> : <img className={`comment-media ${c.media_type || "gif"}`} src={c.media_url} alt={c.media_type === "sticker" ? "Sticker" : "GIF"} loading="lazy" />)}
-              <small>{new Date(c.created_at).toLocaleString("es-ES")}</small>
+              <small>{formatLocalDateTime(c.created_at,user.country_code)}</small>
             </ReactionBar>
             {!user.is_read_only &&
               (c.user_id === user.id || user.role === "admin") && (

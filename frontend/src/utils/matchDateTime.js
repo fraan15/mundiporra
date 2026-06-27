@@ -69,3 +69,14 @@ export const localMatchDate = (match, countryCode = "ES") =>
 export const localMatchTime = (match, countryCode = "ES") =>
   localMatchParts(match, countryCode).time;
 
+export const formatLocalDateTime = (
+  value,
+  countryCode = "ES",
+  options = {},
+) => {
+  if (!value) return "";
+  return new Intl.DateTimeFormat("es-ES", {
+    timeZone: countryTimeZone(countryCode),
+    ...options,
+  }).format(new Date(value));
+};

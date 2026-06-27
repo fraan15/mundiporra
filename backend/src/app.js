@@ -233,7 +233,7 @@ const matchStartsAt = (match) => new Date(normalizeMatchInstant(`${match.match_d
 const matchPublishesAt = (match) => new Date(matchStartsAt(match).getTime() - 24 * 60 * 60 * 1000);
 const isMatchPublished = (match, current = new Date()) => Boolean(match.force_published) || current >= matchPublishesAt(match);
 const canAccessMatch = (req, match) => req.user.role === "admin" || isMatchPublished(match);
-const ALLOWED_REACTION_EMOJIS = ["😂", "🔥", "🤡", "👀", "😭", "👏"];
+const ALLOWED_REACTION_EMOJIS = ["❤️", "😂", "🔥", "🤡", "👀", "😭", "👏"];
 const REACTION_TARGET_TYPES = new Set(["prediction", "match_comment"]);
 const emptyReactionSummary = () => Object.fromEntries(ALLOWED_REACTION_EMOJIS.map((emoji) => [emoji, { count: 0, reacted: false }]));
 const reactionSummary = (targetType, targetId, userId) => {

@@ -3,6 +3,7 @@ import { ArrowLeft, CornerUpLeft, ImagePlus, MessageCircle, Plus, Send, Smile, T
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../App";
+import { formatLocalDateTime } from "../utils/matchDateTime";
 import { Avatar } from "../components/Avatar";
 import { startVisiblePolling } from "../utils/visiblePolling";
 
@@ -329,7 +330,7 @@ export function ChatPage() {
       <span className="chat-swipe-reply"><CornerUpLeft size={17}/></span>
       <Avatar user={message} className="chat-avatar"/>
       <div className="chat-bubble">
-        <header><strong>{message.username}</strong><time>{new Date(message.created_at).toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" })}</time></header>
+        <header><strong>{message.username}</strong><time>{formatLocalDateTime(message.created_at,user.country_code,{ dateStyle: "short", timeStyle: "short" })}</time></header>
         {renderReplyPreview(message)}
         {message.message && <p>{mentionParts(message.message)}</p>}
         {message.media_type && <button type="button" className="chat-media-button" onClick={() => message.media_type === "image" && setViewer(message.media_url)}>

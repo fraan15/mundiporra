@@ -18,7 +18,7 @@ import { Avatar } from "./components/Avatar";
 import { Flag } from "./components/SportsUI";
 import { PushSettingsPage } from "./components/PushSettings";
 import { startVisiblePolling } from "./utils/visiblePolling";
-import { localMatchTime } from "./utils/matchDateTime";
+import { formatLocalDateTime, localMatchTime } from "./utils/matchDateTime";
 
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
@@ -87,9 +87,9 @@ function NotificationTypeIcon({ type, size = 15 }) {
   if (type === "match_closed" || type === "match_available" || type === "match_reminder" || type === "result_published") return <Goal size={size} />;
   return <Bell size={size} />;
 }
-function formatNotificationDate(date) {
+function formatNotificationDate(date, countryCode) {
   if (!date) return "";
-  return new Date(date).toLocaleString("es-ES", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+  return formatLocalDateTime(date, countryCode, { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 }
 function NotificationsBell() {
   const { user } = useAuth();
@@ -263,7 +263,7 @@ function NotificationsBell() {
             <button className={`notification-item ${item.read ? "read" : "unread"}`} aria-label={`${item.title}. ${item.message}. ${notificationTypeLabel(item.type)}. ${item.read ? "Leída" : "Sin leer"}`} onClick={(event) => { if (suppressNotificationClickRef.current) { event.preventDefault(); suppressNotificationClickRef.current = false; return; } read(item); }}>
               <span className={`notification-type ${item.type}`} aria-hidden="true"><span className={`notification-dot ${item.type}`}><NotificationTypeIcon type={item.type}/></span></span>
               <span className="notification-content">
-                <span className="notification-meta"><em>{notificationTypeLabel(item.type)}</em><small>{formatNotificationDate(item.created_at)}</small></span>
+                <span className="notification-meta"><em>{notificationTypeLabel(item.type)}</em><small>{formatNotificationDate(item.created_at,user.country_code)}</small></span>
                 <strong>{item.title}</strong>
                 <span className="notification-message">{item.message}</span>
               </span>
@@ -276,6 +276,7 @@ function NotificationsBell() {
   </div>;
 }
 function NewsDrawer({ open, items, unreadCount, onClose, onMarkRead, onMarkAllRead }) {
+  const { user } = useAuth();
   const swipeRef = useRef(null);
   const start = (event) => {
     if (event.pointerType === "mouse") return;
@@ -307,7 +308,7 @@ function NewsDrawer({ open, items, unreadCount, onClose, onMarkRead, onMarkAllRe
       {unreadCount > 0 && <div className="news-drawer-tools"><button className="news-read-all" type="button" onClick={onMarkAllRead}>Marcar todas como leídas</button></div>}
       <div className="news-drawer-list">
         {items.length ? items.map((item) => <article key={item.id} className={item.read ? "read" : "unread"}>
-          <div className="news-item-meta"><time>{new Date(item.created_at).toLocaleString("es-ES", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</time>{!item.read && <span>Nueva</span>}</div>
+          <div className="news-item-meta"><time>{formatLocalDateTime(item.created_at,user.country_code,{ day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</time>{!item.read && <span>Nueva</span>}</div>
           <h3>{item.title}</h3>
           <p>{item.body}</p>
           {!item.read && <button type="button" onClick={() => onMarkRead(item.id)}>Marcar como leída</button>}
