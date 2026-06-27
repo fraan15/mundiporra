@@ -2057,9 +2057,9 @@ app.post("/api/matches/:id/finish", requireAdmin, (req, res) => {
     : `Resultado publicado (${req.user.username})`;
   const resultNotificationEventKey = before.status === "finished"
     ? `result-edit:${before.id}:${crypto.randomUUID()}`
-    : `result:${before.id}:${g1}-${g2}`;
+    : `result:${before.id}:${g1}-${g2}:${crypto.randomUUID()}`;
   // A result can be deleted and later published again with the same score.
-  // Its movement summary is a new event even when notification deduplication keeps the same key.
+  // Each publication must remain a distinct notification and movement event.
   const movementEventKey = `movement:${before.id}:${crypto.randomUUID()}`;
   const actualScorers = playerScorerIds.length ? db.prepare(`
     SELECT p.name FROM players p WHERE p.id IN (${playerScorerIds.map(() => "?").join(",")}) ORDER BY p.name

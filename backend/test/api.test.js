@@ -1319,6 +1319,11 @@ test("el administrador puede eliminar un resultado y reabrir el partido", async 
   const movementSummaries = await user.get("/api/movement-summaries/pending");
   assert.equal(movementSummaries.status, 200);
   assert.equal(movementSummaries.body.summaries.filter((item) => item.match.id === created.body.id).length, 1);
+  const resultNotifications = (await user.get("/api/notifications")).body.notifications.filter((item) =>
+    item.type === "result_published" && item.entity_id === created.body.id
+  );
+  assert.equal(resultNotifications.length, 2);
+  assert.notEqual(resultNotifications[0].event_key, resultNotifications[1].event_key);
 });
 
 test("al reabrir se puede elegir cierre automático o apertura manual", async () => {
