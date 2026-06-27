@@ -147,12 +147,12 @@ function DashboardPredictionValue({ match, user, emptyText }) {
   </span>;
 }
 
-function DashboardCalendar({ matches, calendarToday, onOpenMatch, restoreScrollTop, user, currentTime }) {
+function DashboardCalendar({ matches, calendarToday, onOpenMatch, restoreScrollTop, restoreCalendar, user, currentTime }) {
   const viewportRef = useRef(null);
   const pointerRef = useRef(null);
   const swipeRef = useRef(null);
   const [activeDayIndex, setActiveDayIndex] = useState(() => {
-    if (sessionStorage.getItem("dashboardCalendarReturn") !== "1") return 1;
+    if (!restoreCalendar) return 1;
     const storedIndex = Number(sessionStorage.getItem("dashboardCalendarActiveDayIndex"));
     return Number.isInteger(storedIndex) && storedIndex >= 0 && storedIndex <= 2 ? storedIndex : 1;
   });
@@ -199,7 +199,6 @@ function DashboardCalendar({ matches, calendarToday, onOpenMatch, restoreScrollT
     sessionStorage.setItem("dashboardCalendarScrollTop", String(window.scrollY || 0));
     sessionStorage.setItem("dashboardCalendarActiveDayIndex", String(activeDayIndex));
     sessionStorage.setItem("dashboardCalendarActiveDateKey", activeDay?.key || "");
-    sessionStorage.setItem("dashboardCalendarReturn", "1");
   };
   const openMatch = (event, match) => {
     event.stopPropagation();
@@ -244,7 +243,7 @@ function DashboardCalendar({ matches, calendarToday, onOpenMatch, restoreScrollT
         swipeRef.current = null;
         return;
       }
-      if (absX >= 16 && absX > absY * 1.25) {
+      if (absX >= 26 && absX > absY * 1.25) {
         swipeRef.current.dragging = true;
         setIsDragging(true);
         viewportRef.current?.setPointerCapture?.(swipeRef.current.pointerId);
@@ -300,13 +299,13 @@ function DashboardCalendar({ matches, calendarToday, onOpenMatch, restoreScrollT
     if (dragFrameRef.current) cancelAnimationFrame(dragFrameRef.current);
   }, []);
   useEffect(() => {
-    if (sessionStorage.getItem("dashboardCalendarReturn") !== "1") return;
+    if (!restoreCalendar) return;
     const storedKey = sessionStorage.getItem("dashboardCalendarActiveDateKey");
     const storedIndex = Number(sessionStorage.getItem("dashboardCalendarActiveDayIndex"));
     const keyIndex = storedKey ? days.findIndex(day => day.key === storedKey) : -1;
     if (keyIndex >= 0) setActiveDayIndex(keyIndex);
     else if (Number.isInteger(storedIndex) && storedIndex >= 0 && storedIndex < days.length) setActiveDayIndex(storedIndex);
-  }, [days[0].key]);
+  }, [days[0].key, restoreCalendar]);
   useEffect(() => {
     if (restoreScrollTop === null) return;
     window.requestAnimationFrame(() => window.scrollTo({ top: restoreScrollTop, behavior: "auto" }));
@@ -362,8 +361,9 @@ function DashboardCalendar({ matches, calendarToday, onOpenMatch, restoreScrollT
 }
 
 export function DashboardPage() {
-  const [calendarReturnInfo]=useState(()=>sessionStorage.getItem("dashboardCalendarReturn")==="1"?{scrollTop:Number(sessionStorage.getItem("dashboardCalendarScrollTop")||0)}:null);
   const {user}=useAuth(),navigate=useNavigate(),location=useLocation(),[data,setData]=useState(null),[activity,setActivity]=useState([]),[calendarMatches,setCalendarMatches]=useState([]),[calendarToday,setCalendarToday]=useState(null),[tick,setTick]=useState(Date.now()),[matchIndex,setMatchIndex]=useState(0),[liveMatchIndex,setLiveMatchIndex]=useState(0),[liveDragOffset,setLiveDragOffset]=useState(0),[isLiveDragging,setIsLiveDragging]=useState(false),[knockoutInfoOpen,setKnockoutInfoOpen]=useState(false),[medalInfoOpen,setMedalInfoOpen]=useState(false),[medalData,setMedalData]=useState(null);
+  const restoreDashboardCalendar=location.state?.restoreDashboardCalendar===true;
+  const [calendarReturnInfo]=useState(()=>restoreDashboardCalendar?{scrollTop:Number(sessionStorage.getItem("dashboardCalendarScrollTop")||0)}:null);
   const calendarRestoreScrollTop=calendarReturnInfo ? calendarReturnInfo.scrollTop : null;
   const swipeStart=useRef(null),liveSwipeStart=useRef(null),liveDragFrame=useRef(null),suppressNextClick=useRef(false),suppressLiveClick=useRef(false),initialDashboardHydrated=useRef(false);
   const loadDashboard=()=>api("/dashboard").then((dashboard)=>{
@@ -381,7 +381,6 @@ export function DashboardPage() {
     setCalendarMatches(calendar.matches);
   });
   useEffect(()=>{const tickTimer=setInterval(()=>setTick(Date.now()),1000);const stopDashboard=startVisiblePolling(loadDashboard,15000);const stopMatches=startVisiblePolling(loadCalendar,30000,{immediate:false});return()=>{clearInterval(tickTimer);stopDashboard();stopMatches()}},[]);
-  useEffect(()=>{if(location.pathname==="/")sessionStorage.removeItem("dashboardCalendarReturn")},[location.pathname]);
   useEffect(()=>()=>{if(liveDragFrame.current)cancelAnimationFrame(liveDragFrame.current)},[]);
   if(!data)return <div className="page-loader"><span/></div>;
   const s=data.summary,inPlayMatches=data.in_play_matches||[],nextMatches=data.next_matches||[],m=nextMatches[matchIndex]||data.next_match,remaining=m?Math.max(0,new Date(m.effective_close_at)-tick):0;
@@ -476,7 +475,11 @@ export function DashboardPage() {
     setMedalInfoOpen(true);
     if(!medalData)api("/dashboard/medals").then(setMedalData);
   };
-  const openCalendarMatch=(match)=>navigate(`/match/${match.id}`,{state:{fromDashboardCalendar:true}});
+  const openCalendarMatch=(match)=>{
+    const historyState=window.history.state||{};
+    window.history.replaceState({...historyState,usr:{...(historyState.usr||{}),restoreDashboardCalendar:true}},"");
+    navigate(`/match/${match.id}`,{state:{fromDashboardCalendar:true}});
+  };
   const openMatchOnKey=(event, match, suppressRef)=>{
     if(event.key==="Enter"||event.key===" "){
       event.preventDefault();
@@ -507,7 +510,7 @@ export function DashboardPage() {
       <span className="worldcup-action-arrow"><ArrowRight size={17}/></span>
     </button>
   </section>
-  <DashboardCalendar matches={calendarMatches} calendarToday={calendarToday} onOpenMatch={openCalendarMatch} restoreScrollTop={calendarRestoreScrollTop} user={user} currentTime={tick}/>
+  <DashboardCalendar matches={calendarMatches} calendarToday={calendarToday} onOpenMatch={openCalendarMatch} restoreScrollTop={calendarRestoreScrollTop} restoreCalendar={restoreDashboardCalendar} user={user} currentTime={tick}/>
               {liveMatch&&<section className="live-matches-section content-card"><div className="card-title"><div><span className="eyebrow live-label"><Radio size={14}/> EN DIRECTO</span><h2>Partidos en juego</h2><p>Sigue los encuentros activos ahora mismo</p></div><button className="detail-icon-button" aria-label="Ver detalle del partido en juego" title="Ver detalle" onClick={()=>navigate(`/match/${liveMatch.id}`)}><Eye size={17}/></button></div><div className={`live-match-carousel ${isLiveDragging?"is-dragging":""}`} onPointerDown={startLiveSwipe} onPointerMove={moveLiveSwipe} onPointerUp={endLiveSwipe} onPointerCancel={cancelLiveSwipe} onPointerLeave={event=>{if(event.pointerType==="mouse")cancelLiveSwipe()}}><div className={`live-match-track ${isLiveDragging?"is-dragging":""}`} style={{transform:`translate3d(calc(${-liveMatchIndex*100}% + ${liveDragOffset}px),0,0)`}}>{inPlayMatches.map(match=><div className="live-match-slide" key={match.id}><article className={`live-match-card ${match.is_star?"star-dashboard-card live-star-card":""}`} onClick={()=>openMatch(match,suppressLiveClick)} onKeyDown={event=>openMatchOnKey(event,match,suppressLiveClick)} role="button" tabIndex={0} aria-label={`Ver detalle de ${match.team1} contra ${match.team2}`}>{Boolean(match.is_star)&&<span className="live-star-badge"><Star size={13} fill="currentColor"/> Partido Estrella <b>x2</b></span>}<div className="live-match-teams match-open-card"><div><Flag team={match.team1} teamData={match.team1_team}/><strong>{match.team1}</strong></div><span className="live-versus"><b>VS</b><small><Clock3 size={12}/> Comenzó {localMatchTime(match,user.country_code)}</small><em className="live-status-badge"><i/> Live</em></span><div><Flag team={match.team2} teamData={match.team2_team}/><strong>{match.team2}</strong></div></div><div className={`live-match-prediction ${match.prediction_id?"has-prediction":"no-prediction"}`}><span className="live-prediction-label">{user.is_read_only?"Participación":"Tu apuesta"}</span><DashboardPredictionValue match={match} user={user} emptyText="No apostado"/></div></article></div>)}</div></div>{inPlayMatches.length>1&&<div className="match-carousel-controls live-match-carousel-controls"><button aria-label="Partido en juego anterior" onClick={()=>goToLiveMatch(liveMatchIndex-1)}><ArrowLeft size={17}/></button><div>{inPlayMatches.map((match,index)=><button aria-label={`Ver partido en juego ${index+1}`} className={liveMatchIndex===index?"active":""} key={match.id} onClick={()=>goToLiveMatch(index)}/>)}</div><button aria-label="Partido en juego siguiente" onClick={()=>goToLiveMatch(liveMatchIndex+1)}><ArrowRight size={17}/></button></div>}</section>}
   <div className="dashboard-grid">
   <section className="content-card activity-card"><div className="card-title"><div><span className="eyebrow">COMUNIDAD</span><h2>Última actividad</h2></div><button onClick={()=>navigate("/actividad")}>Ver todo</button></div><div className="activity-feed compact">{activity.slice(0,4).map((a,i)=><article key={i}><ActivityAvatar user={a} type={a.type}/><div><strong className="activity-line">{a.text}{a.type==="points"&&<span className={`points-award ${a.exact_result_points>0?"exact":""}`}>{a.exact_result_points>0&&<Star size={14} fill="currentColor"/>}+{a.total_points} pts</span>}</strong><small>{formatLocalDateTime(a.created_at,user.country_code)}</small></div></article>)}</div></section></div></div>

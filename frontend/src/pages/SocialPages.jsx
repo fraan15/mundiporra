@@ -2555,8 +2555,7 @@ export function MatchDetailPage() {
     }
   };
   const backTarget =
-    location.state?.fromDashboardCalendar ||
-    sessionStorage.getItem("dashboardCalendarReturn") === "1"
+    location.state?.fromDashboardCalendar
       ? "/"
       : "/partidos";
   return (
@@ -2578,7 +2577,10 @@ export function MatchDetailPage() {
       {knockoutInfoOpen && <KnockoutInfoDialog onClose={() => setKnockoutInfoOpen(false)}/>}
       <button
         className="back-btn"
-        onClick={() => navigate(backTarget, { replace: true })}
+        onClick={() => navigate(backTarget, {
+          replace: true,
+          state: location.state?.fromDashboardCalendar ? { restoreDashboardCalendar: true } : undefined,
+        })}
       >
         <ArrowLeft size={16} />
         Todos los partidos
