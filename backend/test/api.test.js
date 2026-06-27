@@ -1046,6 +1046,8 @@ test("recalcula con fiabilidad al editar resultado, goleadores y Partido Estrell
     .filter((item) => item.match.id === created.body.id);
   assert.equal(pendingMovements.length, 1);
   assert.deepEqual([pendingMovements[0].match.result_team1, pendingMovements[0].match.result_team2], [2, 1]);
+  const myMovementRow = pendingMovements[0].ranking.context.find((row) => row.is_me);
+  assert.equal(myMovementRow.match_points, pendingMovements[0].points);
 
   const recalculatedMatch = await admin.post(`/api/admin/recalculate/${created.body.id}`);
   assert.equal(recalculatedMatch.status, 200);
