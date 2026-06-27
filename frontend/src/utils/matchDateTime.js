@@ -75,8 +75,11 @@ export const formatLocalDateTime = (
   options = {},
 ) => {
   if (!value) return "";
+  const formatOptions = Object.keys(options).length
+    ? options
+    : { dateStyle: "short", timeStyle: "short" };
   return new Intl.DateTimeFormat("es-ES", {
     timeZone: countryTimeZone(countryCode),
-    ...options,
+    ...formatOptions,
   }).format(new Date(value));
 };
