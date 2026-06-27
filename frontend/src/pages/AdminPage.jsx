@@ -79,7 +79,7 @@ const Notice = ({ text, notice }) => {
 };
 
 function AdminAnnouncements() {
-  const blank = { title: "¡Empiezan las eliminatorias!", body: "La fase decisiva ya está aquí. Recuerda que el resultado válido incluye la prórroga, pero no la tanda de penaltis.", starts_at: "", active: true, confetti: true, auto_close_seconds: 8 };
+  const blank = { title: "¡Empiezan las eliminatorias!", body: "La fase decisiva ya está aquí. Recuerda que el resultado válido incluye la prórroga, pero no la tanda de penaltis.", starts_at: "", active: true, confetti: true, no_auto_close: false, auto_close_seconds: 8 };
   const [form, setForm] = useState(blank);
   const [items, setItems] = useState([]);
   const [editing, setEditing] = useState(null);
@@ -88,7 +88,7 @@ function AdminAnnouncements() {
   useEffect(() => { load(); }, []);
   const save = async (event) => {
     event.preventDefault();
-    const body = { ...form, starts_at: new Date(form.starts_at).toISOString(), auto_close_seconds: Number(form.auto_close_seconds) };
+    const body = { ...form, starts_at: new Date(form.starts_at).toISOString(), auto_close_seconds: form.no_auto_close ? 0 : Number(form.auto_close_seconds) };
     if (editing) await api(`/admin/announcements/${editing.id}`, { method: "PATCH", body });
     else await api("/admin/announcements", { method: "POST", body });
     setNotice(editing ? "Anuncio actualizado." : "Anuncio programado.");
@@ -100,7 +100,7 @@ function AdminAnnouncements() {
     const date = new Date(item.starts_at);
     const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
     setEditing(item);
-    setForm({ title: item.title, body: item.body, starts_at: local, active: Boolean(item.active), confetti: Boolean(item.confetti), auto_close_seconds: item.auto_close_seconds });
+    setForm({ title: item.title, body: item.body, starts_at: local, active: Boolean(item.active), confetti: Boolean(item.confetti), no_auto_close: Number(item.auto_close_seconds) === 0, auto_close_seconds: Number(item.auto_close_seconds) || 8 });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
   const toggle = async (item) => {
@@ -120,7 +120,8 @@ function AdminAnnouncements() {
       <div className="form-grid">
         <label className="message-title-field">Título<input required maxLength={120} value={form.title} onChange={event => setForm({ ...form, title: event.target.value })}/></label>
         <label>Fecha y hora de aparición<input required type="datetime-local" value={form.starts_at} onChange={event => setForm({ ...form, starts_at: event.target.value })}/></label>
-        <label>Cierre automático (segundos)<input required type="number" min="3" max="60" value={form.auto_close_seconds} onChange={event => setForm({ ...form, auto_close_seconds: event.target.value })}/></label>
+        <label>Cierre automático (segundos)<input required type="number" min="3" max="60" disabled={form.no_auto_close} value={form.auto_close_seconds} onChange={event => setForm({ ...form, auto_close_seconds: event.target.value })}/></label>
+        <label className="toggle"><input type="checkbox" checked={form.no_auto_close} onChange={event => setForm({ ...form, no_auto_close: event.target.checked })}/>No cerrar automáticamente</label>
         <label className="toggle"><input type="checkbox" checked={form.active} onChange={event => setForm({ ...form, active: event.target.checked })}/>Activo</label>
         <label className="toggle"><input type="checkbox" checked={form.confetti} onChange={event => setForm({ ...form, confetti: event.target.checked })}/>Mostrar confeti</label>
       </div>
@@ -137,7 +138,7 @@ function AdminAnnouncements() {
           <span className={`news-status ${item.active ? "published" : "hidden"}`}>{item.active ? "Activo" : "Pausado"}</span>
           <h3>{item.title}</h3>
           <p>{item.body}</p>
-          <small>Aparece: {new Date(item.starts_at).toLocaleString("es-ES")} · Visto por {item.viewed_count}/{item.total_users} usuarios · Cierre: {item.auto_close_seconds}s {item.confetti ? "· Confeti" : ""}</small>
+          <small>Aparece: {new Date(item.starts_at).toLocaleString("es-ES")} · Visto por {item.viewed_count}/{item.total_users} usuarios · {Number(item.auto_close_seconds) === 0 ? "Cierre manual" : `Cierre: ${item.auto_close_seconds}s`} {item.confetti ? "· Confeti" : ""}</small>
         </div>
         <div className="actions">
           <button type="button" className="accent" onClick={() => beginEdit(item)}>Editar</button>

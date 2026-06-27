@@ -54,10 +54,11 @@ function ScheduledAnnouncement({ announcement, onClose }) {
     window.setTimeout(onClose, 520);
   }, [closing, onClose]);
   useEffect(() => {
-    const timer = window.setTimeout(close, Number(announcement.auto_close_seconds || 8) * 1000);
+    const seconds = Number(announcement.auto_close_seconds);
+    const timer = seconds > 0 ? window.setTimeout(close, seconds * 1000) : null;
     const onKeyDown = event => { if (event.key === "Escape") close(); };
     document.addEventListener("keydown", onKeyDown);
-    return () => { window.clearTimeout(timer); document.removeEventListener("keydown", onKeyDown); };
+    return () => { if (timer) window.clearTimeout(timer); document.removeEventListener("keydown", onKeyDown); };
   }, [announcement.id, announcement.auto_close_seconds, close]);
   const confetti = Array.from({ length: 34 }, (_, index) => index);
   return <div className={`scheduled-announcement-overlay${closing ? " is-closing" : ""}`} role="dialog" aria-modal="true" aria-labelledby="scheduled-announcement-title">

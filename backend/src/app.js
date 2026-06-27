@@ -2786,7 +2786,7 @@ app.post("/api/admin/announcements", requireAdmin, (req, res) => {
   const startsAt = normalizeMatchInstant(req.body.starts_at);
   const seconds = Number(req.body.auto_close_seconds);
   if (!title || !body || !startsAt) return res.status(400).json({ error: "Título, mensaje y fecha de inicio son obligatorios." });
-  if (!Number.isInteger(seconds) || seconds < 3 || seconds > 60) return res.status(400).json({ error: "El cierre automático debe estar entre 3 y 60 segundos." });
+  if (!Number.isInteger(seconds) || (seconds !== 0 && (seconds < 3 || seconds > 60))) return res.status(400).json({ error: "El cierre automático debe estar desactivado o entre 3 y 60 segundos." });
   const stamp = now();
   const result = db.prepare(`
     INSERT INTO scheduled_announcements(title,body,starts_at,active,confetti,auto_close_seconds,created_by,created_at,updated_at)
@@ -2803,7 +2803,7 @@ app.patch("/api/admin/announcements/:id", requireAdmin, (req, res) => {
   const body = req.body.body === undefined ? current.body : String(req.body.body || "").trim().slice(0, 1000);
   const startsAt = req.body.starts_at === undefined ? current.starts_at : normalizeMatchInstant(req.body.starts_at);
   const seconds = req.body.auto_close_seconds === undefined ? current.auto_close_seconds : Number(req.body.auto_close_seconds);
-  if (!title || !body || !startsAt || !Number.isInteger(seconds) || seconds < 3 || seconds > 60) return res.status(400).json({ error: "Datos del anuncio no válidos." });
+  if (!title || !body || !startsAt || !Number.isInteger(seconds) || (seconds !== 0 && (seconds < 3 || seconds > 60))) return res.status(400).json({ error: "Datos del anuncio no válidos." });
   const next = {
     title, body, starts_at: startsAt, auto_close_seconds: seconds,
     active: req.body.active === undefined ? current.active : requestBoolean(req.body.active) ? 1 : 0,

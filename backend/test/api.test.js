@@ -1858,7 +1858,7 @@ test("un anuncio programado se entrega una sola vez a cada usuario", async () =>
     starts_at: "2020-01-01T12:00:00.000Z",
     active: true,
     confetti: true,
-    auto_close_seconds: 8
+    auto_close_seconds: 0
   });
   assert.equal(created.status, 201);
 
@@ -1866,6 +1866,7 @@ test("un anuncio programado se entrega una sola vez a cada usuario", async () =>
   assert.equal(first.status, 200);
   assert.equal(first.body.announcement.id, created.body.id);
   assert.equal(first.body.announcement.title, "¡Empiezan las eliminatorias!");
+  assert.equal(first.body.announcement.auto_close_seconds, 0);
 
   const second = await user.get("/api/announcements/pending");
   assert.equal(second.status, 200);
