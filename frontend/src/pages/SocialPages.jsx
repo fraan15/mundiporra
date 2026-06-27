@@ -37,6 +37,7 @@ import { Countdown } from "../components/MatchCard";
 import { StarMatchTitle } from "../components/StarMatchTitle";
 import { ActivityAvatar, Avatar } from "../components/Avatar";
 import { ScorerPicker } from "../components/ScorerPicker";
+import { localMatchParts, localMatchTime } from "../utils/matchDateTime";
 import { AvatarCropper } from "../components/AvatarCropper";
 import { ReactionBar } from "../components/ReactionBar";
 import { IMAGE_ACCEPT, inferImageType, optimizeImageForUpload, sendImage } from "../utils/imageUpload";
@@ -246,7 +247,7 @@ function MatchSimulationOverlay({ match, players, user, onClose }) {
         <p className="simulation-disclaimer">Vista informativa. Nada de lo que introduzcas aquí se guarda.</p>
         <div className="simulation-current-match">
           <strong><span title={item.team1}><Flag team={item.team1} teamData={item.team1_team}/><em>{team1Label}</em></span><b>–</b><span title={item.team2}><Flag team={item.team2} teamData={item.team2_team}/><em>{team2Label}</em></span></strong>
-          <small>{item.match_date} · {item.match_time}</small>
+          <small>{localMatchParts(item,user.country_code).date} · {localMatchTime(item,user.country_code)}</small>
           {hasMultipleMatches && <label className="simulation-active-toggle" title={itemActive ? "Partido activo en la simulación" : "Partido fuera de la simulación"}><input type="checkbox" checked={itemActive} onChange={event => setActiveByMatch(current => ({ ...current, [item.id]: event.target.checked }))}/><span>{itemActive ? "Activo" : "Off"}</span></label>}
         </div>
         <div className="simulation-gesture-area">
@@ -279,6 +280,7 @@ export function UserSettingsPage() {
   const [data, setData] = useState(null),
     [phrase, setPhrase] = useState(""),
     [displayName, setDisplayName] = useState(""),
+    [countryCode, setCountryCode] = useState("ES"),
     [saved, setSaved] = useState(false),
     [saveError, setSaveError] = useState(""),
     [passwordForm, setPasswordForm] = useState({ current_password: "", new_password: "", confirm_password: "" }),
@@ -291,6 +293,7 @@ export function UserSettingsPage() {
       setData(d);
       setPhrase(d.user.personal_phrase || "");
       setDisplayName(d.user.display_name || d.user.username);
+      setCountryCode(d.user.country_code === "GB" ? "GB" : "ES");
     });
   useEffect(() => {
     load();
@@ -307,7 +310,7 @@ export function UserSettingsPage() {
     try {
       const user = await api("/profile/me", {
         method: "PATCH",
-        body: { display_name: displayName, personal_phrase: phrase },
+        body: { display_name: displayName, personal_phrase: phrase, country_code: countryCode },
       });
       setUser((u) => ({ ...u, ...user }));
       setSaved(true);
@@ -503,6 +506,13 @@ export function UserSettingsPage() {
                 onChange={(e) => setPhrase(e.target.value)}
                 placeholder="Este año gano yo."
               />
+            </label>
+            <label>
+              País
+              <select value={countryCode} onChange={(event) => setCountryCode(event.target.value)}>
+                <option value="ES">España</option>
+                <option value="GB">Inglaterra</option>
+              </select>
             </label>
             <button className="primary" onClick={save}>
               <Edit3 size={16} />
@@ -901,6 +911,7 @@ function AvatarPreview({ user, onClose }) {
   );
 }
 function PredictionHistoryRow({ prediction, detail, open, onToggle }) {
+  const { user } = useAuth();
   const match = detail,
     p = prediction;
   if (!match) {
@@ -943,11 +954,11 @@ function PredictionHistoryRow({ prediction, detail, open, onToggle }) {
         onClick={onToggle}
       >
         <time>
-          {new Date(`${match.match_date}T12:00:00`).toLocaleDateString(
+          {new Date(`${localMatchParts(match,user.country_code).date}T12:00:00`).toLocaleDateString(
             "es-ES",
             { weekday: "short", day: "2-digit", month: "short" },
           )}
-          {match.match_time ? ` · ${match.match_time.slice(0, 5)}` : ""}
+          {match.match_time ? ` · ${localMatchTime(match,user.country_code)}` : ""}
         </time>
         <strong>
           <span>
@@ -1229,6 +1240,7 @@ function PointsDetailOverlay({ detail, username, onClose }) {
 }
 function PointsMatchRow({ match, open, onToggle }) {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const earnedRules = match.rules.filter((rule) => rule.points > 0),
     missedRules = match.rules.filter((rule) => rule.points === 0);
   return (
@@ -1242,7 +1254,7 @@ function PointsMatchRow({ match, open, onToggle }) {
         <div className="points-match-summary">
           <header>
             <time>
-              {new Date(`${match.match_date}T12:00:00`).toLocaleDateString(
+              {new Date(`${localMatchParts(match,user.country_code).date}T12:00:00`).toLocaleDateString(
                 "es-ES",
                 {
                   weekday: "short",
@@ -1251,7 +1263,7 @@ function PointsMatchRow({ match, open, onToggle }) {
                   year: "numeric",
                 },
               )}
-              {match.match_time ? ` · ${match.match_time.slice(0, 5)}` : ""}
+              {match.match_time ? ` · ${localMatchTime(match,user.country_code)}` : ""}
             </time>
             <i className={match.status === "finished" ? "finished" : "live"}>
               {match.status === "finished" ? "Finalizado" : "En vivo"}
@@ -2571,7 +2583,7 @@ export function MatchDetailPage() {
       >
         <StarMatchTitle match={m} className="match-detail-star-title" />
         <span>
-          {m.match_date} · {m.match_time} · {m.stadium}
+          {localMatchParts(m,user.country_code).date} · {localMatchTime(m,user.country_code)} · {m.stadium}
         </span>
         <div>
           <button

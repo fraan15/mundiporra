@@ -7,6 +7,7 @@ import { startVisiblePolling } from "../utils/visiblePolling";
 import { BadgeCatalogDialog, Flag } from "../components/SportsUI";
 import { StarMatchTitle } from "../components/StarMatchTitle";
 import { ActivityAvatar } from "../components/Avatar";
+import { countryTimeZone, localMatchDate, localMatchTime } from "../utils/matchDateTime";
 
 const dateKey = (date) => date.toLocaleDateString("sv-SE");
 const addDays = (date, days) => {
@@ -22,19 +23,19 @@ const dayTitle = (date, offset) => {
 };
 const shortDate = (date) => date.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
 const hasResult = (match) => match.result_team1 !== null && match.result_team2 !== null;
-const isCalendarMatchVisible = (match, calendarKeys) => {
+const isCalendarMatchVisible = (match, calendarKeys, countryCode) => {
   if (!match.published) return false;
   if (match.in_play) return true;
   if (match.betting_open) return true;
-  return calendarKeys.has(match.match_date);
+  return calendarKeys.has(localMatchDate(match, countryCode));
 };
 const normalizeCalendarResponse = (payload) => Array.isArray(payload)
   ? { calendar_today: null, matches: payload }
   : { calendar_today: payload?.calendar_today || null, matches: Array.isArray(payload?.matches) ? payload.matches : [] };
 const predictionScoreText = (match, emptyText) => match.prediction_id ? `${match.predicted_team1_goals} – ${match.predicted_team2_goals}` : emptyText;
 const predictionScorerText = (match, user) => !user.is_read_only && Number(match.scorer_enabled) && match.prediction_id && match.predicted_scorer?.name ? `Gol: ${match.predicted_scorer.name}` : "";
-const closeText = (match, current) => {
-  if (match.status === "finished") return match.match_time ? `Finalizado · ${match.match_time}` : "Finalizado";
+const closeText = (match, current, countryCode) => {
+  if (match.status === "finished") return match.match_time ? `Finalizado · ${localMatchTime(match, countryCode)}` : "Finalizado";
   if (match.in_play) return "En juego";
   if (!match.betting_open) return "Cerrado";
   const ms = Math.max(0, new Date(match.effective_close_at) - current);
@@ -158,11 +159,15 @@ function DashboardCalendar({ matches, calendarToday, onOpenMatch, restoreScrollT
   const dragFrameRef = useRef(null);
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const today = calendarToday ? new Date(`${calendarToday}T12:00:00`) : new Date(currentTime);
+  const localToday = new Intl.DateTimeFormat("en-CA", {
+    timeZone: countryTimeZone(user.country_code),
+    year: "numeric", month: "2-digit", day: "2-digit"
+  }).format(new Date(currentTime));
+  const today = new Date(`${localToday}T12:00:00`);
   const calendarOffsets = [-1, 0, 1];
   const calendarDates = calendarOffsets.map(offset => addDays(today, offset));
   const calendarKeys = new Set(calendarDates.map(dateKey));
-  const calendarMatches = matches.filter(match => isCalendarMatchVisible(match, calendarKeys));
+  const calendarMatches = matches.filter(match => isCalendarMatchVisible(match, calendarKeys, user.country_code));
   const days = calendarOffsets.map(offset => {
     const date = addDays(today, offset), key = dateKey(date);
     return {
@@ -170,7 +175,7 @@ function DashboardCalendar({ matches, calendarToday, onOpenMatch, restoreScrollT
       key,
       title: dayTitle(date, offset),
       subtitle: shortDate(date),
-      matches: calendarMatches.filter(match => match.match_date === key).sort((a, b) => a.match_time.localeCompare(b.match_time))
+      matches: calendarMatches.filter(match => localMatchDate(match, user.country_code) === key).sort((a, b) => localMatchTime(a, user.country_code).localeCompare(localMatchTime(b, user.country_code)))
     };
   });
   const activeDay = days[activeDayIndex] || days[1];
@@ -317,14 +322,14 @@ function DashboardCalendar({ matches, calendarToday, onOpenMatch, restoreScrollT
             <div className="calendar-day-matches">{day.matches.length ? day.matches.map(match => <button type="button" className="calendar-match" key={match.id} onPointerDown={startMatchPointer} onPointerMove={moveMatchPointer} onPointerCancel={()=>{pointerRef.current=null}} onClick={event=>clickMatch(event, match)} onKeyDown={event=>openMatchOnKey(event, match)} aria-label={`Ver detalle de ${match.team1} contra ${match.team2}`}>
           <span className="calendar-match-main">
             <span className="calendar-team home"><strong>{match.team1}</strong><Flag team={match.team1} teamData={match.team1_team}/></span>
-            <b>{hasResult(match) ? `${match.result_team1} - ${match.result_team2}` : match.match_time}</b>
+            <b>{hasResult(match) ? `${match.result_team1} - ${match.result_team2}` : localMatchTime(match, user.country_code)}</b>
             <span className="calendar-team away"><Flag team={match.team2} teamData={match.team2_team}/><strong>{match.team2}</strong></span>
           </span>
           <span className="calendar-match-meta">
             <span className={`calendar-bet ${match.prediction_id ? "has-prediction" : "no-prediction"}`}>
               {user.is_read_only ? "Solo lectura" : match.prediction_id ? `Tu apuesta: ${match.predicted_team1_goals} - ${match.predicted_team2_goals}` : "Sin apuesta"}
             </span>
-            <span className={`calendar-close ${closeState(match)}`}><Clock3 size={12}/>{closeText(match, currentTime)}</span>
+            <span className={`calendar-close ${closeState(match)}`}><Clock3 size={12}/>{closeText(match, currentTime, user.country_code)}</span>
             {(Boolean(match.is_star)||match.predicted_scorer?.name)&&<span className={`calendar-special ${match.is_star&&match.predicted_scorer?.name?"split":""}`}>
               {Boolean(match.is_star)&&<span className="calendar-star"><Star size={12} fill="currentColor"/> Estrella x2</span>}
               {match.predicted_scorer?.name&&<span className="calendar-scorer">Goleador: {match.predicted_scorer.name}</span>}
@@ -492,7 +497,7 @@ export function DashboardPage() {
     </button>
   </section>
   <DashboardCalendar matches={calendarMatches} calendarToday={calendarToday} onOpenMatch={openCalendarMatch} restoreScrollTop={calendarRestoreScrollTop} user={user} currentTime={tick}/>
-              {liveMatch&&<section className="live-matches-section content-card"><div className="card-title"><div><span className="eyebrow live-label"><Radio size={14}/> EN DIRECTO</span><h2>Partidos en juego</h2><p>Sigue los encuentros activos ahora mismo</p></div><button className="detail-icon-button" aria-label="Ver detalle del partido en juego" title="Ver detalle" onClick={()=>navigate(`/match/${liveMatch.id}`)}><Eye size={17}/></button></div><div className={`live-match-carousel ${isLiveDragging?"is-dragging":""}`} onPointerDown={startLiveSwipe} onPointerMove={moveLiveSwipe} onPointerUp={endLiveSwipe} onPointerCancel={cancelLiveSwipe} onPointerLeave={event=>{if(event.pointerType==="mouse")cancelLiveSwipe()}}><div className={`live-match-track ${isLiveDragging?"is-dragging":""}`} style={{transform:`translate3d(calc(${-liveMatchIndex*100}% + ${liveDragOffset}px),0,0)`}}>{inPlayMatches.map(match=><div className="live-match-slide" key={match.id}><article className={`live-match-card ${match.is_star?"star-dashboard-card live-star-card":""}`} onClick={()=>openMatch(match,suppressLiveClick)} onKeyDown={event=>openMatchOnKey(event,match,suppressLiveClick)} role="button" tabIndex={0} aria-label={`Ver detalle de ${match.team1} contra ${match.team2}`}>{Boolean(match.is_star)&&<span className="live-star-badge"><Star size={13} fill="currentColor"/> Partido Estrella <b>x2</b></span>}<div className="live-match-teams match-open-card"><div><Flag team={match.team1} teamData={match.team1_team}/><strong>{match.team1}</strong></div><span className="live-versus"><b>VS</b><small><Clock3 size={12}/> Comenzó {match.match_time?.slice(0,5)}</small><em className="live-status-badge"><i/> Live</em></span><div><Flag team={match.team2} teamData={match.team2_team}/><strong>{match.team2}</strong></div></div><div className={`live-match-prediction ${match.prediction_id?"has-prediction":"no-prediction"}`}><span className="live-prediction-label">{user.is_read_only?"Participación":"Tu apuesta"}</span><DashboardPredictionValue match={match} user={user} emptyText="No apostado"/></div></article></div>)}</div></div>{inPlayMatches.length>1&&<div className="match-carousel-controls live-match-carousel-controls"><button aria-label="Partido en juego anterior" onClick={()=>goToLiveMatch(liveMatchIndex-1)}><ArrowLeft size={17}/></button><div>{inPlayMatches.map((match,index)=><button aria-label={`Ver partido en juego ${index+1}`} className={index===liveMatchIndex?"active":""} key={match.id} onClick={()=>goToLiveMatch(index)}/>)}</div><button aria-label="Partido en juego siguiente" onClick={()=>goToLiveMatch(liveMatchIndex+1)}><ArrowRight size={17}/></button></div>}</section>}
+              {liveMatch&&<section className="live-matches-section content-card"><div className="card-title"><div><span className="eyebrow live-label"><Radio size={14}/> EN DIRECTO</span><h2>Partidos en juego</h2><p>Sigue los encuentros activos ahora mismo</p></div><button className="detail-icon-button" aria-label="Ver detalle del partido en juego" title="Ver detalle" onClick={()=>navigate(`/match/${liveMatch.id}`)}><Eye size={17}/></button></div><div className={`live-match-carousel ${isLiveDragging?"is-dragging":""}`} onPointerDown={startLiveSwipe} onPointerMove={moveLiveSwipe} onPointerUp={endLiveSwipe} onPointerCancel={cancelLiveSwipe} onPointerLeave={event=>{if(event.pointerType==="mouse")cancelLiveSwipe()}}><div className={`live-match-track ${isLiveDragging?"is-dragging":""}`} style={{transform:`translate3d(calc(${-liveMatchIndex*100}% + ${liveDragOffset}px),0,0)`}}>{inPlayMatches.map(match=><div className="live-match-slide" key={match.id}><article className={`live-match-card ${match.is_star?"star-dashboard-card live-star-card":""}`} onClick={()=>openMatch(match,suppressLiveClick)} onKeyDown={event=>openMatchOnKey(event,match,suppressLiveClick)} role="button" tabIndex={0} aria-label={`Ver detalle de ${match.team1} contra ${match.team2}`}>{Boolean(match.is_star)&&<span className="live-star-badge"><Star size={13} fill="currentColor"/> Partido Estrella <b>x2</b></span>}<div className="live-match-teams match-open-card"><div><Flag team={match.team1} teamData={match.team1_team}/><strong>{match.team1}</strong></div><span className="live-versus"><b>VS</b><small><Clock3 size={12}/> Comenzó {localMatchTime(match,user.country_code)}</small><em className="live-status-badge"><i/> Live</em></span><div><Flag team={match.team2} teamData={match.team2_team}/><strong>{match.team2}</strong></div></div><div className={`live-match-prediction ${match.prediction_id?"has-prediction":"no-prediction"}`}><span className="live-prediction-label">{user.is_read_only?"Participación":"Tu apuesta"}</span><DashboardPredictionValue match={match} user={user} emptyText="No apostado"/></div></article></div>)}</div></div>{inPlayMatches.length>1&&<div className="match-carousel-controls live-match-carousel-controls"><button aria-label="Partido en juego anterior" onClick={()=>goToLiveMatch(liveMatchIndex-1)}><ArrowLeft size={17}/></button><div>{inPlayMatches.map((match,index)=><button aria-label={`Ver partido en juego ${index+1}`} className={liveMatchIndex===index?"active":""} key={match.id} onClick={()=>goToLiveMatch(index)}/>)}</div><button aria-label="Partido en juego siguiente" onClick={()=>goToLiveMatch(liveMatchIndex+1)}><ArrowRight size={17}/></button></div>}</section>}
   <div className="dashboard-grid">
   <section className="content-card activity-card"><div className="card-title"><div><span className="eyebrow">COMUNIDAD</span><h2>Última actividad</h2></div><button onClick={()=>navigate("/actividad")}>Ver todo</button></div><div className="activity-feed compact">{activity.slice(0,4).map((a,i)=><article key={i}><ActivityAvatar user={a} type={a.type}/><div><strong className="activity-line">{a.text}{a.type==="points"&&<span className={`points-award ${a.exact_result_points>0?"exact":""}`}>{a.exact_result_points>0&&<Star size={14} fill="currentColor"/>}+{a.total_points} pts</span>}</strong><small>{new Date(a.created_at).toLocaleString("es-ES")}</small></div></article>)}</div></section></div></div>
 }

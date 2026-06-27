@@ -59,6 +59,7 @@ export function initDatabase() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT NOT NULL UNIQUE COLLATE NOCASE,
       display_name TEXT NOT NULL DEFAULT '',
+      country_code TEXT NOT NULL DEFAULT 'ES' CHECK(country_code IN ('ES','GB')),
       password TEXT NOT NULL,
       role TEXT NOT NULL DEFAULT 'user' CHECK(role IN ('admin','user')),
       active INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0,1)),
@@ -375,6 +376,7 @@ export function initDatabase() {
   if (!userColumns.includes("personal_phrase")) db.exec("ALTER TABLE users ADD COLUMN personal_phrase TEXT NOT NULL DEFAULT ''");
   if (!userColumns.includes("avatar_filename")) db.exec("ALTER TABLE users ADD COLUMN avatar_filename TEXT");
   if (!userColumns.includes("display_name")) db.exec("ALTER TABLE users ADD COLUMN display_name TEXT NOT NULL DEFAULT ''");
+  if (!userColumns.includes("country_code")) db.exec("ALTER TABLE users ADD COLUMN country_code TEXT NOT NULL DEFAULT 'ES'");
   db.exec("UPDATE users SET display_name=username WHERE TRIM(display_name)=''");
   db.exec(`CREATE TABLE IF NOT EXISTS display_name_changes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

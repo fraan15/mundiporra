@@ -51,6 +51,22 @@ test("login inicial y sesión", async () => {
   assert.equal(me.body.user.username, "administrador");
 });
 
+test("el país del usuario se guarda como preferencia sin alterar los partidos", async () => {
+  const agent = request.agent(app);
+  await agent.post("/api/auth/login").send({ username: "lucia", password: "lucia" }).expect(200);
+  const beforeMatch = db.prepare("SELECT match_date,match_time FROM matches ORDER BY id LIMIT 1").get();
+
+  const changed = await agent.patch("/api/profile/me").send({ country_code: "GB" });
+  assert.equal(changed.status, 200, JSON.stringify(changed.body));
+  assert.equal(changed.body.country_code, "GB");
+  assert.equal((await agent.get("/api/auth/me")).body.user.country_code, "GB");
+  assert.equal(db.prepare("SELECT country_code FROM users WHERE username='lucia'").get().country_code, "GB");
+  assert.deepEqual(db.prepare("SELECT match_date,match_time FROM matches ORDER BY id LIMIT 1").get(), beforeMatch);
+
+  assert.equal((await agent.patch("/api/profile/me").send({ country_code: "US" })).status, 400);
+  await agent.patch("/api/profile/me").send({ country_code: "ES" }).expect(200);
+});
+
 test("el chat devuelve solo los 25 mensajes más recientes", async () => {
   const agent = request.agent(app);
   await agent.post("/api/auth/login").send({ username: "administrador", password: "yami" });

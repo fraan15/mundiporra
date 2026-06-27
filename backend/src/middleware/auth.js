@@ -8,6 +8,7 @@ export const READ_ONLY_USER = {
   active: 1,
   is_read_only: true,
   personal_phrase: "Modo solo lectura",
+  country_code: "ES",
   avatar_filename: null,
   created_at: "2026-01-01T00:00:00.000Z",
   updated_at: "2026-01-01T00:00:00.000Z"
@@ -19,7 +20,7 @@ export function hydrateUser(req, _res, next) {
     return next();
   }
   if (req.session?.userId) {
-    const user = db.prepare("SELECT id,username,display_name,role,active,avatar_filename,created_at,updated_at FROM users WHERE id=?").get(req.session.userId);
+    const user = db.prepare("SELECT id,username,display_name,role,active,avatar_filename,country_code,created_at,updated_at FROM users WHERE id=?").get(req.session.userId);
     req.user = user?.active ? user : null;
     if (!req.user) req.session.userId = null;
   }

@@ -107,7 +107,7 @@ const cleanAbandonedChatMedia = async () => {
     if (stat.mtimeMs < cutoff) await fs.promises.rm(path.join(chatMediaDir, entry.name), { force: true });
   }
 };
-const safeUser = (user) => user && ({ id: user.id, username: user.username, display_name: user.display_name || user.username, role: user.role, active: user.active, is_read_only: Boolean(user.is_read_only), personal_phrase: user.personal_phrase || "", avatar_url: avatarUrl(user), created_at: user.created_at });
+const safeUser = (user) => user && ({ id: user.id, username: user.username, display_name: user.display_name || user.username, role: user.role, active: user.active, is_read_only: Boolean(user.is_read_only), personal_phrase: user.personal_phrase || "", country_code: user.country_code === "GB" ? "GB" : "ES", avatar_url: avatarUrl(user), created_at: user.created_at });
 const giphySearchLimit = Math.max(1, Number(process.env.GIPHY_SEARCHES_PER_USER_HOUR || 10));
 const giphySearchWindows = new Map();
 const giphySearchCache = new Map();
@@ -1216,7 +1216,12 @@ app.patch("/api/profile/me", requireAuth, requireWritableUser, (req, res) => {
   const phrase = String(req.body.personal_phrase || "").trim().slice(0, 120);
   const current = db.prepare("SELECT * FROM users WHERE id=?").get(req.user.id);
   const displayName = req.body.display_name === undefined ? current.display_name : String(req.body.display_name).trim();
-  if (displayName.length < 2 || displayName.length > 40 || /[\x00-\x1F\x7F]/.test(displayName)) {
+  const validatedDisplayName = displayName || current.username;
+  const countryCode = req.body.country_code === undefined ? current.country_code || "ES" : String(req.body.country_code).toUpperCase();
+  if (!["ES", "GB"].includes(countryCode)) {
+    return res.status(400).json({ error: "Selecciona un país válido." });
+  }
+  if (validatedDisplayName.length < 2 || validatedDisplayName.length > 40 || /[\x00-\x1F\x7F]/.test(validatedDisplayName)) {
     return res.status(400).json({ error: "El nombre visible debe tener entre 2 y 40 caracteres y no contener saltos de línea." });
   }
   const changed = displayName !== current.display_name;
@@ -1227,7 +1232,7 @@ app.patch("/api/profile/me", requireAuth, requireWritableUser, (req, res) => {
   }
   const stamp = now();
   db.transaction(() => {
-    db.prepare("UPDATE users SET display_name=?,personal_phrase=?,updated_at=? WHERE id=?").run(displayName, phrase, stamp, req.user.id);
+    db.prepare("UPDATE users SET display_name=?,personal_phrase=?,country_code=?,updated_at=? WHERE id=?").run(displayName, phrase, countryCode, stamp, req.user.id);
     if (changed) db.prepare("INSERT INTO display_name_changes(user_id,previous_name,new_name,changed_at) VALUES(?,?,?,?)").run(req.user.id, current.display_name || current.username, displayName, stamp);
   })();
   res.json(safeUser(db.prepare("SELECT * FROM users WHERE id=?").get(req.user.id)));

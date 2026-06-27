@@ -18,6 +18,7 @@ import { Avatar } from "./components/Avatar";
 import { Flag } from "./components/SportsUI";
 import { PushSettingsPage } from "./components/PushSettings";
 import { startVisiblePolling } from "./utils/visiblePolling";
+import { localMatchTime } from "./utils/matchDateTime";
 
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
@@ -489,6 +490,7 @@ function ProfileMenu({ unreadNews = 0, onOpenNews }) {
   </div>;
 }
 function TodayMatchesTicker({ fallback }) {
+  const { user } = useAuth();
   const [matches, setMatches] = useState([]);
   const trackRef = useRef(null);
   const location = useLocation();
@@ -537,7 +539,7 @@ function TodayMatchesTicker({ fallback }) {
   }, [location.key, matches.length]);
 
   if (!matches.length) return <small>{fallback}</small>;
-  const items = matches.map(match => `${match.team1} - ${match.team2} ${match.match_time}`);
+  const items = matches.map(match => `${match.team1} - ${match.team2} ${localMatchTime(match,user.country_code)}`);
   const group = (key) => <span className="today-matches-group" aria-hidden={key === "copy"} key={key}>
     {items.map((text, index) => <span className="today-match-item" key={`${key}-${index}`}>{text}</span>)}
   </span>;

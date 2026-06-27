@@ -8,6 +8,7 @@ import { StarMatchTitle, StarPoints } from "./StarMatchTitle";
 import { ScorerPicker } from "./ScorerPicker";
 import { NO_SCORER, NO_SCORER_ID } from "../constants/scorers";
 import { ReactionBar } from "./ReactionBar";
+import { localMatchParts } from "../utils/matchDateTime";
 
 const statusLabel = (match) => match.status === "finished" ? "Finalizado" : match.in_play ? "En juego" : match.status === "closed" ? (match.close_reason === "automatic" ? "Cierre automático" : "Cerrado") : "Abierto";
 const predictionScoreText = (match, prediction) => `${match.team1} ${prediction.predicted_team1_goals} – ${prediction.predicted_team2_goals} ${match.team2}`;
@@ -117,11 +118,12 @@ export function MatchCard({ match, onSaved, verticalScorePicker=false }) {
     if (!expanded && !reveal) setReveal(await api(`/predictions/match/${match.id}`));
     setExpanded(!expanded);
   };
-  const date = new Date(`${match.match_date}T${match.match_time}:00`);
+  const localDateTime = localMatchParts(match, user.country_code);
+  const date = new Date(`${localDateTime.date}T12:00:00`);
   const adjust = (setter, value, delta) => setter(String(Math.max(0, Number(value || 0) + delta)));
   return <article className={`match-card ${match.status} ${match.in_play?"in-play":""} ${match.is_star?"star-match-card":""}`}>
     <div className="match-head">
-      <div><span className={`status ${match.in_play?"in-play":match.status}`}>{statusLabel(match)}</span><strong>{date.toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"})}</strong><span><Clock3 size={14}/>{match.match_time}</span></div>
+      <div><span className={`status ${match.in_play?"in-play":match.status}`}>{statusLabel(match)}</span><strong>{date.toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"})}</strong><span><Clock3 size={14}/>{localDateTime.time}</span></div>
       <span>{match.stadium}</span>
     </div>
     <StarMatchTitle match={match} className="match-card-star-title"/>
