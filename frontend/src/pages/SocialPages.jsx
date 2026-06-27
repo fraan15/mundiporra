@@ -33,6 +33,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../App";
 import { Badges, Flag } from "../components/SportsUI";
+import { KnockoutInfoDialog } from "./DashboardPage";
 import { Countdown } from "../components/MatchCard";
 import { StarMatchTitle } from "../components/StarMatchTitle";
 import { ActivityAvatar, Avatar } from "../components/Avatar";
@@ -2231,7 +2232,8 @@ export function MatchDetailPage() {
     [savingPick, setSavingPick] = useState(false),
     [pickMessage, setPickMessage] = useState(""),
     [pickSavedPulse, setPickSavedPulse] = useState(0),
-    [simulationOpen, setSimulationOpen] = useState(false);
+    [simulationOpen, setSimulationOpen] = useState(false),
+    [knockoutInfoOpen, setKnockoutInfoOpen] = useState(false);
   const hydratedPickMatchId = useRef(null), commentFileRef = useRef(null), selectedImageRef = useRef(null);
   useEffect(() => { selectedImageRef.current = selectedImage; }, [selectedImage]);
   const discardCommentImage = async (image = selectedImageRef.current) => {
@@ -2573,6 +2575,7 @@ export function MatchDetailPage() {
         />
       )}
       {simulationOpen && <MatchSimulationOverlay match={data.match} players={players} user={user} onClose={() => setSimulationOpen(false)}/>}
+      {knockoutInfoOpen && <KnockoutInfoDialog onClose={() => setKnockoutInfoOpen(false)}/>}
       <button
         className="back-btn"
         onClick={() => navigate(backTarget, { replace: true })}
@@ -2584,6 +2587,19 @@ export function MatchDetailPage() {
         className={`match-detail-hero ${m.is_star ? "star-match-detail" : ""}`}
       >
         <StarMatchTitle match={m} className="match-detail-star-title" />
+        {Number(m.is_knockout) === 1 && (
+          <div className="match-detail-knockout-label">
+            <strong>Partido de eliminatoria</strong>
+            <button
+              type="button"
+              aria-label="Ver información de eliminatorias"
+              title="Información de eliminatorias"
+              onClick={() => setKnockoutInfoOpen(true)}
+            >
+              <Info size={15} />
+            </button>
+          </div>
+        )}
         <span>
           {localMatchParts(m,user.country_code).date} · {localMatchTime(m,user.country_code)} · {m.stadium}
         </span>

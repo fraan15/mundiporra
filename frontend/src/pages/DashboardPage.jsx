@@ -44,7 +44,7 @@ const closeText = (match, current, countryCode) => {
 };
 const closeState = (match) => match.status === "finished" ? "finished" : match.in_play ? "playing" : match.betting_open ? "open" : "closed";
 
-function KnockoutInfoDialog({ onClose }) {
+export function KnockoutInfoDialog({ onClose }) {
   const examplesRef = useRef(null);
   const [activeExample, setActiveExample] = useState(0);
   const examples = [
