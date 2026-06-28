@@ -7,6 +7,8 @@ import { Flag } from "../components/SportsUI";
 import { useAuth } from "../App";
 import { startVisiblePolling } from "../utils/visiblePolling";
 import { localMatchDate, localMatchTime } from "../utils/matchDateTime";
+import { useLiveScores } from "../hooks/useLiveScores";
+import { EspnLiveScore } from "../components/EspnLiveScore";
 
 const dateKey = date => date.toLocaleDateString("sv-SE");
 const hasResult = match => match.result_team1 !== null && match.result_team2 !== null;
@@ -55,6 +57,7 @@ export function MatchesPage() {
     ["history","Histórico","Finalizados",History,counts.history]
   ];
   const visible=matches.filter(match=>!selectedTeamId||String(match.team1_id)===String(selectedTeamId)||String(match.team2_id)===String(selectedTeamId));
+  const liveScores=useLiveScores(visible);
   const grouped=useMemo(()=>{
     const groups=new Map();
     [...visible].sort((a,b)=>{
@@ -89,7 +92,7 @@ export function MatchesPage() {
       <header><div><strong>{dateLabel(date)}</strong><span>{new Date(`${date}T12:00:00`).toLocaleDateString("es-ES",{day:"2-digit",month:"short"})}</span></div><small>{items.length} encuentro{items.length===1?"":"s"}</small></header>
       <div>{items.map(match=><button type="button" className="agenda-match-row" key={match.id} onClick={()=>openMatch(match.id)}>
         <span className="agenda-time"><strong>{localMatchTime(match,user.country_code)}</strong><small className={match.in_play?"live":hasResult(match)?"":"upcoming"}>{match.in_play?"LIVE":hasResult(match)?"FINAL":"PRÓXIMAMENTE"}</small></span>
-        <span className="agenda-fixture"><span><strong>{match.team1}</strong><Flag team={match.team1} teamData={match.team1_team}/></span><b>{hasResult(match)?`${match.result_team1} — ${match.result_team2}`:"VS"}</b><span><Flag team={match.team2} teamData={match.team2_team}/><strong>{match.team2}</strong></span></span>
+        <span className="agenda-fixture"><span><strong>{match.team1}</strong><Flag team={match.team1} teamData={match.team1_team}/></span><b>{hasResult(match)?`${match.result_team1} — ${match.result_team2}`:"VS"}<EspnLiveScore data={liveScores[match.id]}/></b><span><Flag team={match.team2} teamData={match.team2_team}/><strong>{match.team2}</strong></span></span>
         <span className="agenda-match-actions"><span className={`agenda-bet-state ${match.prediction_id?"done":match.betting_open?"pending":"closed"}`}>{user.is_read_only?"Ver partido":match.prediction_id?`Tu apuesta ${match.predicted_team1_goals}–${match.predicted_team2_goals}`:match.betting_open?"Apostar ahora":hasResult(match)?"Ver resultado":"Apuestas cerradas"}</span>{!user.is_read_only&&match.prediction_id&&match.predicted_scorer?.name&&<span className="agenda-scorer-tag"><Goal size={13}/>{match.predicted_scorer.name}</span>}</span>
       </button>)}</div>
     </section>)}</div>:<div className="matches-empty"><CalendarDays/><strong>No hay partidos en esta vista</strong><span>Prueba con otro filtro o limpia la búsqueda.</span></div>}

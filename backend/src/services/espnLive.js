@@ -47,6 +47,17 @@ const localTeamCodes = (match) => [
   normalizeCode(match.team1_fifa_code),
   normalizeCode(match.team2_fifa_code),
 ].filter(Boolean);
+const espnDate = (value) => new Date(value).toISOString().slice(0, 10).replaceAll("-", "");
+
+export const espnScoreboardDates = (match) => {
+  const startsAt = new Date(match.starts_at);
+  return [...new Set([
+    match.match_date.replaceAll("-", ""),
+    espnDate(startsAt),
+    espnDate(startsAt.getTime() - 86400000),
+    espnDate(startsAt.getTime() + 86400000),
+  ])];
+};
 
 export const findEspnEvent = (events, match) => {
   const expectedCodes = localTeamCodes(match);
@@ -194,6 +205,29 @@ export const normalizeEspnLive = (event, summary = {}) => {
     ].join("|");
     return [signature, normalized];
   })).values()].sort((a, b) => (b.minute_value ?? -1) - (a.minute_value ?? -1));
+  const goals = timeline.filter((item) => item.scoring || item.category === "goal")
+    .map((item) => {
+      const scorerName = item.athletes?.[0] || "Goleador sin identificar";
+      const goalLabel = item.own_goal ? "Autogol" : item.penalty ? "Gol de penalti" : "Gol";
+      return {
+        id: item.id,
+        minute: item.display_minute || item.minute,
+        minute_value: item.minute_value,
+        team_id: item.team_id,
+        team_code: item.team_code,
+        side: item.side,
+        scorer_name: scorerName,
+        espn_name: scorerName,
+        player_id: null,
+        player_name: null,
+        scorer_player_id: null,
+        penalty: item.penalty,
+        own_goal: item.own_goal,
+        label: goalLabel,
+        display: `${item.display_minute || item.minute || ""} ${scorerName}`.trim(),
+      };
+    })
+    .sort((a, b) => (a.minute_value ?? 999) - (b.minute_value ?? 999));
   return {
     provider: "ESPN",
     event_id: String(headerEvent?.id || event?.id || competition?.id || ""),
@@ -203,6 +237,11 @@ export const normalizeEspnLive = (event, summary = {}) => {
     clock: status?.displayClock || competition?.status?.displayClock || "",
     period: status?.period || competition?.status?.period || null,
     competitors,
+    score: {
+      team1: competitors[0]?.score ?? 0,
+      team2: competitors[1]?.score ?? 0,
+    },
+    goals,
     timeline,
     stats: normalizeStats(summary, competition),
     venue: competition?.venue?.fullName || headerEvent?.venue?.displayName || event?.venue?.displayName || "",
@@ -216,11 +255,7 @@ export async function getEspnLiveMatch(match) {
     const summary = await fetchJson(`${SUMMARY_URL}?event=${encodeURIComponent(match.espn_event_id)}`);
     return normalizeEspnLive({ id: match.espn_event_id }, summary);
   }
-  const dates = [...new Set([
-    match.match_date.replaceAll("-", ""),
-    new Date(new Date(match.starts_at).getTime() - 86400000).toISOString().slice(0, 10).replaceAll("-", ""),
-    new Date(new Date(match.starts_at).getTime() + 86400000).toISOString().slice(0, 10).replaceAll("-", ""),
-  ])];
+  const dates = espnScoreboardDates(match);
   for (const date of dates) {
     const scoreboard = await fetchJson(`${SCOREBOARD_URL}?dates=${date}`);
     event = findEspnEvent(scoreboard.events, match);

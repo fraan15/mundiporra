@@ -14,7 +14,7 @@ import { createNotification, leaderboardRows, notifyAll, notifyAllExcept, notify
 import { NO_SCORER, NO_SCORER_ID, parseScorerList, parseScorerSelection, serializeActualScorers, serializePredictedScorer } from "./services/scorers.js";
 import { loadWorldCupReference, normalizePlayerName, syncWorldCupReference, teamReferenceStats, worldCupOverview } from "./services/worldcupReference.js";
 import { getPushPreferences, pushConfigured, savePushSubscription, sendPushToUser, vapidPublicKey } from "./services/push.js";
-import { getEspnEventById, getEspnLiveMatch, getEspnOdds } from "./services/espnLive.js";
+import { getEspnEventById, getEspnLiveMatch } from "./services/espnLive.js";
 
 initDatabase();
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -1644,11 +1644,34 @@ const enrichLivePlayers = (live, match) => {
       scorer_player_id: item.scoring && !item.own_goal ? mappedAthletes[0]?.player_id || null : null,
     };
   });
+  const timelineById = new Map(timeline.map((item) => [String(item.id), item]));
+  const goals = (live.goals || timeline.filter((item) => item.scoring)).map((goal) => {
+    const item = timelineById.get(String(goal.id)) || goal;
+    const teamCode = goal.team_code || item.team_code || codeByEspnTeamId.get(String(goal.team_id));
+    const mapped = item.mapped_athletes?.[0];
+    const espnName = goal.espn_name || goal.scorer_name || item.athletes?.[0] || "Goleador sin identificar";
+    return {
+      ...goal,
+      team_code: teamCode || "",
+      side: teamCode === match.team1_fifa_code ? "team1" : teamCode === match.team2_fifa_code ? "team2" : null,
+      scorer_name: mapped?.player_name || espnName,
+      espn_name: espnName,
+      player_id: mapped?.player_id || null,
+      player_name: mapped?.player_name || null,
+      scorer_player_id: !goal.own_goal ? mapped?.player_id || null : null,
+    };
+  });
+  const byCode = new Map((live.competitors || []).map((team) => [team.code, team]));
   return {
     ...live,
     timeline,
-    scorer_player_ids: [...new Set(timeline.filter((item) => item.scoring && item.scorer_player_id).map((item) => item.scorer_player_id))],
-    unmatched_scorers: [...new Set(timeline.filter((item) => item.scoring && !item.own_goal && !item.scorer_player_id).map((item) => item.athletes?.[0]).filter(Boolean))],
+    score: {
+      team1: byCode.get(match.team1_fifa_code)?.score ?? live.score?.team1 ?? 0,
+      team2: byCode.get(match.team2_fifa_code)?.score ?? live.score?.team2 ?? 0,
+    },
+    goals,
+    scorer_player_ids: [...new Set(goals.filter((goal) => goal.scorer_player_id).map((goal) => goal.scorer_player_id))],
+    unmatched_scorers: [...new Set(goals.filter((goal) => !goal.own_goal && !goal.scorer_player_id && goal.espn_name !== "Goleador sin identificar").map((goal) => goal.espn_name))],
   };
 };
 const asTestReplay = (live, match) => ({
@@ -1666,54 +1689,84 @@ const asTestReplay = (live, match) => ({
 });
 const liveTestCache = new Map();
 
-app.get("/api/matches/:id/live", requireAuth, async (req, res) => {
-  const match = db.prepare(`
-    SELECT m.*,home.fifa_code team1_fifa_code,away.fifa_code team2_fifa_code
-    FROM matches m
-    LEFT JOIN teams home ON home.id=m.team1_id
-    LEFT JOIN teams away ON away.id=m.team2_id
-    WHERE m.id=?
-  `).get(req.params.id);
-  if (!match || !canAccessMatch(req, match)) return res.status(404).json({ error: "Partido no encontrado." });
+const liveMatchRow = (id) => db.prepare(`
+  SELECT m.*,home.fifa_code team1_fifa_code,away.fifa_code team2_fifa_code
+  FROM matches m
+  LEFT JOIN teams home ON home.id=m.team1_id
+  LEFT JOIN teams away ON away.id=m.team2_id
+  WHERE m.id=?
+`).get(id);
+
+const loadLiveMatch = async (match) => {
   const cached = (() => {
     try { return match.live_data_json ? JSON.parse(match.live_data_json) : null; } catch { return null; }
   })();
   if (match.live_test_enabled && match.live_test_event_id) {
     try {
       const cachedReplay = liveTestCache.get(match.live_test_event_id);
-      const [sourceLive, sourceOdds] = cachedReplay && Date.now() - cachedReplay.at < 20000
-        ? [cachedReplay.live, cachedReplay.odds]
-        : await Promise.all([
-          getEspnEventById(match.live_test_event_id),
-          getEspnOdds(match.live_test_event_id).catch(() => null),
-        ]);
-      liveTestCache.set(match.live_test_event_id, { at: Date.now(), live: sourceLive, odds: sourceOdds });
+      const sourceLive = cachedReplay && Date.now() - cachedReplay.at < 20000
+        ? cachedReplay.live
+        : await getEspnEventById(match.live_test_event_id);
+      liveTestCache.set(match.live_test_event_id, { at: Date.now(), live: sourceLive });
       const replay = enrichLivePlayers(asTestReplay(sourceLive, match), match);
-      replay.odds = sourceOdds;
-      return res.json({ available: true, live: replay, stale: false, test_mode: true });
+      return { available: true, live: replay, stale: false, test_mode: true };
     } catch (error) {
       console.error(`[espn] No se pudo cargar el replay ${match.live_test_event_id}:`, error.message);
-      return res.json({ available: false, live: null, stale: false, test_mode: true, error: "No se pudo cargar el evento de prueba." });
+      return { available: false, live: null, stale: false, test_mode: true, error: "No se pudo cargar el evento de prueba." };
     }
   }
   const cacheAge = match.live_updated_at ? Date.now() - new Date(match.live_updated_at).getTime() : Infinity;
   if (cached?.completed || (cached && cacheAge < 20000)) {
-    return res.json({ available: true, live: enrichLivePlayers(cached, match), stale: false });
+    return { available: true, live: enrichLivePlayers(cached, match), stale: false };
   }
   try {
     const live = enrichLivePlayers(await getEspnLiveMatch({
       ...match,
       starts_at: matchStartsAt(match).toISOString(),
     }), match);
-    if (!live) return res.json({ available: false, live: cached, stale: Boolean(cached) });
-    if (live.state === "in") live.odds = await getEspnOdds(live.event_id).catch(() => null);
+    if (!live) return { available: false, live: enrichLivePlayers(cached, match), stale: Boolean(cached) };
     db.prepare("UPDATE matches SET espn_event_id=?,live_data_json=?,live_updated_at=? WHERE id=?")
       .run(live.event_id, JSON.stringify(live), live.fetched_at, match.id);
-    res.json({ available: true, live, stale: false });
+    return { available: true, live, stale: false };
   } catch (error) {
     console.error(`[espn] No se pudo actualizar el partido ${match.id}:`, error.message);
-    res.json({ available: Boolean(cached), live: enrichLivePlayers(cached, match), stale: Boolean(cached) });
+    return { available: Boolean(cached), live: enrichLivePlayers(cached, match), stale: Boolean(cached) };
   }
+};
+
+app.get("/api/matches/live-scores", requireAuth, async (req, res) => {
+  const ids = [...new Set(String(req.query.ids || "").split(",").map((id) => Number(id)).filter(Number.isInteger))].slice(0, 20);
+  if (!ids.length) return res.json({ items: {} });
+  const items = {};
+  for (const id of ids) {
+    const match = liveMatchRow(id);
+    if (!match || !canAccessMatch(req, match)) continue;
+    if (match.status !== "closed" && !match.in_play && !match.live_test_enabled && !match.live_data_json) {
+      items[id] = { available: false };
+      continue;
+    }
+    const response = await loadLiveMatch(match);
+    const live = response.live;
+    items[id] = live ? {
+      available: response.available,
+      stale: response.stale,
+      provider: live.provider,
+      state: live.state,
+      completed: live.completed,
+      status: live.status,
+      clock: live.clock,
+      score: live.score,
+      goals: live.goals || [],
+      fetched_at: live.fetched_at,
+    } : { available: false, stale: response.stale };
+  }
+  res.json({ items });
+});
+
+app.get("/api/matches/:id/live", requireAuth, async (req, res) => {
+  const match = liveMatchRow(req.params.id);
+  if (!match || !canAccessMatch(req, match)) return res.status(404).json({ error: "Partido no encontrado." });
+  res.json(await loadLiveMatch(match));
 });
 
 app.patch("/api/admin/matches/:id/live-test", requireAdmin, async (req, res) => {
@@ -1744,7 +1797,6 @@ app.patch("/api/admin/matches/:id/live-test", requireAdmin, async (req, res) => 
       liveTestCache.set(eventId, {
         at: Date.now(),
         live: discovered,
-        odds: await getEspnOdds(eventId).catch(() => null),
       });
     } catch (error) {
       return res.status(502).json({ error: error.message?.startsWith("ESPN respondió")

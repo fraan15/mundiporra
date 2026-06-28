@@ -9,6 +9,7 @@ import { ScorerPicker } from "./ScorerPicker";
 import { NO_SCORER, NO_SCORER_ID } from "../constants/scorers";
 import { ReactionBar } from "./ReactionBar";
 import { localMatchParts } from "../utils/matchDateTime";
+import { EspnLiveScore } from "./EspnLiveScore";
 
 const statusLabel = (match) => match.status === "finished" ? "Finalizado" : match.in_play ? "En juego" : match.status === "closed" ? (match.close_reason === "automatic" ? "Cierre automático" : "Cerrado") : "Abierto";
 const predictionScoreText = (match, prediction) => `${match.team1} ${prediction.predicted_team1_goals} – ${prediction.predicted_team2_goals} ${match.team2}`;
@@ -68,7 +69,7 @@ export function HorizontalScoreControl({ team, value, onChange, onAdjust }) {
   </div>;
 }
 
-export function MatchCard({ match, onSaved, verticalScorePicker=false }) {
+export function MatchCard({ match, onSaved, verticalScorePicker=false, liveScore=null }) {
   const navigate=useNavigate();
   const { user } = useAuth();
   const initialG1=match.predicted_team1_goals??"0";
@@ -130,7 +131,7 @@ export function MatchCard({ match, onSaved, verticalScorePicker=false }) {
     <div className="versus">
       <div className="team"><span className="flag"><Flag team={match.team1} teamData={match.team1_team}/></span><strong>{match.team1}</strong></div>
       <div className="score">
-        {match.status === "finished" ? <strong>{match.result_team1}<i>:</i>{match.result_team2}</strong> : <><span>GRUPO</span><b>VS</b></>}
+        {match.status === "finished" ? <strong>{match.result_team1}<i>:</i>{match.result_team2}</strong> : <><span>GRUPO</span><b>VS</b><EspnLiveScore data={liveScore}/></>}
       </div>
       <div className="team right"><span className="flag"><Flag team={match.team2} teamData={match.team2_team}/></span><strong>{match.team2}</strong></div>
     </div>

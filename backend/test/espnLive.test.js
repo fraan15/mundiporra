@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { findEspnEvent, normalizeEspnLive } from "../src/services/espnLive.js";
+import { espnScoreboardDates, findEspnEvent, normalizeEspnLive } from "../src/services/espnLive.js";
 
 test("relaciona un partido del Mundial por códigos FIFA aunque ESPN use otros", () => {
   const events = [{
@@ -22,6 +22,26 @@ test("relaciona un partido del Mundial por códigos FIFA aunque ESPN use otros",
     team2_fifa_code: "CAN",
     starts_at: "2026-06-28T19:00Z",
   }), null);
+});
+
+test("consulta también la fecha UTC para partidos de madrugada en Madrid", () => {
+  assert.deepEqual(espnScoreboardDates({
+    match_date: "2026-06-28",
+    starts_at: "2026-06-27T23:30:00.000Z",
+  }), ["20260628", "20260627", "20260626"]);
+  const event = findEspnEvent([{
+    id: "760481",
+    date: "2026-06-27T23:30:00Z",
+    competitions: [{ competitors: [
+      { team: { abbreviation: "COL" } },
+      { team: { abbreviation: "POR" } },
+    ] }],
+  }], {
+    team1_fifa_code: "COL",
+    team2_fifa_code: "POR",
+    starts_at: "2026-06-27T23:30:00.000Z",
+  });
+  assert.equal(event?.id, "760481");
 });
 
 test("normaliza marcador, incidencias y estadísticas sin convertirlos en resultado oficial", () => {
@@ -58,6 +78,11 @@ test("normaliza marcador, incidencias y estadísticas sin convertirlos en result
   assert.equal(live.timeline[0].display_minute, "54'");
   assert.equal(live.timeline[0].minute_value, 54);
   assert.deepEqual(live.timeline[0].athletes, ["Delantero", "Asistente"]);
+  assert.deepEqual(live.score, { team1: 2, team2: 1 });
+  assert.equal(live.goals.length, 1);
+  assert.equal(live.goals[0].minute, "54'");
+  assert.equal(live.goals[0].espn_name, "Delantero");
+  assert.equal(live.goals[0].display, "54' Delantero");
   assert.equal(live.stats[0].stats[0].label, "Faltas");
 });
 
@@ -92,4 +117,23 @@ test("clasifica, traduce y ordena el tiempo añadido de las incidencias", () => 
   assert.equal(live.timeline[0].minute_value, 45.02);
   assert.equal(live.timeline[0].team_code, "ESP");
   assert.equal(live.timeline[0].is_key_event, false);
+  assert.equal(live.goals.length, 0);
+});
+
+test("distingue goles de penalti y autogoles sin incluir otras incidencias", () => {
+  const live = normalizeEspnLive({ id: "102" }, {
+    header: { id: "102", competitions: [{
+      competitors: [],
+      details: [
+        { id: "pen", clock: { displayValue: "12'" }, type: { text: "Penalty - Scored" }, scoringPlay: true, penaltyKick: true, participants: [{ athlete: { displayName: "Alex" } }] },
+        { id: "own", clock: { displayValue: "30'" }, type: { text: "Own Goal" }, scoringPlay: true, ownGoal: true, participants: [{ athlete: { displayName: "Sam" } }] },
+        { id: "card", clock: { displayValue: "40'" }, type: { text: "Red Card" }, redCard: true },
+      ],
+    }] },
+  });
+  assert.equal(live.goals.length, 2);
+  assert.equal(live.goals[0].label, "Gol de penalti");
+  assert.equal(live.goals[0].penalty, true);
+  assert.equal(live.goals[1].label, "Autogol");
+  assert.equal(live.goals[1].own_goal, true);
 });
