@@ -24,6 +24,36 @@ test("relaciona un partido del Mundial por códigos locales", () => {
   }), null);
 });
 
+test("relaciona abreviaturas ESPN conflictivas con los códigos del catálogo local", () => {
+  const cases = [
+    ["Germany", "GER", "DEU"],
+    ["Netherlands", "NED", "NLD"],
+    ["Switzerland", "SUI", "CHE"],
+    ["Saudi Arabia", "KSA", "SAU"],
+    ["Costa Rica", "CRC", "CRI"],
+    ["Croatia", "CRO", "HRV"],
+    ["South Africa", "RSA", "ZAF"],
+    ["South Korea", "KOR", "KOR"],
+    ["Czechia", "CZE", "CZE"],
+    ["United States", "USA", "USA"],
+  ];
+  cases.forEach(([name, espnCode, localCode], index) => {
+    const event = findEspnEvent([{
+      id: `event-${index}`,
+      date: "2026-06-28T19:00Z",
+      competitions: [{ competitors: [
+        { team: { abbreviation: espnCode, displayName: name } },
+        { team: { abbreviation: "CAN" } },
+      ] }],
+    }], {
+      team1_fifa_code: localCode,
+      team2_fifa_code: "CAN",
+      starts_at: "2026-06-28T19:00Z",
+    });
+    assert.equal(event?.id, `event-${index}`, name);
+  });
+});
+
 test("consulta también la fecha UTC para partidos de madrugada en Madrid", () => {
   assert.deepEqual(espnScoreboardDates({
     match_date: "2026-06-28",
@@ -93,7 +123,7 @@ test("normaliza marcador, incidencias y estadísticas sin convertirlos en result
   const live = normalizeEspnLive({ id: "99" }, summary);
   assert.equal(live.state, "in");
   assert.equal(live.clock, "67'");
-  assert.deepEqual(live.competitors.map((team) => [team.code, team.score]), [["ESP", 2], ["GER", 1]]);
+  assert.deepEqual(live.competitors.map((team) => [team.code, team.score]), [["ESP", 2], ["DEU", 1]]);
   assert.equal(live.timeline[0].scoring, true);
   assert.equal(live.timeline[0].category, "goal");
   assert.equal(live.timeline[0].label_es, "Gol");
@@ -137,7 +167,7 @@ test("clasifica, traduce y ordena el tiempo añadido de las incidencias", () => 
   assert.equal(live.timeline[0].category, "yellow_card");
   assert.equal(live.timeline[0].label_es, "Tarjeta amarilla");
   assert.equal(live.timeline[0].display_minute, "45+2'");
-  assert.equal(live.timeline[0].minute_value, 45.02);
+  assert.equal(live.timeline[0].minute_value, 47);
   assert.equal(live.timeline[0].team_code, "ESP");
   assert.equal(live.timeline[0].is_key_event, false);
   assert.equal(live.goals.length, 0);
@@ -210,4 +240,22 @@ test("no clasifica como gol un tiro parado aunque el texto diga goal", () => {
     }],
   });
   assert.equal(live.goals.length, 0);
+});
+
+test("ordena goles de tiempo añadido de forma cronológica natural", () => {
+  const live = normalizeEspnLive({ id: "added-goals" }, {
+    header: { id: "added-goals", competitions: [{
+      competitors: [
+        { score: "2", team: { id: "1", abbreviation: "ESP" } },
+        { score: "1", team: { id: "2", abbreviation: "GER" } },
+      ],
+      details: [
+        { id: "g90", clock: { displayValue: "90+4'" }, team: { id: "2" }, type: { text: "Goal" }, scoringPlay: true, participants: [{ athlete: { id: "20", displayName: "Late" } }] },
+        { id: "g12", clock: { displayValue: "12'" }, team: { id: "1" }, type: { text: "Goal" }, scoringPlay: true, participants: [{ athlete: { id: "10", displayName: "Early" } }] },
+        { id: "g45", clock: { displayValue: "45'+2" }, team: { id: "1" }, type: { text: "Goal" }, scoringPlay: true, participants: [{ athlete: { id: "11", displayName: "Added" } }] },
+      ],
+    }] },
+  });
+  assert.deepEqual(live.goals.map((goal) => goal.minute), ["12'", "45+2'", "90+4'"]);
+  assert.deepEqual(live.goals.map((goal) => goal.minute_value), [12, 47, 94]);
 });

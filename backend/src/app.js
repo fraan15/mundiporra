@@ -1743,6 +1743,7 @@ const loadLiveMatch = async (match) => {
     match.live_updated_at = null;
     cached = null;
   }
+  const cacheAge = match.live_updated_at ? Date.now() - new Date(match.live_updated_at).getTime() : Infinity;
   if (match.live_test_enabled && match.live_test_event_id) {
     try {
       const cachedReplay = liveTestCache.get(match.live_test_event_id);
@@ -1763,9 +1764,11 @@ const loadLiveMatch = async (match) => {
       return { available: false, live: null, stale: false, test_mode: true, error: "No se pudo cargar el evento de prueba." };
     }
   }
-  const cacheAge = match.live_updated_at ? Date.now() - new Date(match.live_updated_at).getTime() : Infinity;
   if (cached?.completed || (cached && cacheAge < 20000)) {
     return { available: true, live: enrichLivePlayers(cached, match), stale: false };
+  }
+  if (!isMatchInPlay(match) && !match.in_play) {
+    return { available: Boolean(cached), live: enrichLivePlayers(cached, match), stale: Boolean(cached) };
   }
   try {
     const live = enrichLivePlayers(await getEspnLiveMatch({
@@ -1806,6 +1809,9 @@ app.get("/api/matches/live-scores", requireAuth, async (req, res) => {
       score: live.score,
       goals: live.goals || [],
       scorer_player_ids: live.scorer_player_ids || [],
+      unmatched_scorers: live.unmatched_scorers || [],
+      test_mode: live.test_mode || response.test_mode || false,
+      source_completed: live.source_completed,
       fetched_at: live.fetched_at,
     } : { available: false, stale: response.stale };
   }

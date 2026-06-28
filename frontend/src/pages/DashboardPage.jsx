@@ -10,6 +10,7 @@ import { ActivityAvatar } from "../components/Avatar";
 import { countryTimeZone, formatLocalDateTime, localMatchDate, localMatchTime } from "../utils/matchDateTime";
 import { useLiveScores } from "../hooks/useLiveScores";
 import { MatchSimulationOverlay } from "./SocialPages";
+import { EspnLiveScore } from "../components/EspnLiveScore";
 
 const dateKey = (date) => date.toLocaleDateString("sv-SE");
 const addDays = (date, days) => {
@@ -151,29 +152,6 @@ const liveStatusText = (liveScore) => {
   if (/half|descanso|intermedio/.test(status)) return "DES";
   return liveScore.clock || "";
 };
-const liveWinner = (score) => {
-  const g1 = Number(score?.team1 || 0), g2 = Number(score?.team2 || 0);
-  return g1 === g2 ? "draw" : g1 > g2 ? "team1" : "team2";
-};
-const livePointsPreview = (match, liveScore) => {
-  if (!match.prediction_id || !liveScore?.score) return null;
-  const multiplier = Number(match.is_star) ? 2 : 1;
-  const predictedScorerId = Number(match.predicted_team1_goals) + Number(match.predicted_team2_goals) === 0
-    ? "no-scorer"
-    : match.predicted_scorer_id;
-  const currentScorers = new Set((liveScore.scorer_player_ids || []).map(String));
-  if (Number(match.scorer_enabled) && Number(liveScore.score.team1 || 0) + Number(liveScore.score.team2 || 0) === 0) currentScorers.add("no-scorer");
-  const winnerHit = match.predicted_winner === liveWinner(liveScore.score);
-  const exactHit = Number(match.predicted_team1_goals) === Number(liveScore.score.team1 || 0) && Number(match.predicted_team2_goals) === Number(liveScore.score.team2 || 0);
-  const scorerHit = Boolean(Number(match.scorer_enabled) && predictedScorerId && currentScorers.has(String(predictedScorerId)));
-  const parts = [
-    { key: "winner", label: "Ganador", hit: winnerHit, points: winnerHit ? 3 * multiplier : 0 },
-    { key: "exact", label: "Resultado", hit: exactHit, points: exactHit ? 5 * multiplier : 0 },
-    { key: "scorer", label: "Goleador", hit: scorerHit, points: scorerHit ? 2 * multiplier : 0, disabled: !Number(match.scorer_enabled) },
-  ].filter((part) => !part.disabled);
-  return { total: parts.reduce((sum, part) => sum + part.points, 0), parts, multiplier };
-};
-
 function LiveMatchTicker({ matches, liveScores, user, onOpenMatch, onSimulateMatch }) {
   const scrollRef = useRef(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -220,14 +198,13 @@ function LiveMatchTicker({ matches, liveScores, user, onOpenMatch, onSimulateMat
         const scorer = predictionScorerText(match, user);
         const isExpanded = expandedMatchId === match.id;
         const statusText = liveStatusText(liveScore);
-        const pointsPreview = livePointsPreview(match, liveScore);
         return <article className={`live-ticker-card ${match.is_star ? "is-star" : ""} ${isExpanded ? "is-open" : ""}`} key={match.id}>
           <button type="button" className="live-ticker-summary" onClick={() => {
             if (activeIndex !== index) goToMatch(index);
             setExpandedMatchId(isExpanded ? null : match.id);
           }} aria-expanded={isExpanded}>
             {Boolean(match.is_star) && <span className="live-ticker-star"><Star size={12} fill="currentColor"/> x2</span>}
-            <span className="live-ticker-live"><i/> Live</span>
+            <span className="live-ticker-live"><i/> ESPN</span>
             <span className="live-ticker-team home"><Flag team={match.team1} teamData={match.team1_team}/><strong>{match.team1}</strong></span>
             <span className="live-ticker-score-stack"><b>{liveScoreText(match, liveScore)}</b>{statusText && <small className={`live-ticker-minute ${statusText === "FIN" ? "is-final" : statusText === "DES" ? "is-break" : ""}`}>{statusText}</small>}</span>
             <span className="live-ticker-team away"><Flag team={match.team2} teamData={match.team2_team}/><strong>{match.team2}</strong></span>
@@ -253,14 +230,14 @@ function LiveMatchTicker({ matches, liveScores, user, onOpenMatch, onSimulateMat
               </strong>
               {scorer ? <span>{scorer}</span> : <span>Sin goleador apostado</span>}
             </div>
-            {pointsPreview && <div className="live-ticker-points">
+            <div className="live-ticker-points">
               <button type="button" className="live-ticker-simulate" onClick={() => onSimulateMatch(match)} aria-label={`Abrir simulador con ${match.team1} - ${match.team2}`}>
                 <Calculator size={15}/>
               </button>
-              <small>Pronóstico de puntos actual</small>
-              <strong>+{pointsPreview.total} pts</strong>
-              <div>{pointsPreview.parts.map((part) => <span className={part.hit ? "hit" : ""} key={part.key}>{part.hit ? <CheckCircle2 size={13}/> : <X size={13}/>}<b>{part.label}</b><em>+{part.points}</em></span>)}</div>
-            </div>}
+              <small>Simulación privada</small>
+              <strong>Simular puntos</strong>
+              <div><span><Calculator size={13}/><b>Usa el marcador ESPN actual</b></span></div>
+            </div>
             <button type="button" onClick={() => onOpenMatch(match)}><Eye size={14}/> Ver partido</button>
           </div>}
         </article>;
@@ -464,7 +441,7 @@ function DashboardCalendar({ matches, liveScores, calendarToday, onOpenMatch, re
             <span className={`calendar-bet ${match.prediction_id ? "has-prediction" : "no-prediction"}`}>
               {user.is_read_only ? "Solo lectura" : match.prediction_id ? `Tu apuesta: ${match.predicted_team1_goals} - ${match.predicted_team2_goals}` : "Sin apuesta"}
             </span>
-            {match.in_play ? <span className="calendar-close playing calendar-live-state"><i aria-hidden="true"/>Live</span> : <span className={`calendar-close ${closeState(match)}`}><Clock3 size={12}/>{closeText(match, currentTime, user.country_code)}</span>}
+            {match.in_play && liveScores[match.id]?.available ? <span className="calendar-close playing calendar-live-state"><EspnLiveScore data={liveScores[match.id]}/></span> : match.in_play ? <span className="calendar-close playing calendar-live-state"><i aria-hidden="true"/>ESPN</span> : <span className={`calendar-close ${closeState(match)}`}><Clock3 size={12}/>{closeText(match, currentTime, user.country_code)}</span>}
             {(Boolean(match.is_star)||match.predicted_scorer?.name)&&<span className={`calendar-special ${match.is_star&&match.predicted_scorer?.name?"split":""}`}>
               {Boolean(match.is_star)&&<span className="calendar-star"><Star size={12} fill="currentColor"/> Estrella x2</span>}
               {match.predicted_scorer?.name&&<span className="calendar-scorer">Goleador: {match.predicted_scorer.name}</span>}

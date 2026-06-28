@@ -3,7 +3,15 @@ const SUMMARY_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.w
 const ODDS_URL = "https://sports.core.api.espn.com/v2/sports/soccer/leagues/fifa.world/events";
 const REQUEST_TIMEOUT_MS = 8000;
 
-const ESPN_TO_FIFA = {};
+const ESPN_TO_FIFA = {
+  GER: "DEU",
+  NED: "NLD",
+  SUI: "CHE",
+  KSA: "SAU",
+  CRC: "CRI",
+  CRO: "HRV",
+  RSA: "ZAF",
+};
 
 const normalizeCode = (value) => ESPN_TO_FIFA[String(value || "").toUpperCase()] || String(value || "").toUpperCase();
 const numberValue = (value) => {
@@ -108,7 +116,7 @@ const minuteDetails = (value, label = "") => {
   const added = raw.match(/(\d+)\s*['’]?\s*\+\s*(\d+)/);
   const regular = raw.match(/(\d+)/);
   const minuteValue = added
-    ? Number(added[1]) + Number(added[2]) / 100
+    ? Number(added[1]) + Number(added[2])
     : regular ? Number(regular[1]) : null;
   const normalizedLabel = String(label || "").toLowerCase();
   if (/end of game|full time|final/.test(normalizedLabel)) return { minute_value: minuteValue ?? 999, display_minute: "Final" };

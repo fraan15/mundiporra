@@ -122,7 +122,7 @@ function LivePredictionPreview({ match, response, onSimulate }) {
 function LiveMatchPanel({ match, response, onSimulate }) {
   const live = response?.live;
   const goals = live?.goals || [];
-  const sortedGoals = useMemo(() => goals.map((goal, index) => ({ goal, index })).sort((a, b) => goalSortMinute(b.goal) - goalSortMinute(a.goal) || b.index - a.index).map(item => item.goal), [goals]);
+  const sortedGoals = useMemo(() => goals.map((goal, index) => ({ goal, index })).sort((a, b) => goalSortMinute(a.goal) - goalSortMinute(b.goal) || a.index - b.index).map(item => item.goal), [goals]);
   const goalsScrollerRef = useRef(null);
   const [activeGoalIndex, setActiveGoalIndex] = useState(0);
   useEffect(() => {
@@ -347,7 +347,7 @@ export function MatchSimulationOverlay({ match, players, user, initialLiveRespon
           <small>{localMatchParts(item,user.country_code).date} · {localMatchTime(item,user.country_code)}</small>
           {hasMultipleMatches && <label className="simulation-active-toggle" title={itemActive ? "Partido activo en la simulación" : "Partido fuera de la simulación"}><input type="checkbox" checked={itemActive} onChange={event => setActiveByMatch(current => ({ ...current, [item.id]: event.target.checked }))}/><span>{itemActive ? "Activo" : "Off"}</span></label>}
         </div>
-        {itemLive && <div className="simulation-espn-prefill"><span>⚡ Marcador en vivo precargado. Puedes modificarlo.</span>{itemLive.unmatched_scorers?.length > 0 && <small>Sin vincular: {itemLive.unmatched_scorers.join(", ")}.</small>}</div>}
+        {itemLive && <div className="simulation-espn-prefill"><span>Precargado desde ESPN. Puedes modificarlo.</span>{itemLive.unmatched_scorers?.length > 0 && <small>Sin vincular: {itemLive.unmatched_scorers.join(", ")}.</small>}</div>}
         <div className="simulation-gesture-area">
           <article className={`${itemActive ? "simulation-match-slide active" : "simulation-match-slide inactive"} ${matchDirection < 0 ? "from-left" : "from-right"}`} key={`${item.id}-${matchAnimation}`}>
               <div className="detail-score-picker horizontal simulation-score-editor">
@@ -2330,9 +2330,10 @@ export function MatchDetailPage() {
     [pickMessage, setPickMessage] = useState(""),
     [pickSavedPulse, setPickSavedPulse] = useState(0),
     [liveResponse, setLiveResponse] = useState(null),
+    [espnPrefilledResult, setEspnPrefilledResult] = useState(false),
     [simulationOpen, setSimulationOpen] = useState(false),
     [knockoutInfoOpen, setKnockoutInfoOpen] = useState(false);
-  const hydratedPickMatchId = useRef(null), espnResultPrefillRef = useRef(null), adminResultTouchedRef = useRef(false), commentFileRef = useRef(null), selectedImageRef = useRef(null);
+  const hydratedPickMatchId = useRef(null), adminResultTouchedRef = useRef(false), commentFileRef = useRef(null), selectedImageRef = useRef(null);
   useEffect(() => { selectedImageRef.current = selectedImage; }, [selectedImage]);
   const discardCommentImage = async (image = selectedImageRef.current) => {
     if (image?.id) await api(`/comments/image/${encodeURIComponent(image.id)}`, { method: "DELETE" }).catch(() => {});
@@ -2373,7 +2374,7 @@ export function MatchDetailPage() {
   }, [id]);
   useEffect(() => {
     setLiveResponse(null);
-    espnResultPrefillRef.current = null;
+    setEspnPrefilledResult(false);
     adminResultTouchedRef.current = false;
     if (!data?.match || (data.match.betting_open && !data.match.live_test_enabled)) return undefined;
     return startVisiblePolling(
@@ -2384,11 +2385,11 @@ export function MatchDetailPage() {
   useEffect(() => {
     const live = liveResponse?.live, match = data?.match;
     if (!live?.completed || !live.score || !match || match.status === "finished" || user.role !== "admin") return;
-    if (espnResultPrefillRef.current === match.id || adminResultTouchedRef.current) return;
-    espnResultPrefillRef.current = match.id;
+    if (espnPrefilledResult || adminResultTouchedRef.current) return;
     setResult({ g1: String(live.score.team1), g2: String(live.score.team2) });
     setResultScorerIds(live.scorer_player_ids || []);
-  }, [liveResponse?.live?.completed, liveResponse?.live?.score?.team1, liveResponse?.live?.score?.team2, data?.match?.id, data?.match?.status, user.role]);
+    setEspnPrefilledResult(true);
+  }, [liveResponse?.live?.completed, liveResponse?.live?.score?.team1, liveResponse?.live?.score?.team2, data?.match?.id, data?.match?.status, user.role, espnPrefilledResult]);
   useEffect(() => {
     const query = text.match(/(?:^|\s)@([^\s@]{2,})$/)?.[1];
     if (!query) { setCommentMentions([]); return; }
@@ -2798,7 +2799,7 @@ export function MatchDetailPage() {
                 ? "Editar resultado del partido"
                 : "Introducir resultado del partido"}
             </strong>
-            {espnResultPrefillRef.current === m.id && <div className="espn-prefill-note"><strong>Resultado en vivo precargado.</strong><span>Revísalo antes de guardar.</span>{liveResponse?.live?.unmatched_scorers?.length > 0 && <small>Goleadores sin vincular: {liveResponse.live.unmatched_scorers.join(", ")}. Añádelos manualmente si corresponde.</small>}</div>}
+            {espnPrefilledResult && <div className="espn-prefill-note"><strong>Resultado precargado desde ESPN.</strong><span>Revísalo antes de guardar.</span>{liveResponse?.live?.unmatched_scorers?.length > 0 && <small>Goleadores sin vincular: {liveResponse.live.unmatched_scorers.join(", ")}. Añádelos manualmente si corresponde.</small>}</div>}
             <div className="result-inputs">
               <label>
                 {m.team1}
@@ -2831,7 +2832,7 @@ export function MatchDetailPage() {
                   <input
                     type="checkbox"
                     checked={resultHasPenalties}
-                    onChange={(e) => setResultHasPenalties(e.target.checked)}
+                    onChange={(e) => { adminResultTouchedRef.current = true; setResultHasPenalties(e.target.checked); }}
                   />
                   Tanda de penaltis
                 </label>
@@ -2844,7 +2845,7 @@ export function MatchDetailPage() {
                         min="0"
                         step="1"
                         value={resultPenalties.p1}
-                        onChange={(e) => setResultPenalties({ ...resultPenalties, p1: e.target.value })}
+                        onChange={(e) => { adminResultTouchedRef.current = true; setResultPenalties({ ...resultPenalties, p1: e.target.value }); }}
                       />
                     </label>
                     <label>
@@ -2854,7 +2855,7 @@ export function MatchDetailPage() {
                         min="0"
                         step="1"
                         value={resultPenalties.p2}
-                        onChange={(e) => setResultPenalties({ ...resultPenalties, p2: e.target.value })}
+                        onChange={(e) => { adminResultTouchedRef.current = true; setResultPenalties({ ...resultPenalties, p2: e.target.value }); }}
                       />
                     </label>
                   </div>
@@ -2867,10 +2868,11 @@ export function MatchDetailPage() {
                 <ScorerPicker
                   players={availableResultScorers}
                   value={null}
-                  onChange={(playerId) =>
-                    playerId &&
-                    setResultScorerIds([...resultScorerIds, playerId])
-                  }
+                  onChange={(playerId) => {
+                    if (!playerId) return;
+                    adminResultTouchedRef.current = true;
+                    setResultScorerIds([...resultScorerIds, playerId]);
+                  }}
                   onOpen={loadPickScorers}
                   buttonLabel="Añadir goleador"
                   matchLabel={`${m.team1} - ${m.team2}`}
@@ -2885,13 +2887,14 @@ export function MatchDetailPage() {
                         <button
                           type="button"
                           key={playerId}
-                          onClick={() =>
+                          onClick={() => {
+                            adminResultTouchedRef.current = true;
                             setResultScorerIds(
                               resultScorerIds.filter(
                                 (value) => value !== playerId,
                               ),
-                            )
-                          }
+                            );
+                          }}
                         >
                           {player.name} ×
                         </button>

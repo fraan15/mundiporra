@@ -1,8 +1,18 @@
 export function EspnLiveScore({ data }) {
   if (!data?.available || !data.score) return null;
   const isLive = data.state === "in" && !data.completed;
-  if (!isLive || data.stale) return null;
-  return <span className={`espn-live-score ${isLive ? "is-live" : ""} ${data.completed ? "is-final" : ""} ${data.stale ? "is-stale" : ""}`}>
-    <i/><b>Live</b>
+  const isFinal = Boolean(data.completed);
+  const provider = data.provider || "ESPN";
+  const rawStatus = `${data.status || ""} ${data.clock || ""}`.toLowerCase();
+  const moment = data.stale
+    ? "guardado"
+    : isFinal
+      ? "FINAL"
+      : /half|descanso|intermedio/.test(rawStatus)
+        ? "Descanso"
+        : data.clock || data.status || (isLive ? "En directo" : "");
+  const score = `${data.score.team1 ?? 0}–${data.score.team2 ?? 0}`;
+  return <span className={`espn-live-score ${isLive ? "is-live" : ""} ${isFinal ? "is-final" : ""} ${data.stale ? "is-stale" : ""}`}>
+    {isLive && <i/>}<b>{isFinal ? `${provider} FINAL` : provider}</b>{moment && !isFinal && <em>{moment}</em>}<strong>{score}</strong>
   </span>;
 }
