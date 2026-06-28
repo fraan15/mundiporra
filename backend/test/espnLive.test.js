@@ -32,7 +32,7 @@ test("relaciona abreviaturas ESPN conflictivas con los códigos del catálogo lo
     ["Saudi Arabia", "KSA", "SAU"],
     ["Costa Rica", "CRC", "CRI"],
     ["Croatia", "CRO", "HRV"],
-    ["South Africa", "RSA", "ZAF"],
+    ["South Africa", "ZAF", "RSA"],
     ["South Korea", "KOR", "KOR"],
     ["Czechia", "CZE", "CZE"],
     ["United States", "USA", "USA"],
@@ -51,6 +51,70 @@ test("relaciona abreviaturas ESPN conflictivas con los códigos del catálogo lo
       starts_at: "2026-06-28T19:00Z",
     });
     assert.equal(event?.id, `event-${index}`, name);
+  });
+});
+
+test("encuentra partido con alias ESPN pero conserva código local", () => {
+  const match = {
+    team1_fifa_code: "RSA",
+    team2_fifa_code: "CAN",
+    starts_at: "2026-06-28T19:00Z",
+    match_date: "2026-06-28",
+  };
+  const event = {
+    id: "rsa-can",
+    date: "2026-06-28T19:00Z",
+    competitions: [{ competitors: [
+      { score: "1", team: { id: "1", abbreviation: "ZAF", displayName: "South Africa" } },
+      { score: "0", team: { id: "2", abbreviation: "CAN", displayName: "Canada" } },
+    ], details: [{
+      id: "goal-rsa",
+      clock: { displayValue: "11'" },
+      team: { id: "1", abbreviation: "ZAF" },
+      type: { text: "Goal" },
+      scoringPlay: true,
+      participants: [{ athlete: { id: "10", displayName: "Bafana" } }],
+    }] }],
+  };
+  assert.equal(findEspnEvent([event], match)?.id, "rsa-can");
+  const live = normalizeEspnLive(event, { header: event }, match);
+  assert.equal(live.competitors[0].code, "RSA");
+  assert.equal(live.goals[0].team_code, "RSA");
+  assert.equal(live.goals[0].side, "team1");
+});
+
+test("conserva códigos locales para Alemania y Países Bajos tras normalizar live", () => {
+  const cases = [
+    { espn: "GER", local: "DEU", opponent: "CAN", id: "deu-can" },
+    { espn: "NED", local: "NLD", opponent: "USA", id: "nld-usa" },
+  ];
+  cases.forEach(({ espn, local, opponent, id }) => {
+    const match = {
+      team1_fifa_code: local,
+      team2_fifa_code: opponent,
+      starts_at: "2026-06-28T19:00Z",
+      match_date: "2026-06-28",
+    };
+    const event = {
+      id,
+      date: "2026-06-28T19:00Z",
+      competitions: [{ competitors: [
+        { score: "1", team: { id: "1", abbreviation: espn } },
+        { score: "0", team: { id: "2", abbreviation: opponent } },
+      ], details: [{
+        id: `${id}-goal`,
+        clock: { displayValue: "22'" },
+        team: { id: "1", abbreviation: espn },
+        type: { text: "Goal" },
+        scoringPlay: true,
+        participants: [{ athlete: { id: "10", displayName: "Scorer" } }],
+      }] }],
+    };
+    assert.equal(findEspnEvent([event], match)?.id, id);
+    const live = normalizeEspnLive(event, { header: event }, match);
+    assert.equal(live.competitors[0].code, local);
+    assert.equal(live.goals[0].team_code, local);
+    assert.equal(live.goals[0].side, "team1");
   });
 });
 

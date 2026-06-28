@@ -1750,10 +1750,11 @@ const loadLiveMatch = async (match) => {
   if (match.live_test_enabled && match.live_test_event_id) {
     try {
       const cachedReplay = liveTestCache.get(match.live_test_event_id);
-      const sourceLive = cachedReplay && Date.now() - cachedReplay.at < 20000
-        ? cachedReplay.live
-        : await getEspnEventById(match.live_test_event_id);
       const matchWithStart = { ...match, starts_at: matchStartsAt(match).toISOString() };
+      let sourceLive = cachedReplay && Date.now() - cachedReplay.at < 20000
+        ? cachedReplay.live
+        : null;
+      if (!sourceLive) sourceLive = await getEspnEventById(match.live_test_event_id, matchWithStart);
       if (!espnEventMatches(sourceLive, matchWithStart)) {
         db.prepare("UPDATE matches SET live_test_enabled=0,live_test_event_id=NULL,updated_at=? WHERE id=?")
           .run(now(), match.id);
@@ -1884,8 +1885,9 @@ app.patch("/api/admin/matches/:id/live-test", requireAdmin, async (req, res) => 
   if (enabled && !/^\d{4,12}$/.test(eventId)) return res.status(400).json({ error: "Introduce un ID numérico de evento ESPN válido." });
   if (enabled) {
     try {
-      const live = await getEspnEventById(eventId);
-      if (!espnEventMatches(live, { ...match, starts_at: matchStartsAt(match).toISOString() })) {
+      const matchWithStart = { ...match, starts_at: matchStartsAt(match).toISOString() };
+      const live = await getEspnEventById(eventId, matchWithStart);
+      if (!espnEventMatches(live, matchWithStart)) {
         return res.status(400).json({ error: "Ese evento ESPN no coincide con la fecha y las selecciones de este partido." });
       }
     } catch {

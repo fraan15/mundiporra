@@ -3,17 +3,37 @@ const SUMMARY_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.w
 const ODDS_URL = "https://sports.core.api.espn.com/v2/sports/soccer/leagues/fifa.world/events";
 const REQUEST_TIMEOUT_MS = 8000;
 
-const ESPN_TO_FIFA = {
+const CODE_ALIASES_FOR_MATCHING = {
   GER: "DEU",
   NED: "NLD",
   SUI: "CHE",
   KSA: "SAU",
   CRC: "CRI",
   CRO: "HRV",
-  RSA: "ZAF",
+  ZAF: "RSA",
 };
 
-const normalizeCode = (value) => ESPN_TO_FIFA[String(value || "").toUpperCase()] || String(value || "").toUpperCase();
+const rawCode = (value) => String(value || "").trim().toUpperCase();
+const canonicalMatchCode = (value) => {
+  const code = rawCode(value);
+  return CODE_ALIASES_FOR_MATCHING[code] || code;
+};
+const outputCode = (value) => canonicalMatchCode(value);
+const toLocalTeamCode = (espnCode, match) => {
+  const code = rawCode(espnCode);
+  const canonical = canonicalMatchCode(code);
+  if (canonical && canonical === canonicalMatchCode(match?.team1_fifa_code)) return rawCode(match.team1_fifa_code);
+  if (canonical && canonical === canonicalMatchCode(match?.team2_fifa_code)) return rawCode(match.team2_fifa_code);
+  return code;
+};
+const liveCode = (value, match) => match ? toLocalTeamCode(value, match) : outputCode(value);
+const sideFromLocalCode = (code, match) => {
+  if (!match) return null;
+  const localCode = rawCode(code);
+  if (localCode && localCode === rawCode(match.team1_fifa_code)) return "team1";
+  if (localCode && localCode === rawCode(match.team2_fifa_code)) return "team2";
+  return null;
+};
 const numberValue = (value) => {
   if (value && typeof value === "object") value = value.value ?? value.displayValue;
   const parsed = Number(String(value ?? "").replace("%", ""));
@@ -42,10 +62,10 @@ const fetchJson = async (url) => {
 };
 
 const competitionOf = (event) => event?.competitions?.[0] || null;
-const teamCode = (competitor) => normalizeCode(competitor?.team?.abbreviation);
+const teamCode = (competitor) => canonicalMatchCode(competitor?.team?.abbreviation);
 const localTeamCodes = (match) => [
-  normalizeCode(match.team1_fifa_code),
-  normalizeCode(match.team2_fifa_code),
+  canonicalMatchCode(match.team1_fifa_code),
+  canonicalMatchCode(match.team2_fifa_code),
 ].filter(Boolean);
 const espnDate = (value) => new Date(value).toISOString().slice(0, 10).replaceAll("-", "");
 const EVENT_TIME_TOLERANCE_MS = 6 * 60 * 60 * 1000;
@@ -86,7 +106,7 @@ export const espnEventTimeMatches = (event, match, toleranceMs = EVENT_TIME_TOLE
 export const espnEventMatches = (liveOrEvent, match) => {
   const expectedCodes = localTeamCodes(match);
   const codes = liveOrEvent?.competitors
-    ? liveOrEvent.competitors.map((team) => normalizeCode(team.code || team.team?.abbreviation))
+    ? liveOrEvent.competitors.map((team) => canonicalMatchCode(team.code || team.team?.abbreviation))
     : (competitionOf(liveOrEvent)?.competitors || []).map(teamCode);
   return expectedCodes.length === 2 &&
     expectedCodes.every((code) => codes.includes(code)) &&
@@ -160,7 +180,7 @@ const spanishEventLabel = (category, label, text) => {
   }[category] || "Incidencia";
 };
 
-const normalizeTimelineItem = (item, index, codeByTeamId) => {
+const normalizeTimelineItem = (item, index, codeByTeamId, match) => {
   const play = item?.play || item;
   const participantRows = participantDetails(play);
   const athletes = participantRows.map((participant) => participant.name);
@@ -170,6 +190,7 @@ const normalizeTimelineItem = (item, index, codeByTeamId) => {
   const minute = displayValue(play?.clock?.displayValue || play?.clock?.displayClock || item?.time?.displayValue || item?.time || "").replace("—", "");
   const teamId = String(play?.team?.id || "");
   const minuteInfo = minuteDetails(minute, `${label} ${text}`);
+  const teamCodeValue = liveCode(play?.team?.abbreviation || codeByTeamId.get(teamId), match);
   return {
     id: String(play?.id || item?.sequence || `${play?.period?.number || play?.period || 0}-${play?.clock?.value || play?.clock?.displayValue || ""}-${play?.clock?.displayValue || ""}-${index}-${text}`),
     minute,
@@ -188,20 +209,20 @@ const normalizeTimelineItem = (item, index, codeByTeamId) => {
     category,
     label_es: spanishEventLabel(category, label, text),
     ...minuteInfo,
-    team_code: normalizeCode(play?.team?.abbreviation || codeByTeamId.get(teamId)),
+    team_code: teamCodeValue,
     is_key_event: ["goal", "red_card", "penalty", "var", "start_end"].includes(category),
-    side: null,
+    side: sideFromLocalCode(teamCodeValue, match),
   };
 };
 
-const normalizeStats = (summary, competition) => {
+const normalizeStats = (summary, competition, match) => {
   const teams = summary?.boxscore?.teams || [];
   return teams.map((entry) => {
     const competitor = (competition?.competitors || []).find((row) => String(row.team?.id) === String(entry.team?.id));
     return {
       id: String(entry.team?.id || ""),
       name: entry.team?.displayName || competitor?.team?.displayName || "",
-      code: normalizeCode(entry.team?.abbreviation || competitor?.team?.abbreviation),
+      code: liveCode(entry.team?.abbreviation || competitor?.team?.abbreviation, match),
       stats: (entry.statistics || []).map((stat) => ({
         key: stat.name || stat.abbreviation || stat.label,
         label: stat.label || stat.displayName || stat.name,
@@ -225,13 +246,13 @@ const normalizePlayerNameForSignature = (value) => String(value || "")
   .replace(/[^a-z0-9]+/g, " ")
   .trim();
 
-export const normalizeEspnLive = (event, summary = {}) => {
+export const normalizeEspnLive = (event, summary = {}, match = null) => {
   const headerEvent = summary?.header || event;
   const competition = competitionOf(headerEvent) || competitionOf(event);
   const status = competition?.status || headerEvent?.status || event?.status || {};
   const competitors = (competition?.competitors || []).map((row) => ({
     id: String(row.team?.id || ""),
-    code: normalizeCode(row.team?.abbreviation),
+    code: liveCode(row.team?.abbreviation, match),
     name: row.team?.displayName || row.team?.name || "",
     home_away: row.homeAway,
     score: numberValue(row.score) ?? 0,
@@ -244,7 +265,7 @@ export const normalizeEspnLive = (event, summary = {}) => {
     ...(summary?.plays || []),
   ];
   const codeByTeamId = new Map(competitors.map((team) => [team.id, team.code]));
-  const normalizedTimeline = rawTimeline.map((item, index) => normalizeTimelineItem(item, index, codeByTeamId));
+  const normalizedTimeline = rawTimeline.map((item, index) => normalizeTimelineItem(item, index, codeByTeamId, match));
   const timelineBySignature = new Map();
   normalizedTimeline.forEach((normalized) => {
     const signature = normalized.scoring || normalized.category === "goal"
@@ -312,7 +333,7 @@ export const normalizeEspnLive = (event, summary = {}) => {
     },
     goals,
     timeline,
-    stats: normalizeStats(summary, competition),
+    stats: normalizeStats(summary, competition, match),
     venue: competition?.venue?.fullName || headerEvent?.venue?.displayName || event?.venue?.displayName || "",
     fetched_at: new Date().toISOString(),
   };
@@ -322,7 +343,7 @@ export async function getEspnLiveMatch(match) {
   let event = null;
   if (match.espn_event_id) {
     const summary = await fetchJson(`${SUMMARY_URL}?event=${encodeURIComponent(match.espn_event_id)}`);
-    const live = normalizeEspnLive({ id: match.espn_event_id }, summary);
+    const live = normalizeEspnLive({ id: match.espn_event_id }, summary, match);
     if (espnEventMatches(live, match)) return live;
   }
   const dates = espnScoreboardDates(match);
@@ -333,12 +354,12 @@ export async function getEspnLiveMatch(match) {
   }
   if (!event) return null;
   const summary = await fetchJson(`${SUMMARY_URL}?event=${encodeURIComponent(event.id)}`).catch(() => ({}));
-  return normalizeEspnLive(event, summary);
+  return normalizeEspnLive(event, summary, match);
 }
 
-export async function getEspnEventById(eventId) {
+export async function getEspnEventById(eventId, match = null) {
   const summary = await fetchJson(`${SUMMARY_URL}?event=${encodeURIComponent(eventId)}`);
-  const live = normalizeEspnLive({ id: eventId }, summary);
+  const live = normalizeEspnLive({ id: eventId }, summary, match);
   if (!live.event_id || live.competitors.length !== 2) throw new Error("El evento de ESPN no contiene un partido válido.");
   return live;
 }
