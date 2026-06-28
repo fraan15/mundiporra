@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import request from "supertest";
 import sharp from "sharp";
 import { app } from "../src/app.js";
-import { db } from "../src/db/database.js";
+import { db, now } from "../src/db/database.js";
 import { remindNextNightMissingPredictions } from "../src/services/matches.js";
 import { normalizePlayerName, normalizeWorldCupReference, worldCupOverview } from "../src/services/worldcupReference.js";
 
@@ -1876,4 +1876,142 @@ test("un anuncio programado se entrega una sola vez a cada usuario", async () =>
   const second = await user.get("/api/announcements/pending");
   assert.equal(second.status, 200);
   assert.equal(second.body.announcement, null);
+});
+
+const madridNowParts = () => {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Madrid",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date()).map(({ type, value }) => [type, value]));
+  return { date: `${parts.year}-${parts.month}-${parts.day}`, time: `${parts.hour}:${parts.minute}` };
+};
+
+const liveSummaryFixture = ({ completed = true, score1 = "2", score2 = "1", date = new Date().toISOString() } = {}) => ({
+  header: {
+    id: "987654",
+    date,
+    competitions: [{
+      date,
+      status: { displayClock: completed ? "" : "67'", type: { state: completed ? "post" : "in", shortDetail: completed ? "Final" : "2ª parte", completed } },
+      competitors: [
+        { homeAway: "home", score: score1, team: { id: "1", abbreviation: "ESP", displayName: "España" } },
+        { homeAway: "away", score: score2, team: { id: "2", abbreviation: "CAN", displayName: "Canadá" } },
+      ],
+    }],
+  },
+});
+
+const insertClosedLiveMatch = () => {
+  const { date, time } = madridNowParts();
+  const team1 = db.prepare("SELECT id,name FROM teams WHERE fifa_code='ESP'").get();
+  const team2 = db.prepare("SELECT id,name FROM teams WHERE fifa_code='CAN'").get();
+  const result = db.prepare(`
+    INSERT INTO matches(match_date,match_time,stadium,team1,team2,team1_id,team2_id,status,auto_close_at,force_published,espn_event_id,created_at,updated_at)
+    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)
+  `).run(date, time, "Estadio ESPN Test", team1.name, team2.name, team1.id, team2.id, "closed", new Date(Date.now() - 60000).toISOString(), 1, "987654", now(), now());
+  return result.lastInsertRowid;
+};
+
+test("ESPN Live guarda live_completed_at y lo devuelve en endpoints", async () => {
+  const admin = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  const matchId = insertClosedLiveMatch();
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls += 1;
+    return { ok: true, json: async () => liveSummaryFixture({ completed: true }) };
+  };
+  try {
+    const individual = await admin.get(`/api/matches/${matchId}/live`).expect(200);
+    assert.equal(individual.body.available, true);
+    assert.equal(individual.body.espn_completed, true);
+    assert.ok(individual.body.live_completed_at);
+    assert.equal(individual.body.live.completed, true);
+    assert.equal(individual.body.live.score.team1, 2);
+    const stored = db.prepare("SELECT status,live_completed_at FROM matches WHERE id=?").get(matchId);
+    assert.equal(stored.status, "closed");
+    assert.ok(stored.live_completed_at);
+
+    const batch = await admin.get(`/api/matches/live-scores?ids=${matchId}`).expect(200);
+    assert.equal(batch.body.items[matchId].espn_completed, true);
+    assert.equal(batch.body.items[matchId].live_completed_at, individual.body.live_completed_at);
+    assert.equal(calls, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("ESPN Live no consulta de nuevo si live_completed_at existe con caché", async () => {
+  const admin = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  const matchId = insertClosedLiveMatch();
+  const cached = {
+    provider: "ESPN",
+    event_id: "987654",
+    date: new Date().toISOString(),
+    state: "post",
+    completed: true,
+    status: "Final",
+    clock: "",
+    competitors: [
+      { id: "1", code: "ESP", score: 2 },
+      { id: "2", code: "CAN", score: 1 },
+    ],
+    score: { team1: 2, team2: 1 },
+    goals: [],
+    timeline: [],
+    fetched_at: new Date().toISOString(),
+  };
+  const completedAt = new Date().toISOString();
+  db.prepare("UPDATE matches SET live_data_json=?,live_updated_at=?,live_completed_at=? WHERE id=?")
+    .run(JSON.stringify(cached), cached.fetched_at, completedAt, matchId);
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => { throw new Error("ESPN no debería consultarse"); };
+  try {
+    const response = await admin.get(`/api/matches/${matchId}/live`).expect(200);
+    assert.equal(response.body.available, true);
+    assert.equal(response.body.espn_completed, true);
+    assert.equal(response.body.live_completed_at, completedAt);
+    assert.deepEqual(response.body.live.score, { team1: 2, team2: 1 });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("ESPN Live limpia live_completed_at si el caché no coincide", async () => {
+  const admin = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  const matchId = insertClosedLiveMatch();
+  db.prepare("UPDATE matches SET match_date='2099-07-12',match_time='18:00' WHERE id=?").run(matchId);
+  const cached = {
+    provider: "ESPN",
+    event_id: "wrong",
+    date: new Date().toISOString(),
+    state: "post",
+    completed: true,
+    competitors: [
+      { id: "1", code: "FRA", score: 2 },
+      { id: "2", code: "CAN", score: 1 },
+    ],
+    score: { team1: 2, team2: 1 },
+    fetched_at: new Date().toISOString(),
+  };
+  db.prepare("UPDATE matches SET live_data_json=?,live_updated_at=?,live_completed_at=? WHERE id=?")
+    .run(JSON.stringify(cached), cached.fetched_at, new Date().toISOString(), matchId);
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => { throw new Error("ESPN no debería consultarse con caché inválido limpiado antes del inicio"); };
+  try {
+    const response = await admin.get(`/api/matches/${matchId}/live`).expect(200);
+    assert.equal(response.body.available, false);
+    assert.equal(response.body.espn_completed, false);
+    const row = db.prepare("SELECT live_data_json,live_updated_at,live_completed_at FROM matches WHERE id=?").get(matchId);
+    assert.equal(row.live_data_json, null);
+    assert.equal(row.live_updated_at, null);
+    assert.equal(row.live_completed_at, null);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });

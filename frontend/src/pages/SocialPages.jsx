@@ -85,7 +85,7 @@ const StatCards = ({ s, onPointsInfo }) => (
   </div>
 );
 
-const liveMoment = (live) => live.completed ? "Final" : live.clock || (live.state === "pre" ? "Próximamente" : "En juego");
+const liveMoment = (live, response) => (live.completed || response?.espn_completed) ? "Final" : live.clock || (live.state === "pre" ? "Próximamente" : "En juego");
 const goalSortMinute = (goal) => {
   const raw = String(goal?.display_minute || goal?.minute || "").replace(/[’']/g, "").trim();
   const match = raw.match(/(\d+)(?:\s*\+\s*(\d+))?/);
@@ -97,7 +97,7 @@ function LivePredictionPreview({ match, response, onSimulate }) {
   const live = response?.live;
   const [preview, setPreview] = useState(null);
   const [previewError, setPreviewError] = useState(false);
-  const isPlayableLive = Boolean(live?.score && !live.completed && match.status !== "finished");
+  const isPlayableLive = Boolean(live?.score && !live.completed && !response?.espn_completed && match.status !== "finished");
   useEffect(() => {
     if (!isPlayableLive) { setPreview(null); setPreviewError(false); return; }
     setPreviewError(false);
@@ -112,10 +112,18 @@ function LivePredictionPreview({ match, response, onSimulate }) {
   }, [match.id, isPlayableLive, live?.score?.team1, live?.score?.team2, JSON.stringify(live?.scorer_player_ids || [])]);
   if (!isPlayableLive) return null;
   const points = preview?.points;
-  return <aside className="espn-points-preview"><div><small>Si terminara así</small><strong>{match.team1} {live.score?.team1 ?? 0} – {live.score?.team2 ?? 0} {match.team2}</strong><span>{liveMoment(live)}</span></div>
-    {points ? <div className="espn-points-breakdown"><strong>+{points.total_points || 0} puntos</strong><small>Ganador +{points.winner_points || 0} · Exacto +{points.exact_result_points || 0} · Goleador +{points.scorer_points || 0}</small></div> : <small>{previewError ? "No se pudo calcular la preview." : "Calculando puntos…"}</small>}
+  const pointRows = points ? [
+    ["Ganador", points.winner_points],
+    ["Resultado", points.exact_result_points],
+    ["Goleador", points.scorer_points],
+  ] : [];
+  return <aside className="espn-points-preview live-ticker-points detail-simulation-card">
+    <button type="button" className="live-ticker-simulate" onClick={onSimulate} aria-label={`Simular marcador ESPN de ${match.team1} - ${match.team2}`}><Calculator size={16}/></button>
+    <small>Si terminara así</small>
+    <strong>{points ? `+${points.total_points || 0} pts` : `${live.score?.team1 ?? 0} - ${live.score?.team2 ?? 0}`}</strong>
+    <div>{points ? pointRows.map(([label, value]) => <span className={Number(value) > 0 ? "hit" : ""} key={label}>{Number(value) > 0 ? <Check size={13}/> : <X size={13}/>}<b>{label}</b><em>+{value || 0}</em></span>) : <span><Calculator size={13}/><b>{previewError ? "No se pudo calcular la preview." : "Calculando puntos..."}</b></span>}</div>
+    <p>{match.team1} {live.score?.team1 ?? 0} - {live.score?.team2 ?? 0} {match.team2} · {liveMoment(live, response)}</p>
     {live.unmatched_scorers?.length > 0 && <p>Goleadores sin vincular: {live.unmatched_scorers.join(", ")}</p>}
-    <button type="button" onClick={onSimulate}><Calculator size={16}/> Simular este marcador</button>
   </aside>;
 }
 
@@ -131,7 +139,8 @@ function LiveMatchPanel({ match, response, onSimulate }) {
   }, [match.id, sortedGoals.length]);
   if (match.status === "finished") return null;
   if (!live) return null;
-  const isUnconfirmedFinal = live.completed && match.status !== "finished";
+  const isEspnFinal = Boolean(live.completed || response?.espn_completed);
+  const isUnconfirmedFinal = isEspnFinal && match.status !== "finished";
   const updateGoalIndex = () => {
     const scroller = goalsScrollerRef.current;
     if (!scroller) return;
@@ -152,7 +161,7 @@ function LiveMatchPanel({ match, response, onSimulate }) {
     setActiveGoalIndex(index);
   };
   return <section className="content-card espn-detail-card">
-    <header><div><small>{live.completed ? "FINAL" : "EN DIRECTO"}</small><h2>{live.completed ? <>Resultado final <span className="espn-source-pill">ESPN{isUnconfirmedFinal ? " · Sin confirmar" : ""}</span></> : "Marcador en vivo"}</h2></div><span>{response.stale ? "Último dato disponible" : liveMoment(live)}</span></header>
+    <header><div><small>{isEspnFinal ? "FINAL" : "EN DIRECTO"}</small><h2>{isEspnFinal ? <>Resultado final <span className="espn-source-pill">ESPN{isUnconfirmedFinal ? " · Pendiente de confirmar" : ""}</span></> : "Marcador en vivo"}</h2></div><span>{response.stale ? "Último dato disponible" : liveMoment(live, response)}</span></header>
     <div className="espn-detail-score"><span><Flag team={match.team1} teamData={match.team1_team}/>{match.team1}</span><strong>{live.score?.team1 ?? 0}<i>–</i>{live.score?.team2 ?? 0}</strong><span><Flag team={match.team2} teamData={match.team2_team}/>{match.team2}</span></div>
     <div className="espn-goals-list">{sortedGoals.length ? <><div className="espn-goals-scroll" ref={goalsScrollerRef} onScroll={updateGoalIndex}>{sortedGoals.map((goal, index) => <div className="espn-goal-row" key={goal.id || `${goal.minute}-${goal.espn_name || goal.player_name}-${index}`}>
       <time className="espn-goal-minute">{goal.minute || "—"}</time><span>⚽</span><div className="espn-goal-player"><strong>{goal.player_name || goal.espn_name || "Goleador sin identificar"}</strong><small>{goal.label || (goal.own_goal ? "Autogol" : goal.penalty ? "Gol de penalti" : "Gol")}{goal.team_code ? ` · ${goal.team_code}` : ""}</small></div>
@@ -2384,12 +2393,12 @@ export function MatchDetailPage() {
   }, [id, data?.match?.betting_open, data?.match?.live_test_enabled]);
   useEffect(() => {
     const live = liveResponse?.live, match = data?.match;
-    if (!live?.completed || !live.score || !match || match.status === "finished" || user.role !== "admin") return;
+    if (!(live?.completed || liveResponse?.espn_completed) || !live?.score || !match || match.status === "finished" || user.role !== "admin") return;
     if (espnPrefilledResult || adminResultTouchedRef.current) return;
     setResult({ g1: String(live.score.team1), g2: String(live.score.team2) });
     setResultScorerIds(live.scorer_player_ids || []);
     setEspnPrefilledResult(true);
-  }, [liveResponse?.live?.completed, liveResponse?.live?.score?.team1, liveResponse?.live?.score?.team2, data?.match?.id, data?.match?.status, user.role, espnPrefilledResult]);
+  }, [liveResponse?.live?.completed, liveResponse?.espn_completed, liveResponse?.live?.score?.team1, liveResponse?.live?.score?.team2, data?.match?.id, data?.match?.status, user.role, espnPrefilledResult]);
   useEffect(() => {
     const query = text.match(/(?:^|\s)@([^\s@]{2,})$/)?.[1];
     if (!query) { setCommentMentions([]); return; }

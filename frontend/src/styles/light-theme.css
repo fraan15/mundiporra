@@ -1823,7 +1823,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 .agenda-match-row.needs-bet{box-shadow:none}
 .agenda-fixture{grid-template-columns:minmax(0,1fr) 68px minmax(0,1fr)}
 .agenda-fixture>b{white-space:nowrap;word-break:keep-all;line-height:1}
-.agenda-time small.live{color:#df2038}.agenda-time small.live:before{content:"";display:inline-block;width:6px;height:6px;margin-right:4px;border-radius:50%;background:currentColor;box-shadow:0 0 0 3px rgba(223,32,56,.12)}.agenda-bet-state>span,.agenda-bet-state>small{display:block}.agenda-bet-state>small{max-width:170px;margin-top:3px;overflow:hidden;text-overflow:ellipsis;color:inherit;font-size:8px;white-space:nowrap;opacity:.78}
+.agenda-time small.live{color:#df2038}.agenda-time small.live:before,.agenda-time .espn-live-dot:before{content:"";display:inline-block;width:6px;height:6px;margin-right:4px;border-radius:50%;background:currentColor;box-shadow:0 0 0 3px rgba(223,32,56,.12)}.agenda-time .espn-live-dot{display:block;color:#df2038;font-size:0;line-height:1}.agenda-time .espn-final{color:#f59e0b}.agenda-time .espn-final-source{color:#f59e0b}.agenda-bet-state>span,.agenda-bet-state>small{display:block}.agenda-bet-state>small{max-width:170px;margin-top:3px;overflow:hidden;text-overflow:ellipsis;color:inherit;font-size:8px;white-space:nowrap;opacity:.78}
 .agenda-time small.upcoming{color:#999}.agenda-match-row{grid-template-columns:67px minmax(310px,1fr) auto}.agenda-match-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px}.agenda-scorer-tag{display:inline-flex;align-items:center;gap:5px;max-width:180px;padding:6px 9px;border-radius:999px;background:#f1e9de;color:#7a5425;font-size:10px;font-weight:850;white-space:nowrap}.agenda-scorer-tag svg{flex:0 0 auto}.agenda-scorer-tag{overflow:hidden;text-overflow:ellipsis}
 [data-theme="dark"] .agenda-scorer-tag{background:#3b3024;color:#e7c58d}
 .matches-team-search{flex:1;min-width:220px}.matches-team-search .search-select-control{border:1px solid var(--line);border-radius:13px;background:var(--panel);box-shadow:none}.matches-team-search .search-select-control:focus-within{border-color:var(--line);box-shadow:none}.matches-team-search input,.matches-team-search input:focus{border:0!important;outline:0!important;box-shadow:none!important;background:transparent}.matches-team-search .search-select-value{margin-top:5px}.matches-toolbar>.matches-team-search:first-child{flex-basis:auto}
@@ -3841,18 +3841,25 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
 .live-ticker-bet strong{display:flex!important;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:11px;background:#fff;color:var(--text);font-size:16px}
 .live-ticker-bet strong span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .live-ticker-bet strong em{flex:0 0 auto;padding:3px 6px;border-radius:999px;background:#fff0bd;color:#8f1026;font-size:9px;font-style:normal;font-weight:950}
-.live-ticker-points{position:relative;min-width:0;padding:10px 44px 10px 10px;border:1px solid rgba(35,166,111,.18);border-radius:13px;background:rgba(35,166,111,.08)}
+.live-ticker-points{position:relative;min-width:0;padding:10px 46px 10px 10px;border:1px solid rgba(35,166,111,.18);border-radius:13px;background:rgba(35,166,111,.08)}
 .live-ticker-points>small{display:block;margin-bottom:5px;color:#147a48;font-size:9px;font-weight:950;text-transform:uppercase}
 .live-ticker-points>strong{display:block;margin-bottom:7px;color:#147a48;font-size:20px;line-height:1}
 .live-ticker-points>div{display:grid;gap:5px}
-.live-ticker-simulate{position:absolute;right:9px;top:50%;display:grid;place-items:center;width:29px;height:29px;min-height:0;padding:0;border:1px solid rgba(35,166,111,.22);border-radius:10px;background:rgba(255,255,255,.78);color:#147a48;box-shadow:0 8px 18px rgba(35,166,111,.1);transform:translateY(-50%);transition:transform .18s ease,box-shadow .18s ease,background .18s ease}
-.live-ticker-simulate:hover,.live-ticker-simulate:focus-visible{background:#fff;box-shadow:0 10px 22px rgba(35,166,111,.16);transform:translateY(-50%) scale(1.04)}
-.live-ticker-points span{display:grid;grid-template-columns:16px minmax(0,1fr) auto;align-items:center;gap:5px;padding:5px 7px;border-radius:9px;background:rgba(255,255,255,.62);color:var(--muted);font-size:10px;font-weight:850}
+.live-ticker-simulate{position:absolute;right:8px;top:8px;display:grid;place-items:center;width:32px;height:32px;min-height:0;padding:0;border:1px solid rgba(35,166,111,.22);border-radius:10px;background:rgba(255,255,255,.82);color:#147a48;box-shadow:0 8px 18px rgba(35,166,111,.1);transition:transform .18s ease,box-shadow .18s ease,background .18s ease}
+.live-ticker-simulate svg{width:19px;height:19px;stroke-width:2.6}
+.live-ticker-simulate:hover,.live-ticker-simulate:focus-visible{background:#fff;box-shadow:0 10px 22px rgba(35,166,111,.16);transform:scale(1.04)}
+.live-ticker-points span{display:grid;grid-template-columns:16px minmax(0,1fr);align-items:center;gap:5px;padding:5px 7px;border-radius:9px;background:rgba(255,255,255,.62);color:var(--muted);font-size:10px;font-weight:850}
 .live-ticker-points span.hit{color:#147a48}
 .live-ticker-points span svg{color:#a7a0a2}
 .live-ticker-points span.hit svg{color:#18a262}
 .live-ticker-points b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .live-ticker-points em{font-style:normal;font-weight:950}
+.detail-simulation-card.espn-points-preview{display:block;margin-top:12px;padding:10px 46px 10px 10px;border:1px solid rgba(35,166,111,.18);border-radius:13px;background:rgba(35,166,111,.08)}
+.detail-simulation-card.espn-points-preview>strong{display:block;margin-bottom:7px;color:#147a48;font-size:20px;line-height:1}
+.detail-simulation-card.espn-points-preview>div{display:grid;gap:5px}
+.detail-simulation-card.espn-points-preview span{grid-template-columns:16px minmax(0,1fr) auto}
+.detail-simulation-card.espn-points-preview p{margin:7px 0 0;color:var(--muted);font-size:10px;font-weight:800}
+.detail-simulation-card.espn-points-preview .live-ticker-simulate{grid-column:auto;grid-row:auto;padding:0}
 [data-theme="dark"] .live-ticker-summary>.live-ticker-minute{background:rgba(223,32,56,.16);color:#ff8fa0}
 [data-theme="dark"] .live-ticker-summary>.live-ticker-minute.is-final{background:rgba(70,115,170,.22);color:#a9cdf6}
 [data-theme="dark"] .live-ticker-summary>.live-ticker-minute.is-break{background:rgba(205,126,42,.22);color:#f3bd7c}

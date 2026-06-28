@@ -147,10 +147,27 @@ const liveScoreText = (match, liveScore) => liveScore?.available && liveScore.sc
   : hasResult(match) ? `${match.result_team1} - ${match.result_team2}` : "VS";
 const liveStatusText = (liveScore) => {
   if (!liveScore?.available) return "";
-  if (liveScore.completed) return "FIN";
+  if (liveScore.completed || liveScore.espn_completed) return "FIN";
   const status = `${liveScore.status || ""} ${liveScore.clock || ""}`.toLowerCase();
   if (/half|descanso|intermedio/.test(status)) return "DES";
   return liveScore.clock || "";
+};
+const liveWinner = (score) => {
+  const g1 = Number(score?.team1 || 0), g2 = Number(score?.team2 || 0);
+  return g1 === g2 ? "draw" : g1 > g2 ? "team1" : "team2";
+};
+const livePredictionChecks = (match, liveScore) => {
+  if (!match.prediction_id || !liveScore?.score) return null;
+  const predictedScorerId = Number(match.predicted_team1_goals) + Number(match.predicted_team2_goals) === 0
+    ? "no-scorer"
+    : match.predicted_scorer_id;
+  const currentScorers = new Set((liveScore.scorer_player_ids || []).map(String));
+  if (Number(match.scorer_enabled) && Number(liveScore.score.team1 || 0) + Number(liveScore.score.team2 || 0) === 0) currentScorers.add("no-scorer");
+  return [
+    { key: "winner", label: "Ganador", hit: match.predicted_winner === liveWinner(liveScore.score) },
+    { key: "exact", label: "Resultado", hit: Number(match.predicted_team1_goals) === Number(liveScore.score.team1 || 0) && Number(match.predicted_team2_goals) === Number(liveScore.score.team2 || 0) },
+    { key: "scorer", label: "Goleador", hit: Boolean(Number(match.scorer_enabled) && predictedScorerId && currentScorers.has(String(predictedScorerId))), disabled: !Number(match.scorer_enabled) },
+  ].filter((part) => !part.disabled);
 };
 function LiveMatchTicker({ matches, liveScores, user, onOpenMatch, onSimulateMatch }) {
   const scrollRef = useRef(null);
@@ -198,6 +215,7 @@ function LiveMatchTicker({ matches, liveScores, user, onOpenMatch, onSimulateMat
         const scorer = predictionScorerText(match, user);
         const isExpanded = expandedMatchId === match.id;
         const statusText = liveStatusText(liveScore);
+        const predictionChecks = livePredictionChecks(match, liveScore);
         return <article className={`live-ticker-card ${match.is_star ? "is-star" : ""} ${isExpanded ? "is-open" : ""}`} key={match.id}>
           <button type="button" className="live-ticker-summary" onClick={() => {
             if (activeIndex !== index) goToMatch(index);
@@ -234,9 +252,9 @@ function LiveMatchTicker({ matches, liveScores, user, onOpenMatch, onSimulateMat
               <button type="button" className="live-ticker-simulate" onClick={() => onSimulateMatch(match)} aria-label={`Abrir simulador con ${match.team1} - ${match.team2}`}>
                 <Calculator size={15}/>
               </button>
-              <small>Simulación privada</small>
+              <small>Pronóstico con marcador ESPN</small>
               <strong>Simular puntos</strong>
-              <div><span><Calculator size={13}/><b>Usa el marcador ESPN actual</b></span></div>
+              <div>{predictionChecks?.length ? predictionChecks.map((part) => <span className={part.hit ? "hit" : ""} key={part.key}>{part.hit ? <CheckCircle2 size={13}/> : <X size={13}/>}<b>{part.label}</b></span>) : <span><Calculator size={13}/><b>Usa el marcador ESPN actual</b></span>}</div>
             </div>
             <button type="button" onClick={() => onOpenMatch(match)}><Eye size={14}/> Ver partido</button>
           </div>}

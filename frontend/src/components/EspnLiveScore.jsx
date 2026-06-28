@@ -1,7 +1,7 @@
 export function EspnLiveScore({ data }) {
   if (!data?.available || !data.score) return null;
-  const isLive = data.state === "in" && !data.completed;
-  const isFinal = Boolean(data.completed);
+  const isFinal = Boolean(data.completed || data.espn_completed);
+  const isLive = data.state === "in" && !isFinal;
   const provider = data.provider || "ESPN";
   const rawStatus = `${data.status || ""} ${data.clock || ""}`.toLowerCase();
   const moment = data.stale

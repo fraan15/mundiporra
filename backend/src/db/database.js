@@ -425,6 +425,7 @@ export function initDatabase() {
   if (!matchColumns.includes("espn_event_id")) db.exec("ALTER TABLE matches ADD COLUMN espn_event_id TEXT");
   if (!matchColumns.includes("live_data_json")) db.exec("ALTER TABLE matches ADD COLUMN live_data_json TEXT");
   if (!matchColumns.includes("live_updated_at")) db.exec("ALTER TABLE matches ADD COLUMN live_updated_at TEXT");
+  if (!matchColumns.includes("live_completed_at")) db.exec("ALTER TABLE matches ADD COLUMN live_completed_at TEXT");
   if (!matchColumns.includes("live_test_enabled")) db.exec("ALTER TABLE matches ADD COLUMN live_test_enabled INTEGER NOT NULL DEFAULT 0 CHECK(live_test_enabled IN (0,1))");
   if (!matchColumns.includes("live_test_event_id")) db.exec("ALTER TABLE matches ADD COLUMN live_test_event_id TEXT");
   const teamColumns = db.prepare("PRAGMA table_info(teams)").all().map((column) => column.name);

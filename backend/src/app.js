@@ -1731,16 +1731,17 @@ const liveMatchRow = (id) => db.prepare(`
 
 const loadLiveMatch = async (match) => {
   if (match.status === "finished" && !match.live_test_enabled) {
-    return { available: false, live: null, stale: false };
+    return { available: false, live: null, stale: false, espn_completed: Boolean(match.live_completed_at), live_completed_at: match.live_completed_at || null };
   }
   let cached = (() => {
     try { return match.live_data_json ? JSON.parse(match.live_data_json) : null; } catch { return null; }
   })();
   if (cached && !espnEventMatches(cached, { ...match, starts_at: matchStartsAt(match).toISOString() })) {
-    db.prepare("UPDATE matches SET espn_event_id=NULL,live_data_json=NULL,live_updated_at=NULL WHERE id=?").run(match.id);
+    db.prepare("UPDATE matches SET espn_event_id=NULL,live_data_json=NULL,live_updated_at=NULL,live_completed_at=NULL WHERE id=?").run(match.id);
     match.espn_event_id = null;
     match.live_data_json = null;
     match.live_updated_at = null;
+    match.live_completed_at = null;
     cached = null;
   }
   const cacheAge = match.live_updated_at ? Date.now() - new Date(match.live_updated_at).getTime() : Infinity;
@@ -1758,30 +1759,46 @@ const loadLiveMatch = async (match) => {
       }
       liveTestCache.set(match.live_test_event_id, { at: Date.now(), live: sourceLive });
       const replay = enrichLivePlayers(asTestReplay(sourceLive, match), match);
-      return { available: true, live: replay, stale: false, test_mode: true };
+      return { available: true, live: replay, stale: false, test_mode: true, espn_completed: Boolean(match.live_completed_at), live_completed_at: match.live_completed_at || null };
     } catch (error) {
       console.error(`[espn] No se pudo cargar el replay ${match.live_test_event_id}:`, error.message);
       return { available: false, live: null, stale: false, test_mode: true, error: "No se pudo cargar el evento de prueba." };
     }
   }
+  if (match.live_completed_at && cached) {
+    return { available: true, live: enrichLivePlayers(cached, match), stale: false, espn_completed: true, live_completed_at: match.live_completed_at };
+  }
   if (cached?.completed || (cached && cacheAge < 20000)) {
-    return { available: true, live: enrichLivePlayers(cached, match), stale: false };
+    const cachedCompletion = cached.completed ? (match.live_completed_at || cached.fetched_at || now()) : null;
+    if (cachedCompletion && !match.live_completed_at) {
+      db.prepare("UPDATE matches SET live_completed_at=? WHERE id=?").run(cachedCompletion, match.id);
+      match.live_completed_at = cachedCompletion;
+    }
+    return { available: true, live: enrichLivePlayers(cached, match), stale: false, espn_completed: Boolean(match.live_completed_at || cached.completed), live_completed_at: match.live_completed_at || null };
   }
   if (!isMatchInPlay(match) && !match.in_play) {
-    return { available: Boolean(cached), live: enrichLivePlayers(cached, match), stale: Boolean(cached) };
+    return { available: Boolean(cached), live: enrichLivePlayers(cached, match), stale: Boolean(cached), espn_completed: Boolean(match.live_completed_at || cached?.completed), live_completed_at: match.live_completed_at || null };
   }
   try {
     const live = enrichLivePlayers(await getEspnLiveMatch({
       ...match,
       starts_at: matchStartsAt(match).toISOString(),
     }), match);
-    if (!live) return { available: false, live: enrichLivePlayers(cached, match), stale: Boolean(cached) };
-    db.prepare("UPDATE matches SET espn_event_id=?,live_data_json=?,live_updated_at=? WHERE id=?")
-      .run(live.event_id, JSON.stringify(live), live.fetched_at, match.id);
-    return { available: true, live, stale: false };
+    if (!live) return { available: false, live: enrichLivePlayers(cached, match), stale: Boolean(cached), espn_completed: Boolean(match.live_completed_at || cached?.completed), live_completed_at: match.live_completed_at || null };
+    const completedAt = live.completed ? (match.live_completed_at || live.fetched_at || now()) : null;
+    db.prepare(`
+      UPDATE matches
+      SET espn_event_id=?,
+          live_data_json=?,
+          live_updated_at=?,
+          live_completed_at=CASE WHEN ? THEN COALESCE(live_completed_at, ?) ELSE live_completed_at END
+      WHERE id=?
+    `).run(live.event_id, JSON.stringify(live), live.fetched_at, live.completed ? 1 : 0, completedAt, match.id);
+    if (completedAt) match.live_completed_at = completedAt;
+    return { available: true, live, stale: false, espn_completed: Boolean(match.live_completed_at || live.completed), live_completed_at: match.live_completed_at || null };
   } catch (error) {
     console.error(`[espn] No se pudo actualizar el partido ${match.id}:`, error.message);
-    return { available: Boolean(cached), live: enrichLivePlayers(cached, match), stale: Boolean(cached) };
+    return { available: Boolean(cached), live: enrichLivePlayers(cached, match), stale: Boolean(cached), espn_completed: Boolean(match.live_completed_at || cached?.completed), live_completed_at: match.live_completed_at || null };
   }
 };
 
@@ -1804,6 +1821,8 @@ app.get("/api/matches/live-scores", requireAuth, async (req, res) => {
       provider: live.provider,
       state: live.state,
       completed: live.completed,
+      espn_completed: Boolean(response.espn_completed || match.live_completed_at || live.completed),
+      live_completed_at: response.live_completed_at || match.live_completed_at || null,
       status: live.status,
       clock: live.clock,
       score: live.score,
@@ -1813,7 +1832,7 @@ app.get("/api/matches/live-scores", requireAuth, async (req, res) => {
       test_mode: live.test_mode || response.test_mode || false,
       source_completed: live.source_completed,
       fetched_at: live.fetched_at,
-    } : { available: false, stale: response.stale };
+    } : { available: false, stale: response.stale, espn_completed: Boolean(response.espn_completed || match.live_completed_at), live_completed_at: response.live_completed_at || match.live_completed_at || null };
   }
   res.json({ items });
 });

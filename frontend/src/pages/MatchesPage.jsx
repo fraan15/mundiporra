@@ -8,7 +8,6 @@ import { useAuth } from "../App";
 import { startVisiblePolling } from "../utils/visiblePolling";
 import { localMatchDate, localMatchTime } from "../utils/matchDateTime";
 import { useLiveScores } from "../hooks/useLiveScores";
-import { EspnLiveScore } from "../components/EspnLiveScore";
 
 const dateKey = date => date.toLocaleDateString("sv-SE");
 const hasResult = match => match.result_team1 !== null && match.result_team2 !== null;
@@ -90,8 +89,8 @@ export function MatchesPage() {
 
     {loading?<div className="matches-agenda-skeleton"><i/><i/><i/></div>:grouped.length?<div className="matches-agenda">{grouped.map(([date,items])=><section className="matches-day" key={date}>
       <header><div><strong>{dateLabel(date)}</strong><span>{new Date(`${date}T12:00:00`).toLocaleDateString("es-ES",{day:"2-digit",month:"short"})}</span></div><small>{items.length} encuentro{items.length===1?"":"s"}</small></header>
-      <div>{items.map(match=>{const liveScore=liveScores[match.id];const showEspn=liveScore?.available&&liveScore.score&&!hasResult(match);return <button type="button" className="agenda-match-row" key={match.id} onClick={()=>openMatch(match.id)}>
-        <span className="agenda-time">{showEspn?<EspnLiveScore data={liveScore}/>:<><strong>{hasResult(match)?"FIN":localMatchTime(match,user.country_code)}</strong><small className={hasResult(match)?"":"upcoming"}>{hasResult(match)?"FINAL":"PRÓXIMAMENTE"}</small></>}</span>
+      <div>{items.map(match=>{const liveScore=liveScores[match.id];const showEspn=liveScore?.available&&liveScore.score&&!hasResult(match);const espnFinal=showEspn&&(liveScore.completed||liveScore.espn_completed);return <button type="button" className="agenda-match-row" key={match.id} onClick={()=>openMatch(match.id)}>
+        <span className="agenda-time">{showEspn?<><strong className={espnFinal?"espn-final":"espn-live-dot"}>{espnFinal?"FIN":""}</strong><small className={espnFinal?"espn-final-source":"live"}>ESPN</small></>:<><strong>{hasResult(match)?"FIN":localMatchTime(match,user.country_code)}</strong><small className={hasResult(match)?"":"upcoming"}>{hasResult(match)?"FINAL":"PRÓXIMAMENTE"}</small></>}</span>
         <span className="agenda-fixture"><span><strong>{match.team1}</strong><Flag team={match.team1} teamData={match.team1_team}/></span><b>{liveScore?.available&&liveScore.score?`${liveScore.score.team1} — ${liveScore.score.team2}`:hasResult(match)?`${match.result_team1} — ${match.result_team2}`:"VS"}</b><span><Flag team={match.team2} teamData={match.team2_team}/><strong>{match.team2}</strong></span></span>
         <span className="agenda-match-actions"><span className={`agenda-bet-state ${match.prediction_id?"done":match.betting_open?"pending":"closed"}`}>{user.is_read_only?"Ver partido":match.prediction_id?`Tu apuesta ${match.predicted_team1_goals}–${match.predicted_team2_goals}`:match.betting_open?"Apostar ahora":hasResult(match)?"Ver resultado":"Apuestas cerradas"}</span>{!user.is_read_only&&match.prediction_id&&match.predicted_scorer?.name&&<span className="agenda-scorer-tag"><Goal size={13}/>{match.predicted_scorer.name}</span>}</span>
       </button>})}</div>
