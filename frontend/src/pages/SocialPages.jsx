@@ -85,7 +85,7 @@ const StatCards = ({ s, onPointsInfo }) => (
   </div>
 );
 
-const liveMoment = (live) => live.completed ? "Final" : live.clock || live.status || (live.state === "pre" ? "Próximamente" : "En juego");
+const liveMoment = (live) => live.completed ? "Final" : live.clock || (live.state === "pre" ? "Próximamente" : "En juego");
 
 function LivePredictionPreview({ match, response, onSimulate }) {
   const live = response?.live;
@@ -108,19 +108,20 @@ function LivePredictionPreview({ match, response, onSimulate }) {
   return <aside className="espn-points-preview"><div><small>Si terminara así</small><strong>{match.team1} {live.score?.team1 ?? 0} – {live.score?.team2 ?? 0} {match.team2}</strong><span>{liveMoment(live)}</span></div>
     {points ? <div className="espn-points-breakdown"><strong>+{points.total_points || 0} puntos</strong><small>Ganador +{points.winner_points || 0} · Exacto +{points.exact_result_points || 0} · Goleador +{points.scorer_points || 0}</small></div> : <small>{previewError ? "No se pudo calcular la preview." : "Calculando puntos…"}</small>}
     {live.unmatched_scorers?.length > 0 && <p>Goleadores sin vincular: {live.unmatched_scorers.join(", ")}</p>}
-    <button type="button" onClick={onSimulate}><Calculator size={16}/> Simular con marcador ESPN</button>
+    <button type="button" onClick={onSimulate}><Calculator size={16}/> Simular este marcador</button>
   </aside>;
 }
 
-function LiveMatchPanel({ match, response }) {
+function LiveMatchPanel({ match, response, onSimulate }) {
   const live = response?.live;
   if (!live) return null;
   return <section className="content-card espn-detail-card">
-    <header><div><small>MARCADOR ESPN</small><h2>{live.completed ? "Final ESPN" : live.state === "in" ? "Partido en vivo" : "Seguimiento"}</h2></div><span>{response.stale ? "Datos guardados" : liveMoment(live)}</span></header>
+    <header><div><small>{live.completed ? "FINAL" : "EN DIRECTO"}</small><h2>{live.completed ? "Resultado final" : "Marcador en vivo"}</h2></div><span>{response.stale ? "Último dato disponible" : liveMoment(live)}</span></header>
     <div className="espn-detail-score"><span><Flag team={match.team1} teamData={match.team1_team}/>{match.team1}</span><strong>{live.score?.team1 ?? 0}<i>–</i>{live.score?.team2 ?? 0}</strong><span><Flag team={match.team2} teamData={match.team2_team}/>{match.team2}</span></div>
-    <div className="espn-goals-list"><h3>Goles</h3>{live.goals?.length ? live.goals.map((goal) => <div className="espn-goal-row" key={goal.id}>
+    <div className="espn-goals-list"><h3>Goles</h3>{live.goals?.length ? <div className="espn-goals-scroll">{live.goals.map((goal) => <div className="espn-goal-row" key={goal.id}>
       <time className="espn-goal-minute">{goal.minute || "—"}</time><span>⚽</span><div className="espn-goal-player"><strong>{goal.player_name || goal.espn_name || "Goleador sin identificar"}</strong><small>{goal.label || (goal.own_goal ? "Autogol" : goal.penalty ? "Gol de penalti" : "Gol")}{goal.team_code ? ` · ${goal.team_code}` : ""}</small></div>
-    </div>) : <p>Sin goles por ahora.</p>}</div>
+    </div>)}</div> : <p>Sin goles por ahora.</p>}</div>
+    <LivePredictionPreview match={match} response={response} onSimulate={onSimulate}/>
   </section>;
 }
 
@@ -310,7 +311,7 @@ function MatchSimulationOverlay({ match, players, user, initialLiveResponse, onC
           <small>{localMatchParts(item,user.country_code).date} · {localMatchTime(item,user.country_code)}</small>
           {hasMultipleMatches && <label className="simulation-active-toggle" title={itemActive ? "Partido activo en la simulación" : "Partido fuera de la simulación"}><input type="checkbox" checked={itemActive} onChange={event => setActiveByMatch(current => ({ ...current, [item.id]: event.target.checked }))}/><span>{itemActive ? "Activo" : "Off"}</span></label>}
         </div>
-        {itemLive && <div className="simulation-espn-prefill"><span>⚡ Precargado desde ESPN. Puedes modificarlo.</span>{itemLive.unmatched_scorers?.length > 0 && <small>Sin vincular: {itemLive.unmatched_scorers.join(", ")}.</small>}</div>}
+        {itemLive && <div className="simulation-espn-prefill"><span>⚡ Marcador en vivo precargado. Puedes modificarlo.</span>{itemLive.unmatched_scorers?.length > 0 && <small>Sin vincular: {itemLive.unmatched_scorers.join(", ")}.</small>}</div>}
         <div className="simulation-gesture-area">
           <article className={`${itemActive ? "simulation-match-slide active" : "simulation-match-slide inactive"} ${matchDirection < 0 ? "from-left" : "from-right"}`} key={`${item.id}-${matchAnimation}`}>
               <div className="detail-score-picker horizontal simulation-score-editor">
@@ -2761,7 +2762,7 @@ export function MatchDetailPage() {
                 ? "Editar resultado del partido"
                 : "Introducir resultado del partido"}
             </strong>
-            {espnResultPrefillRef.current === m.id && <div className="espn-prefill-note"><strong>Resultado precargado desde ESPN.</strong><span>Revísalo antes de guardar.</span>{liveResponse?.live?.unmatched_scorers?.length > 0 && <small>Goleadores sin vincular: {liveResponse.live.unmatched_scorers.join(", ")}. Añádelos manualmente si corresponde.</small>}</div>}
+            {espnResultPrefillRef.current === m.id && <div className="espn-prefill-note"><strong>Resultado en vivo precargado.</strong><span>Revísalo antes de guardar.</span>{liveResponse?.live?.unmatched_scorers?.length > 0 && <small>Goleadores sin vincular: {liveResponse.live.unmatched_scorers.join(", ")}. Añádelos manualmente si corresponde.</small>}</div>}
             <div className="result-inputs">
               <label>
                 {m.team1}
@@ -3009,8 +3010,7 @@ export function MatchDetailPage() {
             <MatchPredictionSummary match={m} user={user} />
           )}
         </section>
-        <LivePredictionPreview match={m} response={liveResponse} onSimulate={() => setSimulationOpen(true)}/>
-        <LiveMatchPanel match={m} response={liveResponse}/>
+        <LiveMatchPanel match={m} response={liveResponse} onSimulate={() => setSimulationOpen(true)}/>
         </div>
         <section className="content-card">
           <h2>Distribución</h2>

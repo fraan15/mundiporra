@@ -1662,13 +1662,23 @@ const enrichLivePlayers = (live, match) => {
     };
   });
   const byCode = new Map((live.competitors || []).map((team) => [team.code, team]));
+  const feedScore = {
+    team1: Number(byCode.get(match.team1_fifa_code)?.score ?? live.score?.team1 ?? 0),
+    team2: Number(byCode.get(match.team2_fifa_code)?.score ?? live.score?.team2 ?? 0),
+  };
+  const goalScore = goals.reduce((score, goal) => {
+    let side = goal.side;
+    if (goal.own_goal) side = side === "team1" ? "team2" : side === "team2" ? "team1" : side;
+    if (side) score[side] += 1;
+    return score;
+  }, { team1: 0, team2: 0 });
+  const score = feedScore.team1 + feedScore.team2 === 0 && goalScore.team1 + goalScore.team2 > 0
+    ? goalScore
+    : feedScore;
   return {
     ...live,
     timeline,
-    score: {
-      team1: byCode.get(match.team1_fifa_code)?.score ?? live.score?.team1 ?? 0,
-      team2: byCode.get(match.team2_fifa_code)?.score ?? live.score?.team2 ?? 0,
-    },
+    score,
     goals,
     scorer_player_ids: [...new Set(goals.filter((goal) => goal.scorer_player_id).map((goal) => goal.scorer_player_id))],
     unmatched_scorers: [...new Set(goals.filter((goal) => !goal.own_goal && !goal.scorer_player_id && goal.espn_name !== "Goleador sin identificar").map((goal) => goal.espn_name))],

@@ -5,7 +5,11 @@ import sharp from "sharp";
 import { app } from "../src/app.js";
 import { db } from "../src/db/database.js";
 import { remindNextNightMissingPredictions } from "../src/services/matches.js";
-import { normalizeWorldCupReference, worldCupOverview } from "../src/services/worldcupReference.js";
+import { normalizePlayerName, normalizeWorldCupReference, worldCupOverview } from "../src/services/worldcupReference.js";
+
+test("normaliza guiones y espacios en nombres de jugadores", () => {
+  assert.equal(normalizePlayerName("Mousa Al-Tamari"), normalizePlayerName("Mousa Al Tamari"));
+});
 
 test("sirve el frontend compilado desde la ruta raíz", async () => {
   const response = await request(app).get("/");

@@ -334,7 +334,7 @@ function DashboardCalendar({ matches, liveScores, calendarToday, onOpenMatch, re
             <div className="calendar-day-matches">{day.matches.length ? day.matches.map(match => <button type="button" className="calendar-match" key={match.id} onPointerDown={startMatchPointer} onPointerMove={moveMatchPointer} onPointerCancel={()=>{pointerRef.current=null}} onClick={event=>clickMatch(event, match)} onKeyDown={event=>openMatchOnKey(event, match)} aria-label={`Ver detalle de ${match.team1} contra ${match.team2}`}>
           <span className="calendar-match-main">
             <span className="calendar-team home"><strong>{match.team1}</strong><Flag team={match.team1} teamData={match.team1_team}/></span>
-            <b>{hasResult(match) ? `${match.result_team1} - ${match.result_team2}` : localMatchTime(match, user.country_code)}<EspnLiveScore data={liveScores[match.id]}/></b>
+            <b>{liveScores[match.id]?.available ? <EspnLiveScore data={liveScores[match.id]}/> : hasResult(match) ? `${match.result_team1} - ${match.result_team2}` : localMatchTime(match, user.country_code)}</b>
             <span className="calendar-team away"><Flag team={match.team2} teamData={match.team2_team}/><strong>{match.team2}</strong></span>
           </span>
           <span className="calendar-match-meta">
