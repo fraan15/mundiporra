@@ -189,6 +189,16 @@ const goalSideClass = (goal, match) => {
   if (code && code === String(match.team2_team?.fifa_code || "").toUpperCase()) return "away";
   return "home";
 };
+const pairGoalsByTeam = (goals, match) => {
+  const grouped = goals.reduce((acc, goal) => {
+    acc[goalSideClass(goal, match)].push(goal);
+    return acc;
+  }, { home: [], away: [] });
+  return Array.from(
+    { length: Math.max(grouped.home.length, grouped.away.length) },
+    (_, index) => ({ home: grouped.home[index], away: grouped.away[index] }),
+  );
+};
 function LiveTickerPointsCard({ match, liveScore, onSimulateMatch }) {
   const [preview, setPreview] = useState(null);
   const [previewError, setPreviewError] = useState(false);
@@ -218,7 +228,7 @@ function LiveTickerPointsCard({ match, liveScore, onSimulateMatch }) {
     </button>
     <small>Si terminara así</small>
     <strong>{points ? `+${points.total_points || 0} pts` : "Simular puntos"}</strong>
-    <div>{rows?.length ? rows.map((part) => <span className={Number(part.value) > 0 ? "hit" : ""} key={part.key}>{Number(part.value) > 0 ? <CheckCircle2 size={13}/> : <X size={13}/>}<b>{part.label}</b><small className="live-ticker-pick">{part.pick}</small><em>+{part.value}</em></span>) : checks?.length ? checks.map((part) => <span className={part.hit ? "hit" : ""} key={part.key}>{part.hit ? <CheckCircle2 size={13}/> : <X size={13}/>}<b>{part.label}</b><small className="live-ticker-pick">{part.key === "winner" ? predictedWinnerLabel(match) : part.key === "exact" ? predictedResultLabel(match) : predictedScorerLabel(match)}</small><em>{previewError ? "?" : "..."}</em></span>) : <span><Calculator size={13}/><b>Usa el marcador ESPN actual</b></span>}</div>
+    <div>{rows?.length ? rows.map((part) => <span className={Number(part.value) > 0 ? "hit" : ""} key={part.key}>{Number(part.value) > 0 ? <CheckCircle2 size={13}/> : <X size={13}/>}<b>{part.label}</b><small className="live-ticker-pick">Pusiste: {part.pick}</small><em>+{part.value}</em></span>) : checks?.length ? checks.map((part) => <span className={part.hit ? "hit" : ""} key={part.key}>{part.hit ? <CheckCircle2 size={13}/> : <X size={13}/>}<b>{part.label}</b><small className="live-ticker-pick">Pusiste: {part.key === "winner" ? predictedWinnerLabel(match) : part.key === "exact" ? predictedResultLabel(match) : predictedScorerLabel(match)}</small><em>{previewError ? "?" : "..."}</em></span>) : <span><Calculator size={13}/><b>Usa el marcador ESPN actual</b></span>}</div>
   </div>;
 }
 function LiveMatchTicker({ matches, liveScores, user, onOpenMatch, onSimulateMatch }) {
@@ -264,7 +274,7 @@ function LiveMatchTicker({ matches, liveScores, user, onOpenMatch, onSimulateMat
     <div className="live-ticker-scroll" ref={scrollRef} onScroll={updateActiveIndex}>
       {matches.map((match, index) => {
         const liveScore = liveScores[match.id];
-        const goals = liveScore?.goals || [];
+        const goalRows = pairGoalsByTeam(liveScore?.goals || [], match);
         const prediction = match.prediction_id ? predictionScoreText(match, "No apostado") : "No apostado";
         const scorer = predictionScorerText(match, user);
         const isExpanded = expandedMatchId === match.id;
@@ -282,12 +292,15 @@ function LiveMatchTicker({ matches, liveScores, user, onOpenMatch, onSimulateMat
             <em>{isExpanded ? "Ocultar" : "Ver más"}</em>
           </button>
           {isExpanded && <div className="live-ticker-details">
-            <div className="live-ticker-goals espn-goals-vertical">
-              {goals.length ? goals.map((goal) => <span className={`live-ticker-goal espn-goal-row ${goalSideClass(goal, match)}`} key={goal.id || `${goal.minute}-${goal.espn_name}`}>
-                <time className="espn-goal-minute">{goal.minute || "—"}</time>
-                <i>⚽</i>
-                <strong className="espn-goal-player">{goal.player_name || goal.espn_name || "Goleador sin identificar"}</strong>
-              </span>) : <p>Sin goles por ahora.</p>}
+            <div className="live-ticker-goals espn-goals-paired">
+              {goalRows.length ? goalRows.map((row, rowIndex) => <div className="espn-goal-pair" key={`goal-row-${match.id}-${rowIndex}`}>
+                {["home", "away"].map((side) => {
+                  const goal = row[side];
+                  return <span className={`espn-goal-cell ${side} ${goal ? "" : "empty"}`} key={side}>
+                    {goal && <><time>{goal.minute || "—"}</time><i>⚽</i><strong>{goal.player_name || goal.espn_name || "Goleador sin identificar"}</strong></>}
+                  </span>;
+                })}
+              </div>) : <p>Sin goles por ahora.</p>}
             </div>
             <div className="live-ticker-bet">
               <small>{user.is_read_only ? "Participación" : "Tu apuesta"}</small>

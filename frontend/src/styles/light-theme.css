@@ -3855,7 +3855,7 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
 .live-ticker-points span svg{color:#a7a0a2}
 .live-ticker-points span.hit svg{color:#18a262}
 .live-ticker-points b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.live-ticker-pick{display:inline-flex!important;align-items:center;justify-content:center;max-width:92px;min-width:0;margin:0;padding:3px 6px;border-radius:999px;background:rgba(32,40,52,.07);color:var(--muted)!important;font-size:9px!important;font-weight:950!important;line-height:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-transform:none!important}
+.live-ticker-pick{display:inline-flex!important;align-items:center;justify-content:center;max-width:124px;min-width:0;margin:0;padding:3px 6px;border-radius:999px;background:rgba(32,40,52,.07);color:var(--muted)!important;font-size:9px!important;font-weight:950!important;line-height:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-transform:none!important}
 .live-ticker-points em{font-style:normal;font-weight:950}
 .detail-simulation-card.espn-points-preview{display:block;margin-top:12px;padding:10px 46px 10px 10px;border:1px solid rgba(35,166,111,.18);border-radius:13px;background:rgba(35,166,111,.08)}
 .detail-simulation-card.espn-points-preview>strong{display:block;margin-bottom:7px;color:#147a48;font-size:20px;line-height:1}
@@ -3872,6 +3872,17 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
 .espn-goals-vertical .espn-goal-minute{min-width:34px;padding:4px 7px;border-radius:999px;background:#fff0f2;color:#df2038;font-size:11px;font-weight:950;text-align:center}
 .espn-goals-vertical .espn-goal-row>i,.espn-goals-vertical .espn-goal-row>span:not(.espn-goal-player){display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#fff;color:#df2038;font-style:normal;box-shadow:inset 0 0 0 1px rgba(223,32,56,.12)}
 .espn-goals-vertical .espn-goal-player{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);font-size:12px;font-weight:900}
+.espn-goals-paired{display:grid;gap:7px;max-height:199px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.espn-goal-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:stretch;min-height:43px}
+.espn-goal-cell{display:grid!important;grid-template-columns:auto auto minmax(0,1fr)!important;align-items:center;gap:6px;min-width:0;padding:8px 9px;border:1px solid rgba(169,31,50,.13);border-radius:13px;background:linear-gradient(135deg,#fff,#fff7f8);box-sizing:border-box;color:var(--text)}
+.espn-goal-cell.away{grid-template-columns:minmax(0,1fr) auto auto!important;text-align:right}
+.espn-goal-cell.empty{visibility:hidden}
+.espn-goal-cell time{min-width:33px;padding:4px 7px;border-radius:999px;background:#fff0f2;color:#df2038;font-size:11px;font-weight:950;text-align:center}
+.espn-goal-cell i{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#fff;color:#df2038;font-style:normal;box-shadow:inset 0 0 0 1px rgba(223,32,56,.12)}
+.espn-goal-cell strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:900}
+.espn-goal-cell.away time{grid-column:3;grid-row:1}
+.espn-goal-cell.away i{grid-column:2;grid-row:1}
+.espn-goal-cell.away strong{grid-column:1;grid-row:1}
 [data-theme="dark"] .live-ticker-summary>.live-ticker-minute{background:rgba(223,32,56,.16);color:#ff8fa0}
 [data-theme="dark"] .live-ticker-summary>.live-ticker-minute.is-final{background:rgba(70,115,170,.22);color:#a9cdf6}
 [data-theme="dark"] .live-ticker-summary>.live-ticker-minute.is-break{background:rgba(205,126,42,.22);color:#f3bd7c}
@@ -3884,6 +3895,8 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
 [data-theme="dark"] .live-ticker-pick{background:rgba(255,255,255,.08);color:#b9c9dc!important}
 [data-theme="dark"] .espn-goals-vertical .espn-goal-row{border-color:rgba(237,135,151,.14);background:linear-gradient(135deg,#13243a,#0f2034)}
 [data-theme="dark"] .espn-goals-vertical .espn-goal-minute,[data-theme="dark"] .espn-goals-vertical .espn-goal-row>i,[data-theme="dark"] .espn-goals-vertical .espn-goal-row>span:not(.espn-goal-player){background:rgba(223,32,56,.16);color:#ff8fa0}
+[data-theme="dark"] .espn-goal-cell{border-color:rgba(237,135,151,.14);background:linear-gradient(135deg,#13243a,#0f2034);color:#f2f7ff}
+[data-theme="dark"] .espn-goal-cell time,[data-theme="dark"] .espn-goal-cell i{background:rgba(223,32,56,.16);color:#ff8fa0}
 [data-theme="dark"] .live-ticker-simulate{border-color:rgba(142,215,178,.2);background:rgba(255,255,255,.06);color:#8ed7b2;box-shadow:none}
 [data-theme="dark"] .live-ticker-simulate:hover,[data-theme="dark"] .live-ticker-simulate:focus-visible{background:rgba(255,255,255,.1)}
 @media(max-width:700px){
