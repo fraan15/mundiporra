@@ -17,6 +17,11 @@ test("relaciona un partido del Mundial por códigos FIFA aunque ESPN use otros",
     starts_at: "2026-06-28T19:00Z",
   });
   assert.equal(event.id, "760486");
+  assert.equal(findEspnEvent(events, {
+    team1_fifa_code: "ESP",
+    team2_fifa_code: "CAN",
+    starts_at: "2026-06-28T19:00Z",
+  }), null);
 });
 
 test("normaliza marcador, incidencias y estadísticas sin convertirlos en resultado oficial", () => {
@@ -50,4 +55,16 @@ test("normaliza marcador, incidencias y estadísticas sin convertirlos en result
   assert.equal(live.timeline[0].scoring, true);
   assert.deepEqual(live.timeline[0].athletes, ["Delantero", "Asistente"]);
   assert.equal(live.stats[0].stats[0].label, "Faltas");
+});
+
+test("convierte estadísticas compuestas de ESPN en texto renderizable", () => {
+  const live = normalizeEspnLive({ id: "100" }, {
+    header: { id: "100", competitions: [{ competitors: [] }] },
+    boxscore: { teams: [{
+      team: { id: "1", abbreviation: "ESP" },
+      statistics: [{ name: "possession", label: "Posesión", displayValue: { value: 61, displayValue: "61%" } }],
+    }] },
+  });
+  assert.equal(live.stats[0].stats[0].display, "61%");
+  assert.equal(live.stats[0].stats[0].value, 61);
 });

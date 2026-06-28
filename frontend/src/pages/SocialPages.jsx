@@ -90,6 +90,11 @@ const preferredLiveStats = [
   "redcards", "cornerkicks", "offsides", "saves",
 ];
 const compactStatKey = (value) => String(value || "").toLowerCase().replace(/[^a-z]/g, "");
+const liveStatDisplay = (value) => {
+  if (value === null || value === undefined) return "—";
+  if (typeof value !== "object") return String(value);
+  return liveStatDisplay(value.displayValue ?? value.value);
+};
 
 function LiveMatchPanel({ match, response }) {
   const live = response?.live;
@@ -142,7 +147,7 @@ function LiveMatchPanel({ match, response }) {
       {timeline.length > 0 && <div className="live-timeline">
         <h3>Jugadas e incidencias</h3>
         {timeline.map((item) => <article key={item.id} className={`${item.scoring ? "goal" : ""} ${item.red_card ? "red-card" : item.yellow_card ? "yellow-card" : ""}`}>
-          <time>{item.minute || "—"}</time>
+          <time>{liveStatDisplay(item.minute)}</time>
           <i aria-hidden="true">{item.scoring ? "⚽" : item.red_card ? "🟥" : item.yellow_card ? "🟨" : item.penalty ? "🥅" : "•"}</i>
           <div><strong>{item.type}</strong>{item.athletes?.length > 0 && <span>{item.mapped_athletes?.map((athlete) => athlete.player_name || athlete.espn_name).join(" · ") || item.athletes.join(" · ")}</span>}{item.text && <small>{item.text}</small>}</div>
         </article>)}
@@ -151,7 +156,7 @@ function LiveMatchPanel({ match, response }) {
         <h3>Estadísticas</h3>
         {statKeys.map((key) => {
           const first = stat(team1Stats, key), second = stat(team2Stats, key);
-          return <div key={key}><strong>{first?.display ?? "—"}</strong><span>{first?.label || second?.label || key}</span><strong>{second?.display ?? "—"}</strong></div>;
+          return <div key={key}><strong>{liveStatDisplay(first?.display)}</strong><span>{first?.label || second?.label || key}</span><strong>{liveStatDisplay(second?.display)}</strong></div>;
         })}
       </div>}
       <footer>Información orientativa de ESPN. El resultado oficial y los puntos solo se aplican cuando el administrador los guarda.</footer>

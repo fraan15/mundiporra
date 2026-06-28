@@ -15,8 +15,14 @@ const ESPN_TO_FIFA = {
 
 const normalizeCode = (value) => ESPN_TO_FIFA[String(value || "").toUpperCase()] || String(value || "").toUpperCase();
 const numberValue = (value) => {
+  if (value && typeof value === "object") value = value.value ?? value.displayValue;
   const parsed = Number(String(value ?? "").replace("%", ""));
   return Number.isFinite(parsed) ? parsed : null;
+};
+const displayValue = (value) => {
+  if (value === null || value === undefined) return "—";
+  if (typeof value !== "object") return String(value);
+  return displayValue(value.displayValue ?? value.value);
 };
 const americanToDecimal = (value) => {
   const odds = numberValue(value);
@@ -71,7 +77,7 @@ const normalizeTimelineItem = (item, index) => {
   const label = eventLabel(play);
   return {
     id: String(play?.id || item?.sequence || `${play?.period?.number || play?.period || 0}-${play?.clock?.value || play?.clock?.displayValue || index}-${text}`),
-    minute: play?.clock?.displayValue || play?.clock?.displayClock || item?.time?.displayValue || item?.time || "",
+    minute: displayValue(play?.clock?.displayValue || play?.clock?.displayClock || item?.time?.displayValue || item?.time || "").replace("—", ""),
     period: play?.period?.displayValue || play?.period?.number || play?.period || null,
     type: label,
     text,
@@ -96,7 +102,7 @@ const normalizeStats = (summary, competition) => {
       stats: (entry.statistics || []).map((stat) => ({
         key: stat.name || stat.abbreviation || stat.label,
         label: stat.label || stat.displayName || stat.name,
-        display: stat.displayValue ?? stat.value ?? "—",
+        display: displayValue(stat.displayValue ?? stat.value),
         value: numberValue(stat.value ?? stat.displayValue),
       })),
     };

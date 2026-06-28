@@ -596,24 +596,16 @@ function AdminMatches() {
   };
   const finish = (m) => setResultMatch(m);
   const toggleLiveTest = async (m) => {
-    let eventId = m.live_test_event_id || "";
-    if (!m.live_test_enabled) {
-      eventId = window.prompt(
-        `ID del evento ESPN que quieres reproducir sobre ${m.team1} – ${m.team2}:`,
-        eventId || "760480",
-      )?.trim();
-      if (!eventId) return;
-    }
     try {
       await api(`/admin/matches/${m.id}/live-test`, {
         method: "PATCH",
-        body: { enabled: !m.live_test_enabled, event_id: eventId },
+        body: { enabled: !m.live_test_enabled, auto_match: !m.live_test_enabled },
       });
       setNotice({
         type: "success",
         text: m.live_test_enabled
           ? "Modo de prueba ESPN desactivado."
-          : `Modo de prueba ESPN activado con el evento ${eventId}.`,
+          : "Modo de prueba activado con el evento real de este partido.",
       });
       await load();
     } catch (error) {

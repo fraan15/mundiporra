@@ -1715,10 +1715,42 @@ app.get("/api/matches/:id/live", requireAuth, async (req, res) => {
 });
 
 app.patch("/api/admin/matches/:id/live-test", requireAdmin, async (req, res) => {
-  const match = db.prepare("SELECT * FROM matches WHERE id=?").get(req.params.id);
+  const match = db.prepare(`
+    SELECT m.*,home.fifa_code team1_fifa_code,away.fifa_code team2_fifa_code
+    FROM matches m
+    LEFT JOIN teams home ON home.id=m.team1_id
+    LEFT JOIN teams away ON away.id=m.team2_id
+    WHERE m.id=?
+  `).get(req.params.id);
   if (!match) return res.status(404).json({ error: "Partido no encontrado." });
   const enabled = requestBoolean(req.body.enabled);
-  const eventId = String(req.body.event_id || match.live_test_event_id || "").trim();
+  let eventId = String(req.body.event_id || "").trim();
+  if (enabled && requestBoolean(req.body.auto_match)) {
+    if (!match.team1_fifa_code || !match.team2_fifa_code) {
+      return res.status(400).json({ error: "El partido necesita dos selecciones con código FIFA para buscarlo en ESPN." });
+    }
+    try {
+      const discovered = await getEspnLiveMatch({
+        ...match,
+        starts_at: matchStartsAt(match).toISOString(),
+        espn_event_id: null,
+      });
+      if (!discovered?.event_id) {
+        return res.status(404).json({ error: "ESPN no tiene un evento real que coincida con la fecha y las dos selecciones de este partido." });
+      }
+      eventId = discovered.event_id;
+      liveTestCache.set(eventId, {
+        at: Date.now(),
+        live: discovered,
+        odds: await getEspnOdds(eventId).catch(() => null),
+      });
+    } catch (error) {
+      return res.status(502).json({ error: error.message?.startsWith("ESPN respondió")
+        ? "ESPN no está disponible ahora mismo. Inténtalo de nuevo en unos minutos."
+        : "No se pudo localizar este partido en ESPN." });
+    }
+  }
+  if (!enabled) eventId = String(match.live_test_event_id || "").trim();
   if (enabled && !/^\d{4,12}$/.test(eventId)) return res.status(400).json({ error: "Introduce un ID numérico de evento ESPN válido." });
   if (enabled) {
     try { await getEspnEventById(eventId); }
