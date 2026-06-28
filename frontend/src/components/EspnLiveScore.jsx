@@ -8,7 +8,7 @@ export function EspnLiveScore({ data }) {
     ? "guardado"
     : isFinal
       ? "FINAL"
-      : /half|descanso|intermedio/.test(rawStatus)
+      : /\bht\b|half|descanso|intermedio|status_halftime/.test(rawStatus)
         ? "Descanso"
         : data.clock || data.status || (isLive ? "En directo" : "");
   const score = `${data.score.team1 ?? 0}–${data.score.team2 ?? 0}`;

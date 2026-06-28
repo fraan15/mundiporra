@@ -149,7 +149,7 @@ const liveStatusText = (liveScore) => {
   if (!liveScore?.available) return "";
   if (liveScore.completed || liveScore.espn_completed) return "FIN";
   const status = `${liveScore.status || ""} ${liveScore.clock || ""}`.toLowerCase();
-  if (/half|descanso|intermedio/.test(status)) return "DES";
+  if (/\bht\b|half|descanso|intermedio|status_halftime/.test(status)) return "DES";
   return liveScore.clock || "";
 };
 const liveWinner = (score) => {
