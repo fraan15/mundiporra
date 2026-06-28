@@ -3,15 +3,7 @@ const SUMMARY_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.w
 const ODDS_URL = "https://sports.core.api.espn.com/v2/sports/soccer/leagues/fifa.world/events";
 const REQUEST_TIMEOUT_MS = 8000;
 
-const ESPN_TO_FIFA = {
-  RSA: "ZAF",
-  GER: "DEU",
-  NED: "NLD",
-  SUI: "CHE",
-  CRO: "HRV",
-  KSA: "SAU",
-  CRC: "CRI",
-};
+const ESPN_TO_FIFA = {};
 
 const normalizeCode = (value) => ESPN_TO_FIFA[String(value || "").toUpperCase()] || String(value || "").toUpperCase();
 const numberValue = (value) => {
@@ -73,8 +65,18 @@ export const findEspnEvent = (events, match) => {
   )[0];
 };
 
-const participantNames = (item) => (item?.participants || item?.athletes || [])
-  .map((participant) => participant?.athlete?.displayName || participant?.athlete?.fullName || participant?.displayName)
+const participantDetails = (item) => (item?.athletesInvolved || item?.participants || item?.athletes || [])
+  .map((participant) => {
+    const athlete = participant?.athlete || participant;
+    const name = athlete?.displayName || athlete?.fullName || participant?.displayName || "";
+    if (!name) return null;
+    return {
+      id: String(athlete?.id || participant?.id || ""),
+      name,
+      full_name: athlete?.fullName || participant?.fullName || name,
+      team_id: String(athlete?.team?.id || participant?.team?.id || ""),
+    };
+  })
   .filter(Boolean);
 
 const eventLabel = (item) =>
@@ -130,7 +132,8 @@ const spanishEventLabel = (category, label, text) => {
 
 const normalizeTimelineItem = (item, index, codeByTeamId) => {
   const play = item?.play || item;
-  const athletes = participantNames(play);
+  const participantRows = participantDetails(play);
+  const athletes = participantRows.map((participant) => participant.name);
   const text = play?.text || item?.text || play?.shortText || play?.description || "";
   const label = eventLabel(play);
   const category = categorizeEvent(play, label, text);
@@ -144,6 +147,8 @@ const normalizeTimelineItem = (item, index, codeByTeamId) => {
     type: label,
     text,
     athletes,
+    athlete_ids: participantRows.map((participant) => participant.id),
+    athlete_team_ids: participantRows.map((participant) => participant.team_id),
     team_id: teamId,
     scoring: Boolean(play?.scoringPlay || /goal|gol|penalty scored/i.test(label)),
     yellow_card: Boolean(play?.yellowCard || /yellow|amarilla/i.test(label)),
@@ -218,6 +223,8 @@ export const normalizeEspnLive = (event, summary = {}) => {
         side: item.side,
         scorer_name: scorerName,
         espn_name: scorerName,
+        espn_athlete_id: item.athlete_ids?.[0] || "",
+        espn_athlete_team_id: item.athlete_team_ids?.[0] || "",
         player_id: null,
         player_name: null,
         scorer_player_id: null,

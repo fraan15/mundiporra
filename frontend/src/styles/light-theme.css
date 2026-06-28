@@ -1791,18 +1791,20 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 [data-theme="dark"] .team-profile-header .team-detail-close{background:#142b46;border-color:rgba(255,107,120,.4);color:#ff6b78}
 [data-theme="dark"] .team-profile-header .team-detail-close:hover{background:#3a1c29;border-color:#ff6b78;color:#ff8994}
 
-/* Marcador en vivo compacto entre los dos equipos. */
-.calendar-match-main{grid-template-columns:minmax(0,1fr) minmax(86px,auto) minmax(0,1fr);gap:14px}
+/* Estado en vivo separado del marcador central. */
+.calendar-match-main{grid-template-columns:auto minmax(0,1fr) minmax(68px,auto) minmax(0,1fr);gap:12px}
+.calendar-live-slot{min-width:42px}
 .calendar-team{gap:12px}
-.agenda-fixture{grid-template-columns:minmax(0,1fr) minmax(86px,auto) minmax(0,1fr);gap:14px}
+.agenda-fixture{grid-template-columns:minmax(0,1fr) minmax(68px,auto) minmax(0,1fr);gap:14px}
 .agenda-fixture>span{gap:12px}
-.agenda-fixture>b,.calendar-match-main>b{min-width:86px}
+.agenda-fixture>b,.calendar-match-main>b{min-width:68px}
 @media(max-width:700px){
-  .calendar-match-main,.agenda-fixture{grid-template-columns:minmax(0,1fr) minmax(74px,auto) minmax(0,1fr);gap:8px}
+  .calendar-match-main{grid-template-columns:auto minmax(0,1fr) minmax(54px,auto) minmax(0,1fr);gap:6px}
+  .calendar-live-slot{min-width:34px}
+  .agenda-fixture{grid-template-columns:minmax(0,1fr) minmax(54px,auto) minmax(0,1fr);gap:8px}
   .calendar-team,.agenda-fixture>span{gap:7px}
-  .agenda-fixture>b,.calendar-match-main>b{min-width:74px}
-  .espn-live-score{gap:4px;padding:5px 7px}
-  .espn-live-score>strong{font-size:12px}
+  .agenda-fixture>b,.calendar-match-main>b{min-width:54px}
+  .espn-live-score>b{font-size:9px}
 }
 
 /* Match agenda rows keep a stable appearance on mouse hover and touch gestures. */
@@ -3707,16 +3709,23 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
 }
 
 .scheduled-announcement-overlay{position:fixed;inset:0;z-index:1800;display:grid;place-items:center;padding:20px;overflow:hidden;background:rgba(37,3,8,.72);backdrop-filter:blur(10px);animation:announcementBackdropIn .45s ease both}.scheduled-announcement-card{position:relative;z-index:2;width:min(560px,100%);padding:48px clamp(24px,6vw,54px) 34px;overflow:hidden;border:1px solid rgba(255,255,255,.28);border-radius:30px;background:radial-gradient(circle at 50% -10%,#ff786f 0,transparent 42%),linear-gradient(145deg,#d71935,#8f0d24);color:#fff;text-align:center;box-shadow:0 34px 100px rgba(76,0,15,.55);animation:announcementCardIn .72s cubic-bezier(.18,.9,.25,1.15) both}.scheduled-announcement-card>span{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:950;letter-spacing:.13em}.scheduled-announcement-card h2{margin:13px 0 12px;color:#fff;font-size:clamp(34px,8vw,58px);line-height:.98}.scheduled-announcement-card p{margin:0 auto 25px;max-width:440px;color:rgba(255,255,255,.9);font-size:16px;line-height:1.55}.scheduled-announcement-card>small{display:block;margin-top:12px;color:rgba(255,255,255,.68);font-size:10px}.scheduled-announcement-close{position:absolute;top:15px;right:15px;display:grid;place-items:center;width:42px;height:42px;min-height:42px;padding:0;border:1px solid rgba(255,255,255,.25);border-radius:50%;background:rgba(90,0,18,.24);color:#fff}.scheduled-announcement-action{min-width:170px;min-height:48px;border:0;border-radius:999px;background:#fff;color:#a40f29;font-size:15px;font-weight:950;box-shadow:0 12px 28px rgba(75,0,12,.25)}.scheduled-announcement-confetti{position:absolute;inset:0;z-index:3;overflow:hidden;pointer-events:none}.scheduled-announcement-confetti i{position:absolute;top:-8%;left:var(--x);width:9px;height:17px;border-radius:2px;background:hsl(calc(var(--piece)*47deg) 92% 62%);transform:rotate(var(--spin));animation:announcementConfetti 3.2s var(--delay) cubic-bezier(.16,.66,.34,1) both}.scheduled-announcement-overlay.is-closing{animation:announcementBackdropOut .52s ease both}.scheduled-announcement-overlay.is-closing .scheduled-announcement-card{animation:announcementCardOut .52s cubic-bezier(.55,0,.8,.3) both}@keyframes announcementBackdropIn{from{opacity:0}to{opacity:1}}@keyframes announcementBackdropOut{to{opacity:0}}@keyframes announcementCardIn{from{opacity:0;transform:translateY(80px) scale(.78) rotate(-2deg)}to{opacity:1;transform:none}}@keyframes announcementCardOut{to{opacity:0;transform:translateY(-70px) scale(.84) rotate(2deg)}}@keyframes announcementConfetti{0%{opacity:0;transform:translateY(-10vh) rotate(var(--spin))}10%{opacity:1}100%{opacity:0;transform:translateY(112vh) rotate(calc(var(--spin) + 760deg))}}@media(max-width:600px){.scheduled-announcement-overlay{padding:14px}.scheduled-announcement-card{border-radius:24px}.scheduled-announcement-card p{font-size:14px}}@media(prefers-reduced-motion:reduce){.scheduled-announcement-overlay,.scheduled-announcement-card,.scheduled-announcement-confetti i{animation-duration:.01ms!important}.scheduled-announcement-confetti{display:none}}
-/* Cierre definitivo: marcador central con espacio suficiente. */
-.calendar-match-main{grid-template-columns:minmax(0,1fr) minmax(86px,auto) minmax(0,1fr);gap:14px}
+/* Cierre definitivo: estado live a la izquierda y marcador central normal. */
+.calendar-match-main{grid-template-columns:auto minmax(0,1fr) minmax(68px,auto) minmax(0,1fr);gap:12px}
+.calendar-live-slot{min-width:42px}
 .calendar-team{gap:12px}
-.agenda-fixture{grid-template-columns:minmax(0,1fr) minmax(86px,auto) minmax(0,1fr);gap:14px}
+.agenda-fixture{grid-template-columns:minmax(0,1fr) minmax(68px,auto) minmax(0,1fr);gap:14px}
 .agenda-fixture>span{gap:12px}
-.agenda-fixture>b,.calendar-match-main>b{min-width:86px}
+.agenda-fixture>b,.calendar-match-main>b{min-width:68px}
 @media(max-width:700px){
-  .calendar-match-main,.agenda-fixture{grid-template-columns:minmax(0,1fr) minmax(74px,auto) minmax(0,1fr);gap:8px}
+  .calendar-match-main{grid-template-columns:auto minmax(0,1fr) minmax(54px,auto) minmax(0,1fr);gap:6px}
+  .calendar-live-slot{min-width:34px}
+  .agenda-fixture{grid-template-columns:minmax(0,1fr) minmax(54px,auto) minmax(0,1fr);gap:8px}
   .calendar-team,.agenda-fixture>span{gap:7px}
-  .agenda-fixture>b,.calendar-match-main>b{min-width:74px}
-  .espn-live-score{gap:4px;padding:5px 7px}
-  .espn-live-score>strong{font-size:12px}
+  .agenda-fixture>b,.calendar-match-main>b{min-width:54px}
+  .espn-live-score>b{font-size:9px}
 }
+
+/* Ticker compacto de partidos en juego sobre el calendario */
+.live-ticker-section{margin:16px 0;padding:14px 16px!important;overflow:hidden}.live-ticker-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:11px}.live-ticker-header h2{margin:3px 0 0;font-size:18px;letter-spacing:-.03em}.live-ticker-header small{color:var(--muted);font-size:11px;font-weight:850}.live-ticker-scroll{display:flex;gap:11px;overflow-x:auto;padding:1px 2px 10px;scroll-snap-type:x mandatory;scrollbar-width:thin}.live-ticker-card{position:relative;flex:0 0 min(430px,86vw);border:1px solid rgba(169,31,50,.13);border-radius:18px;background:linear-gradient(135deg,#fff,#fff7f8);box-shadow:0 8px 22px rgba(74,35,40,.06);scroll-snap-align:start}.live-ticker-card.is-star{border-color:rgba(196,43,52,.3);background:linear-gradient(135deg,#fff,#fff5dc)}.live-ticker-card summary{display:grid;grid-template-columns:auto minmax(0,1fr) auto minmax(0,1fr) auto;align-items:center;gap:9px;min-height:72px;padding:12px 13px;list-style:none;cursor:pointer}.live-ticker-card summary::-webkit-details-marker{display:none}.live-ticker-live{display:inline-flex;align-items:center;gap:5px;color:#df2038;font-size:10px;font-weight:950;text-transform:uppercase}.live-ticker-live i{width:8px;height:8px;border-radius:50%;background:#df2038;box-shadow:0 0 0 3px rgba(223,32,56,.12);animation:live-pulse 1.4s infinite}.live-ticker-team{display:flex;align-items:center;gap:7px;min-width:0}.live-ticker-team.home{justify-content:flex-end}.live-ticker-team.away{justify-content:flex-start}.live-ticker-team strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}.live-ticker-team .flag{width:28px;height:22px;border-radius:6px;flex:0 0 auto}.live-ticker-card summary>b{min-width:48px;color:#211f20;font-size:18px;text-align:center;white-space:nowrap}.live-ticker-card summary>em{grid-column:1/-1;justify-self:center;color:var(--accent);font-size:10px;font-style:normal;font-weight:900}.live-ticker-card[open] summary>em{display:none}.live-ticker-star{position:absolute;top:7px;right:9px;display:inline-flex;align-items:center;gap:3px;padding:3px 6px;border-radius:999px;background:#fff0bd;color:#8f1026;font-size:9px;font-weight:950}.live-ticker-details{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(145px,.8fr) auto;align-items:stretch;gap:9px;padding:0 12px 12px}.live-ticker-goals,.live-ticker-bet{min-width:0;padding:10px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.72)}.live-ticker-goals small,.live-ticker-bet small{display:block;margin-bottom:6px;color:var(--muted);font-size:9px;font-weight:950;text-transform:uppercase}.live-ticker-goals{display:flex;flex-direction:column;gap:6px}.live-ticker-goals span{display:grid;grid-template-columns:35px minmax(0,1fr);gap:7px;align-items:center}.live-ticker-goals time{color:#df2038;font-size:11px;font-weight:950}.live-ticker-goals strong,.live-ticker-bet strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}.live-ticker-goals p{margin:0;color:var(--muted);font-size:12px}.live-ticker-bet span{display:block;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:11px}.live-ticker-details button{display:inline-flex;align-items:center;justify-content:center;gap:5px;align-self:center;border:0;border-radius:10px;padding:9px 11px;background:var(--accent);color:#fff;font-size:11px;font-weight:950;white-space:nowrap}
+[data-theme="dark"] .live-ticker-card{border-color:rgba(237,135,151,.14);background:linear-gradient(135deg,#13243a,#0f2034);box-shadow:none}[data-theme="dark"] .live-ticker-card.is-star{border-color:rgba(245,201,93,.24);background:linear-gradient(135deg,#17243a,#1d2735)}[data-theme="dark"] .live-ticker-card summary>b,[data-theme="dark"] .live-ticker-team strong{color:#f2f7ff}[data-theme="dark"] .live-ticker-goals,[data-theme="dark"] .live-ticker-bet{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.09)}[data-theme="dark"] .live-ticker-details button{background:var(--album-accent);color:#fff}
+@media(max-width:700px){.live-ticker-section{padding:12px 10px!important}.live-ticker-card{flex-basis:min(330px,88vw)}.live-ticker-card summary{grid-template-columns:auto minmax(0,1fr) auto minmax(0,1fr);gap:7px;padding:12px 10px}.live-ticker-card summary>em{grid-column:1/-1}.live-ticker-team{flex-direction:column;gap:4px;text-align:center}.live-ticker-team.home{flex-direction:column-reverse;justify-content:center}.live-ticker-team.away{justify-content:center}.live-ticker-team strong{font-size:11px}.live-ticker-details{grid-template-columns:1fr;gap:8px}.live-ticker-details button{justify-self:start}}

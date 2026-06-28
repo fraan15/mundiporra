@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { espnScoreboardDates, findEspnEvent, normalizeEspnLive } from "../src/services/espnLive.js";
 
-test("relaciona un partido del Mundial por códigos FIFA aunque ESPN use otros", () => {
+test("relaciona un partido del Mundial por códigos locales", () => {
   const events = [{
     id: "760486",
     date: "2026-06-28T19:00Z",
@@ -12,7 +12,7 @@ test("relaciona un partido del Mundial por códigos FIFA aunque ESPN use otros",
     ] }],
   }];
   const event = findEspnEvent(events, {
-    team1_fifa_code: "ZAF",
+    team1_fifa_code: "RSA",
     team2_fifa_code: "CAN",
     starts_at: "2026-06-28T19:00Z",
   });
@@ -59,7 +59,7 @@ test("normaliza marcador, incidencias y estadísticas sin convertirlos en result
           clock: { displayValue: "54'" },
           type: { text: "Goal" },
           scoringPlay: true,
-          participants: [{ athlete: { displayName: "Delantero" } }, { athlete: { displayName: "Asistente" } }],
+          athletesInvolved: [{ id: "10", displayName: "Delantero", team: { id: "1" } }, { id: "11", displayName: "Asistente", team: { id: "1" } }],
         }],
       }],
     },
@@ -71,7 +71,7 @@ test("normaliza marcador, incidencias y estadísticas sin convertirlos en result
   const live = normalizeEspnLive({ id: "99" }, summary);
   assert.equal(live.state, "in");
   assert.equal(live.clock, "67'");
-  assert.deepEqual(live.competitors.map((team) => [team.code, team.score]), [["ESP", 2], ["DEU", 1]]);
+  assert.deepEqual(live.competitors.map((team) => [team.code, team.score]), [["ESP", 2], ["GER", 1]]);
   assert.equal(live.timeline[0].scoring, true);
   assert.equal(live.timeline[0].category, "goal");
   assert.equal(live.timeline[0].label_es, "Gol");
@@ -82,6 +82,7 @@ test("normaliza marcador, incidencias y estadísticas sin convertirlos en result
   assert.equal(live.goals.length, 1);
   assert.equal(live.goals[0].minute, "54'");
   assert.equal(live.goals[0].espn_name, "Delantero");
+  assert.equal(live.goals[0].espn_athlete_id, "10");
   assert.equal(live.goals[0].display, "54' Delantero");
   assert.equal(live.stats[0].stats[0].label, "Faltas");
 });

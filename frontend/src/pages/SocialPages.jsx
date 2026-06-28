@@ -91,8 +91,9 @@ function LivePredictionPreview({ match, response, onSimulate }) {
   const live = response?.live;
   const [preview, setPreview] = useState(null);
   const [previewError, setPreviewError] = useState(false);
+  const isPlayableLive = Boolean(live?.score && !live.completed && match.status !== "finished");
   useEffect(() => {
-    if (!live?.score) { setPreview(null); setPreviewError(false); return; }
+    if (!isPlayableLive) { setPreview(null); setPreviewError(false); return; }
     setPreviewError(false);
     api(`/matches/${match.id}/simulation`, {
       method: "POST",
@@ -102,8 +103,8 @@ function LivePredictionPreview({ match, response, onSimulate }) {
         scorer_ids: live.scorer_player_ids || [],
       },
     }).then(setPreview).catch(() => { setPreview(null); setPreviewError(true); });
-  }, [match.id, live?.score?.team1, live?.score?.team2, JSON.stringify(live?.scorer_player_ids || [])]);
-  if (!live) return null;
+  }, [match.id, isPlayableLive, live?.score?.team1, live?.score?.team2, JSON.stringify(live?.scorer_player_ids || [])]);
+  if (!isPlayableLive) return null;
   const points = preview?.points;
   return <aside className="espn-points-preview"><div><small>Si terminara así</small><strong>{match.team1} {live.score?.team1 ?? 0} – {live.score?.team2 ?? 0} {match.team2}</strong><span>{liveMoment(live)}</span></div>
     {points ? <div className="espn-points-breakdown"><strong>+{points.total_points || 0} puntos</strong><small>Ganador +{points.winner_points || 0} · Exacto +{points.exact_result_points || 0} · Goleador +{points.scorer_points || 0}</small></div> : <small>{previewError ? "No se pudo calcular la preview." : "Calculando puntos…"}</small>}

@@ -15,6 +15,7 @@ import { NO_SCORER, NO_SCORER_ID, parseScorerList, parseScorerSelection, seriali
 import { loadWorldCupReference, normalizePlayerName, syncWorldCupReference, teamReferenceStats, worldCupOverview } from "./services/worldcupReference.js";
 import { getPushPreferences, pushConfigured, savePushSubscription, sendPushToUser, vapidPublicKey } from "./services/push.js";
 import { getEspnEventById, getEspnLiveMatch } from "./services/espnLive.js";
+import { espnMappingStatus, syncEspnMappings } from "./services/espnMapping.js";
 
 initDatabase();
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -1606,6 +1607,12 @@ app.get("/api/matches/:id/detail", requireAuth, (req, res) => {
 });
 
 const playerNameTokens = (name) => normalizePlayerName(name).split(" ").filter(Boolean);
+const sideFromTeamCode = (teamCode, match) =>
+  teamCode === match.team1_fifa_code ? "team1" : teamCode === match.team2_fifa_code ? "team2" : null;
+const mapEspnPlayerById = (espnId, players) => {
+  const id = String(espnId || "");
+  return id ? players.find((player) => String(player.espn_id || "") === id) || null : null;
+};
 const mapEspnPlayer = (name, teamCode, players) => {
   const normalized = normalizePlayerName(name);
   let candidates = players.filter((player) =>
@@ -1626,20 +1633,21 @@ const enrichLivePlayers = (live, match) => {
   if (!live) return live;
   const teamCodes = [match.team1_fifa_code, match.team2_fifa_code].filter(Boolean);
   const players = teamCodes.length ? db.prepare(`
-    SELECT id,name,team_fifa_code FROM players
+    SELECT id,name,team_fifa_code,espn_id FROM players
     WHERE team_fifa_code IN (${teamCodes.map(() => "?").join(",")})
   `).all(...teamCodes) : [];
   const codeByEspnTeamId = new Map((live.competitors || []).map((team) => [String(team.id), team.code]));
   const timeline = (live.timeline || []).map((item) => {
     const teamCode = item.team_code || codeByEspnTeamId.get(String(item.team_id));
-    const mappedAthletes = (item.athletes || []).map((name) => {
-      const player = mapEspnPlayer(name, teamCode, players);
-      return { espn_name: name, player_id: player?.id || null, player_name: player?.name || null };
+    const mappedAthletes = (item.athletes || []).map((name, index) => {
+      const player = mapEspnPlayerById(item.athlete_ids?.[index], players) || mapEspnPlayer(name, teamCode, players);
+      return { espn_name: name, player_id: player?.id || null, player_name: player?.name || null, team_fifa_code: player?.team_fifa_code || null };
     });
+    const inferredTeamCode = teamCode || mappedAthletes[0]?.team_fifa_code || "";
     return {
       ...item,
-      team_code: teamCode || "",
-      side: teamCode === match.team1_fifa_code ? "team1" : teamCode === match.team2_fifa_code ? "team2" : null,
+      team_code: inferredTeamCode,
+      side: sideFromTeamCode(inferredTeamCode, match),
       mapped_athletes: mappedAthletes,
       scorer_player_id: item.scoring && !item.own_goal ? mappedAthletes[0]?.player_id || null : null,
     };
@@ -1648,17 +1656,20 @@ const enrichLivePlayers = (live, match) => {
   const goals = (live.goals || timeline.filter((item) => item.scoring)).map((goal) => {
     const item = timelineById.get(String(goal.id)) || goal;
     const teamCode = goal.team_code || item.team_code || codeByEspnTeamId.get(String(goal.team_id));
-    const mapped = item.mapped_athletes?.[0];
     const espnName = goal.espn_name || goal.scorer_name || item.athletes?.[0] || "Goleador sin identificar";
+    const mapped = item.mapped_athletes?.[0] || mapEspnPlayerById(goal.espn_athlete_id || item.athlete_ids?.[0], players) || mapEspnPlayer(espnName, teamCode, players);
+    const resolvedTeamCode = teamCode || mapped?.team_fifa_code || "";
+    const mappedPlayerId = mapped?.player_id ?? mapped?.id ?? null;
+    const mappedPlayerName = mapped?.player_name ?? mapped?.name ?? null;
     return {
       ...goal,
-      team_code: teamCode || "",
-      side: teamCode === match.team1_fifa_code ? "team1" : teamCode === match.team2_fifa_code ? "team2" : null,
-      scorer_name: mapped?.player_name || espnName,
+      team_code: resolvedTeamCode,
+      side: sideFromTeamCode(resolvedTeamCode, match),
+      scorer_name: mappedPlayerName || espnName,
       espn_name: espnName,
-      player_id: mapped?.player_id || null,
-      player_name: mapped?.player_name || null,
-      scorer_player_id: !goal.own_goal ? mapped?.player_id || null : null,
+      player_id: mappedPlayerId,
+      player_name: mappedPlayerName,
+      scorer_player_id: !goal.own_goal ? mappedPlayerId : null,
     };
   });
   const byCode = new Map((live.competitors || []).map((team) => [team.code, team]));
@@ -1684,19 +1695,30 @@ const enrichLivePlayers = (live, match) => {
     unmatched_scorers: [...new Set(goals.filter((goal) => !goal.own_goal && !goal.scorer_player_id && goal.espn_name !== "Goleador sin identificar").map((goal) => goal.espn_name))],
   };
 };
-const asTestReplay = (live, match) => ({
-  ...live,
-  test_mode: true,
-  source_completed: live.completed,
-  state: "in",
-  completed: false,
-  status: "Modo prueba ESPN",
-  competitors: (live.competitors || []).map((team, index) => ({
-    ...team,
-    code: index === 0 ? match.team1_fifa_code : match.team2_fifa_code,
-    name: index === 0 ? match.team1 : match.team2,
-  })),
-});
+const asTestReplay = (live, match) => {
+  const localTeamNames = new Map([
+    [match.team1_fifa_code, match.team1],
+    [match.team2_fifa_code, match.team2],
+  ]);
+  return {
+    ...live,
+    test_mode: true,
+    source_completed: live.completed,
+    state: "in",
+    completed: false,
+    status: "Modo prueba ESPN",
+    competitors: (live.competitors || []).map((team, index) => {
+      const localCode = localTeamNames.has(team.code)
+        ? team.code
+        : index === 0 ? match.team1_fifa_code : match.team2_fifa_code;
+      return {
+        ...team,
+        code: localCode,
+        name: localTeamNames.get(localCode) || team.name,
+      };
+    }),
+  };
+};
 const liveTestCache = new Map();
 
 const liveMatchRow = (id) => db.prepare(`
@@ -2790,6 +2812,18 @@ app.post("/api/admin/sync-worldcup-json", requireAdmin, async (req, res, next) =
     const result = { synced_at: catalog.synced_at, matches: catalog.matches.length };
     logAction(req.user.id, "sync_worldcup_json", "settings", null, "Información JSON sincronizada manualmente", null, result);
     res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+app.get("/api/admin/espn-mapping-status", requireAdmin, (_req, res) => {
+  res.json(espnMappingStatus());
+});
+app.post("/api/admin/sync-espn-mappings", requireAdmin, async (req, res, next) => {
+  try {
+    const result = await syncEspnMappings();
+    logAction(req.user.id, "sync_espn_mappings", "settings", null, "Mapeo ESPN sincronizado manualmente", null, result);
+    res.json({ ...result, ...espnMappingStatus() });
   } catch (error) {
     next(error);
   }

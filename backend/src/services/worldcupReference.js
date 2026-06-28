@@ -99,6 +99,7 @@ export function normalizePlayerName(name) {
   return String(name || "")
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
+    .replace(/[ıİ]/g, "i")
     .replace(/[^\p{Letter}\p{Number}]+/gu, " ")
     .replace(/\s+/g, " ")
     .trim()

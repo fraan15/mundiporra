@@ -91,6 +91,7 @@ export function initDatabase() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       fifa_code TEXT NOT NULL UNIQUE,
       name TEXT NOT NULL,
+      espn_id TEXT,
       group_name TEXT,
       continent TEXT,
       confed TEXT,
@@ -100,6 +101,7 @@ export function initDatabase() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       team_fifa_code TEXT NOT NULL REFERENCES teams(fifa_code) ON UPDATE CASCADE,
       name TEXT NOT NULL,
+      espn_id TEXT,
       number INTEGER,
       position TEXT,
       date_of_birth TEXT,
@@ -425,6 +427,10 @@ export function initDatabase() {
   if (!matchColumns.includes("live_updated_at")) db.exec("ALTER TABLE matches ADD COLUMN live_updated_at TEXT");
   if (!matchColumns.includes("live_test_enabled")) db.exec("ALTER TABLE matches ADD COLUMN live_test_enabled INTEGER NOT NULL DEFAULT 0 CHECK(live_test_enabled IN (0,1))");
   if (!matchColumns.includes("live_test_event_id")) db.exec("ALTER TABLE matches ADD COLUMN live_test_event_id TEXT");
+  const teamColumns = db.prepare("PRAGMA table_info(teams)").all().map((column) => column.name);
+  if (!teamColumns.includes("espn_id")) db.exec("ALTER TABLE teams ADD COLUMN espn_id TEXT");
+  const playerColumns = db.prepare("PRAGMA table_info(players)").all().map((column) => column.name);
+  if (!playerColumns.includes("espn_id")) db.exec("ALTER TABLE players ADD COLUMN espn_id TEXT");
   const predictionColumns = db.prepare("PRAGMA table_info(predictions)").all().map((column) => column.name);
   if (!predictionColumns.includes("scoring_multiplier")) db.exec("ALTER TABLE predictions ADD COLUMN scoring_multiplier INTEGER NOT NULL DEFAULT 1");
   if (!predictionColumns.includes("predicted_scorer_id")) db.exec("ALTER TABLE predictions ADD COLUMN predicted_scorer_id INTEGER REFERENCES players(id)");
@@ -434,6 +440,8 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_matches_team2_id ON matches(team2_id);
     CREATE INDEX IF NOT EXISTS idx_matches_stadium_id ON matches(stadium_id);
     CREATE INDEX IF NOT EXISTS idx_predictions_scorer ON predictions(predicted_scorer_id);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_teams_espn_id ON teams(espn_id) WHERE espn_id IS NOT NULL AND espn_id!='';
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_players_espn_id ON players(espn_id) WHERE espn_id IS NOT NULL AND espn_id!='';
   `);
   importCatalogs();
   db.exec(`

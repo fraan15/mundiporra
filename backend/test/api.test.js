@@ -9,6 +9,7 @@ import { normalizePlayerName, normalizeWorldCupReference, worldCupOverview } fro
 
 test("normaliza guiones y espacios en nombres de jugadores", () => {
   assert.equal(normalizePlayerName("Mousa Al-Tamari"), normalizePlayerName("Mousa Al Tamari"));
+  assert.equal(normalizePlayerName("Eren Elmalı"), normalizePlayerName("Eren Elmali"));
 });
 
 test("sirve el frontend compilado desde la ruta raíz", async () => {

@@ -1604,15 +1604,19 @@ function AdminSettings() {
   const [form, setForm] = useState(null),
     [notice, setNotice] = useState(""),
     [syncing, setSyncing] = useState(false),
+    [syncingEspn, setSyncingEspn] = useState(false),
     [syncError, setSyncError] = useState(""),
-    [jsonStatus, setJsonStatus] = useState(null);
+    [jsonStatus, setJsonStatus] = useState(null),
+    [espnStatus, setEspnStatus] = useState(null);
   useEffect(() => {
     Promise.all([
       api("/admin/settings"),
       api("/admin/worldcup-json-status"),
-    ]).then(([settings, status]) => {
+      api("/admin/espn-mapping-status"),
+    ]).then(([settings, status, espn]) => {
       setForm(settings);
       setJsonStatus(status);
+      setEspnStatus(espn);
     });
   }, []);
   if (!form) return null;
@@ -1635,6 +1639,20 @@ function AdminSettings() {
       setSyncError(error.message);
     } finally {
       setSyncing(false);
+    }
+  };
+  const syncEspn = async () => {
+    setSyncingEspn(true);
+    setSyncError("");
+    setNotice("");
+    try {
+      const result = await api("/admin/sync-espn-mappings", { method: "POST" });
+      setEspnStatus(result);
+      setNotice(`Mapeo ESPN sincronizado: ${result.teams_mapped}/${result.teams_total} equipos · ${result.players_mapped + result.players_already_mapped}/${result.players_total} jugadores.`);
+    } catch (error) {
+      setSyncError(error.message);
+    } finally {
+      setSyncingEspn(false);
     }
   };
   return (
@@ -1752,6 +1770,33 @@ function AdminSettings() {
           </strong>
           {jsonStatus?.synced_at && (
             <small>{jsonStatus.matches} partidos recibidos</small>
+          )}
+        </div>
+      </div>
+      <div className="action-panel">
+        <Download size={32} />
+        <h3>Mapeo ESPN</h3>
+        <p>
+          Descarga equipos y plantillas de ESPN y guarda sus IDs para goles,
+          resultados en vivo y búsqueda de jugadores.
+        </p>
+        <button
+          type="button"
+          className="primary"
+          disabled={syncingEspn}
+          onClick={syncEspn}
+        >
+          {syncingEspn ? "Mapeando…" : "Sincronizar mapeo ESPN"}
+        </button>
+        <div className="json-sync-status">
+          <span>Estado actual</span>
+          <strong>
+            {espnStatus
+              ? `${espnStatus.teams_mapped}/${espnStatus.teams_total} equipos`
+              : "Todavía no disponible"}
+          </strong>
+          {espnStatus && (
+            <small>{espnStatus.players_mapped}/{espnStatus.players_total} jugadores con ID ESPN</small>
           )}
         </div>
       </div>
