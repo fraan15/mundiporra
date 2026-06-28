@@ -3673,6 +3673,7 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
   scrollbar-width:none;
   touch-action:pan-x pan-y;
   -webkit-overflow-scrolling:touch;
+  transition:height .2s ease;
 }
 .dashboard-calendar-carousel .calendar-days-viewport::-webkit-scrollbar{
   display:none;
@@ -3682,7 +3683,7 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
   gap:11px;
   width:max-content;
   min-width:100%;
-  align-items:stretch;
+  align-items:flex-start;
   contain:none;
   touch-action:auto;
 }

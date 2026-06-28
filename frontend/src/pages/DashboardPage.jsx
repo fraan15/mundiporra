@@ -409,6 +409,18 @@ function DashboardCalendar({ matches, liveScores, calendarToday, onOpenMatch, re
     window.requestAnimationFrame(() => goToDay(nextIndex));
   }, [dayKeys, restoreCalendar]);
   useEffect(() => {
+    const scroller = viewportRef.current;
+    const slide = scroller?.querySelectorAll(".calendar-day-slide")?.[activeDayIndex];
+    if (!scroller || !slide) return;
+    const fitActiveDay = () => {
+      scroller.style.height = `${slide.scrollHeight}px`;
+    };
+    fitActiveDay();
+    const observer = new ResizeObserver(fitActiveDay);
+    observer.observe(slide);
+    return () => observer.disconnect();
+  }, [activeDayIndex, matches]);
+  useEffect(() => {
     if (restoreScrollTop === null) return;
     window.requestAnimationFrame(() => window.scrollTo({ top: restoreScrollTop, behavior: "auto" }));
   }, [restoreScrollTop]);
