@@ -3760,7 +3760,7 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
 /* Panel ESPN del detalle de partido */
 .espn-detail-card{display:grid;gap:14px;overflow:hidden}
 .espn-detail-card>header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-.espn-detail-title{display:grid;grid-template-columns:minmax(0,auto) auto;align-items:center;gap:5px 8px;min-width:0}
+.espn-detail-title{display:grid;grid-template-columns:minmax(0,auto) auto;align-items:center;justify-content:center;gap:5px 8px;min-width:0;text-align:center}
 .espn-detail-title small{grid-column:1/-1}
 .espn-detail-card>header h2{min-width:0;margin:2px 0 0;line-height:1.12}
 .espn-detail-card>header>span{flex:0 0 auto;padding:6px 9px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:11px;font-weight:900}
@@ -3799,8 +3799,9 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
 [data-theme="dark"] .espn-goals-dots button.active{background:#ff6b7d}
 [data-theme="dark"] .espn-points-preview{background:rgba(223,32,56,.08);border-color:rgba(255,143,160,.22)}
 @media(max-width:620px){
-  .espn-detail-card>header{display:grid}
-  .espn-detail-card>header>span{justify-self:start}
+  .espn-detail-card>header{display:grid;justify-items:center;text-align:center}
+  .espn-detail-title{justify-items:center;text-align:center}
+  .espn-detail-card>header>span{justify-self:center}
   .espn-detail-score{grid-template-columns:1fr;gap:8px;text-align:center}
   .espn-detail-score>span,.espn-detail-score>span:first-child,.espn-detail-score>span:last-child{justify-content:center;text-align:center}
   .espn-detail-score strong{justify-self:center}
@@ -3872,17 +3873,16 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
 .espn-goals-vertical .espn-goal-minute{min-width:34px;padding:4px 7px;border-radius:999px;background:#fff0f2;color:#df2038;font-size:11px;font-weight:950;text-align:center}
 .espn-goals-vertical .espn-goal-row>i,.espn-goals-vertical .espn-goal-row>span:not(.espn-goal-player){display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#fff;color:#df2038;font-style:normal;box-shadow:inset 0 0 0 1px rgba(223,32,56,.12)}
 .espn-goals-vertical .espn-goal-player{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);font-size:12px;font-weight:900}
-.espn-goals-paired{display:grid;gap:7px;max-height:199px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
-.espn-goal-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:stretch;min-height:43px}
-.espn-goal-cell{display:grid!important;grid-template-columns:auto auto minmax(0,1fr)!important;align-items:center;gap:6px;min-width:0;padding:8px 9px;border:1px solid rgba(169,31,50,.13);border-radius:13px;background:linear-gradient(135deg,#fff,#fff7f8);box-sizing:border-box;color:var(--text)}
-.espn-goal-cell.away{grid-template-columns:minmax(0,1fr) auto auto!important;text-align:right}
-.espn-goal-cell.empty{visibility:hidden}
-.espn-goal-cell time{min-width:33px;padding:4px 7px;border-radius:999px;background:#fff0f2;color:#df2038;font-size:11px;font-weight:950;text-align:center}
-.espn-goal-cell i{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#fff;color:#df2038;font-style:normal;box-shadow:inset 0 0 0 1px rgba(223,32,56,.12)}
-.espn-goal-cell strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:900}
-.espn-goal-cell.away time{grid-column:3;grid-row:1}
-.espn-goal-cell.away i{grid-column:2;grid-row:1}
-.espn-goal-cell.away strong{grid-column:1;grid-row:1}
+.espn-goals-aligned{display:grid;gap:7px;max-height:199px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.espn-goal-line{display:grid!important;grid-template-columns:auto auto minmax(0,1fr)!important;align-items:center;gap:5px;width:min(340px,82%);min-width:0;padding:7px 8px;border:1px solid rgba(169,31,50,.13);border-radius:13px;background:linear-gradient(135deg,#fff,#fff7f8);box-sizing:border-box;color:var(--text)}
+.espn-goal-line.home{justify-self:start}
+.espn-goal-line.away{justify-self:end;grid-template-columns:minmax(0,1fr) auto auto!important;text-align:right}
+.espn-goal-line time{min-width:30px;padding:3px 5px;border-radius:999px;background:#fff0f2;color:#df2038;font-size:10px;font-weight:950;text-align:center}
+.espn-goal-line i{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#fff;color:#df2038;font-size:11px;font-style:normal;box-shadow:inset 0 0 0 1px rgba(223,32,56,.12)}
+.espn-goal-line strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10.5px;font-weight:900}
+.espn-goal-line.away time{grid-column:3;grid-row:1}
+.espn-goal-line.away i{grid-column:2;grid-row:1}
+.espn-goal-line.away strong{grid-column:1;grid-row:1}
 [data-theme="dark"] .live-ticker-summary>.live-ticker-minute{background:rgba(223,32,56,.16);color:#ff8fa0}
 [data-theme="dark"] .live-ticker-summary>.live-ticker-minute.is-final{background:rgba(70,115,170,.22);color:#a9cdf6}
 [data-theme="dark"] .live-ticker-summary>.live-ticker-minute.is-break{background:rgba(205,126,42,.22);color:#f3bd7c}
@@ -3895,8 +3895,8 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
 [data-theme="dark"] .live-ticker-pick{background:rgba(255,255,255,.08);color:#b9c9dc!important}
 [data-theme="dark"] .espn-goals-vertical .espn-goal-row{border-color:rgba(237,135,151,.14);background:linear-gradient(135deg,#13243a,#0f2034)}
 [data-theme="dark"] .espn-goals-vertical .espn-goal-minute,[data-theme="dark"] .espn-goals-vertical .espn-goal-row>i,[data-theme="dark"] .espn-goals-vertical .espn-goal-row>span:not(.espn-goal-player){background:rgba(223,32,56,.16);color:#ff8fa0}
-[data-theme="dark"] .espn-goal-cell{border-color:rgba(237,135,151,.14);background:linear-gradient(135deg,#13243a,#0f2034);color:#f2f7ff}
-[data-theme="dark"] .espn-goal-cell time,[data-theme="dark"] .espn-goal-cell i{background:rgba(223,32,56,.16);color:#ff8fa0}
+[data-theme="dark"] .espn-goal-line{border-color:rgba(237,135,151,.14);background:linear-gradient(135deg,#13243a,#0f2034);color:#f2f7ff}
+[data-theme="dark"] .espn-goal-line time,[data-theme="dark"] .espn-goal-line i{background:rgba(223,32,56,.16);color:#ff8fa0}
 [data-theme="dark"] .live-ticker-simulate{border-color:rgba(142,215,178,.2);background:rgba(255,255,255,.06);color:#8ed7b2;box-shadow:none}
 [data-theme="dark"] .live-ticker-simulate:hover,[data-theme="dark"] .live-ticker-simulate:focus-visible{background:rgba(255,255,255,.1)}
 @media(max-width:700px){

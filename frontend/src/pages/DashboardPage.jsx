@@ -189,16 +189,6 @@ const goalSideClass = (goal, match) => {
   if (code && code === String(match.team2_team?.fifa_code || "").toUpperCase()) return "away";
   return "home";
 };
-const pairGoalsByTeam = (goals, match) => {
-  const grouped = goals.reduce((acc, goal) => {
-    acc[goalSideClass(goal, match)].push(goal);
-    return acc;
-  }, { home: [], away: [] });
-  return Array.from(
-    { length: Math.max(grouped.home.length, grouped.away.length) },
-    (_, index) => ({ home: grouped.home[index], away: grouped.away[index] }),
-  );
-};
 function LiveTickerPointsCard({ match, liveScore, onSimulateMatch }) {
   const [preview, setPreview] = useState(null);
   const [previewError, setPreviewError] = useState(false);
@@ -274,7 +264,7 @@ function LiveMatchTicker({ matches, liveScores, user, onOpenMatch, onSimulateMat
     <div className="live-ticker-scroll" ref={scrollRef} onScroll={updateActiveIndex}>
       {matches.map((match, index) => {
         const liveScore = liveScores[match.id];
-        const goalRows = pairGoalsByTeam(liveScore?.goals || [], match);
+        const goals = liveScore?.goals || [];
         const prediction = match.prediction_id ? predictionScoreText(match, "No apostado") : "No apostado";
         const scorer = predictionScorerText(match, user);
         const isExpanded = expandedMatchId === match.id;
@@ -292,15 +282,10 @@ function LiveMatchTicker({ matches, liveScores, user, onOpenMatch, onSimulateMat
             <em>{isExpanded ? "Ocultar" : "Ver más"}</em>
           </button>
           {isExpanded && <div className="live-ticker-details">
-            <div className="live-ticker-goals espn-goals-paired">
-              {goalRows.length ? goalRows.map((row, rowIndex) => <div className="espn-goal-pair" key={`goal-row-${match.id}-${rowIndex}`}>
-                {["home", "away"].map((side) => {
-                  const goal = row[side];
-                  return <span className={`espn-goal-cell ${side} ${goal ? "" : "empty"}`} key={side}>
-                    {goal && <><time>{goal.minute || "—"}</time><i>⚽</i><strong>{goal.player_name || goal.espn_name || "Goleador sin identificar"}</strong></>}
-                  </span>;
-                })}
-              </div>) : <p>Sin goles por ahora.</p>}
+            <div className="live-ticker-goals espn-goals-aligned">
+              {goals.length ? goals.map((goal) => <span className={`espn-goal-line ${goalSideClass(goal, match)}`} key={goal.id || `${goal.minute}-${goal.espn_name}`}>
+                <time>{goal.minute || "—"}</time><i>⚽</i><strong>{goal.player_name || goal.espn_name || "Goleador sin identificar"}</strong>
+              </span>) : <p>Sin goles por ahora.</p>}
             </div>
             <div className="live-ticker-bet">
               <small>{user.is_read_only ? "Participación" : "Tu apuesta"}</small>

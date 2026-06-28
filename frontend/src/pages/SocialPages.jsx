@@ -112,16 +112,6 @@ const goalSideClass = (goal, match) => {
   if (code && code === String(match.team2_team?.fifa_code || "").toUpperCase()) return "away";
   return "home";
 };
-const pairGoalsByTeam = (goals, match) => {
-  const grouped = goals.reduce((acc, goal) => {
-    acc[goalSideClass(goal, match)].push(goal);
-    return acc;
-  }, { home: [], away: [] });
-  return Array.from(
-    { length: Math.max(grouped.home.length, grouped.away.length) },
-    (_, index) => ({ home: grouped.home[index], away: grouped.away[index] }),
-  );
-};
 
 function LivePredictionPreview({ match, response, onSimulate }) {
   const live = response?.live;
@@ -161,7 +151,6 @@ function LiveMatchPanel({ match, response, onSimulate }) {
   const live = response?.live;
   const goals = live?.goals || [];
   const sortedGoals = useMemo(() => goals.map((goal, index) => ({ goal, index })).sort((a, b) => goalSortMinute(a.goal) - goalSortMinute(b.goal) || a.index - b.index).map(item => item.goal), [goals]);
-  const goalRows = useMemo(() => pairGoalsByTeam(sortedGoals, match), [sortedGoals, match.team2_team?.fifa_code]);
   if (match.status === "finished") return null;
   if (!live) return null;
   const isEspnFinal = Boolean(live.completed || response?.espn_completed);
@@ -169,14 +158,9 @@ function LiveMatchPanel({ match, response, onSimulate }) {
   return <section className="content-card espn-detail-card">
     <header><div className="espn-detail-title"><small>{isEspnFinal ? "MARCADOR ESPN" : "EN DIRECTO ESPN"}</small><h2>{isEspnFinal ? "Resultado final" : "Marcador en vivo"}</h2>{isUnconfirmedFinal && <span className="espn-source-pill">Pendiente de confirmar</span>}</div><span>{response.stale ? "Último dato disponible" : liveMoment(live, response)}</span></header>
     <div className="espn-detail-score"><span><Flag team={match.team1} teamData={match.team1_team}/>{match.team1}</span><strong>{live.score?.team1 ?? 0}<i>–</i>{live.score?.team2 ?? 0}</strong><span><Flag team={match.team2} teamData={match.team2_team}/>{match.team2}</span></div>
-    <div className="espn-goals-list espn-goals-paired">{goalRows.length ? goalRows.map((row, rowIndex) => <div className="espn-goal-pair" key={`goal-row-${match.id}-${rowIndex}`}>
-      {["home", "away"].map((side) => {
-        const goal = row[side];
-        return <span className={`espn-goal-cell ${side} ${goal ? "" : "empty"}`} key={side}>
-          {goal && <><time>{goal.minute || "—"}</time><i>⚽</i><strong>{goal.player_name || goal.espn_name || "Goleador sin identificar"}</strong></>}
-        </span>;
-      })}
-    </div>) : <p>Sin goles por ahora.</p>}</div>
+    <div className="espn-goals-list espn-goals-aligned">{sortedGoals.length ? sortedGoals.map((goal, index) => <span className={`espn-goal-line ${goalSideClass(goal, match)}`} key={goal.id || `${goal.minute}-${goal.espn_name || goal.player_name}-${index}`}>
+      <time>{goal.minute || "—"}</time><i>⚽</i><strong>{goal.player_name || goal.espn_name || "Goleador sin identificar"}</strong>
+    </span>) : <p>Sin goles por ahora.</p>}</div>
     <LivePredictionPreview match={match} response={response} onSimulate={onSimulate}/>
   </section>;
 }
@@ -2959,6 +2943,7 @@ export function MatchDetailPage() {
       </section>
       <div className="detail-grid">
         <div className="match-detail-tab-panel">
+        <LiveMatchPanel match={m} response={liveResponse} onSimulate={() => setSimulationOpen(true)}/>
         <section
           className={`content-card detail-prediction ${!m.betting_open ? "detail-prediction-locked" : ""}`}
         >
@@ -3069,7 +3054,6 @@ export function MatchDetailPage() {
             <MatchPredictionSummary match={m} user={user} />
           )}
         </section>
-        <LiveMatchPanel match={m} response={liveResponse} onSimulate={() => setSimulationOpen(true)}/>
         </div>
         <section className="content-card">
           <h2>Distribución</h2>
