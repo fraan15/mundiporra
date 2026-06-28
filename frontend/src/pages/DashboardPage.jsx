@@ -370,8 +370,8 @@ function DashboardCalendar({ matches, liveScores, calendarToday, onOpenMatch, re
     scrollSettleRef.current = window.setTimeout(() => {
       const settledIndex = closestDayIndex();
       setActiveDayIndex(settledIndex);
-      centerDay(settledIndex);
-    }, 120);
+      centerDay(settledIndex, "auto");
+    }, 45);
   };
   const saveScroll = () => {
     sessionStorage.setItem("dashboardCalendarScrollTop", String(window.scrollY || 0));

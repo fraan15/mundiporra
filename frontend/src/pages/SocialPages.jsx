@@ -1582,9 +1582,15 @@ function MatchPredictionSummary({ match, user }) {
   return (
     <div className="locked-prediction-summary">
       <strong className="big-score prediction-score-card">
-        {match.prediction_id
-          ? `${match.predicted_team1_goals} – ${match.predicted_team2_goals}`
-          : "Sin pronóstico"}
+        {match.prediction_id ? (
+          <>
+            <Flag team={match.team1} teamData={match.team1_team} />
+            <span>{match.predicted_team1_goals}</span>
+            <i>–</i>
+            <span>{match.predicted_team2_goals}</span>
+            <Flag team={match.team2} teamData={match.team2_team} />
+          </>
+        ) : "Sin pronóstico"}
       </strong>
       {match.predicted_scorer && (
         <p className="prediction-scorer-pill">
