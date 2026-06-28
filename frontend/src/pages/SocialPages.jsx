@@ -155,8 +155,13 @@ function LiveMatchPanel({ match, response, onSimulate }) {
   if (!live) return null;
   const isEspnFinal = Boolean(live.completed || response?.espn_completed);
   const isUnconfirmedFinal = isEspnFinal && match.status !== "finished";
+  const statusLabel = response.stale ? "Último dato disponible" : liveMoment(live, response);
   return <section className="content-card espn-detail-card">
-    <header><div className="espn-detail-title"><small>{isEspnFinal ? "MARCADOR ESPN" : "EN DIRECTO ESPN"}</small><h2>{isEspnFinal ? "Resultado final" : "Marcador en vivo"}</h2>{isUnconfirmedFinal && <span className="espn-source-pill">Pendiente de confirmar</span>}</div><span>{response.stale ? "Último dato disponible" : liveMoment(live, response)}</span></header>
+    <header className="espn-detail-header">
+      <span className="espn-detail-header-pill source">Marcador ESPN</span>
+      <span className="espn-detail-header-pill headline"><strong>{isEspnFinal ? "Resultado final" : "Marcador en vivo"}</strong>{isUnconfirmedFinal && <em>Pendiente de confirmar</em>}</span>
+      <span className="espn-detail-header-pill state">{statusLabel}</span>
+    </header>
     <div className="espn-detail-score"><span><Flag team={match.team1} teamData={match.team1_team}/>{match.team1}</span><strong>{live.score?.team1 ?? 0}<i>–</i>{live.score?.team2 ?? 0}</strong><span><Flag team={match.team2} teamData={match.team2_team}/>{match.team2}</span></div>
     <div className="espn-goals-list espn-goals-aligned">{sortedGoals.length ? sortedGoals.map((goal, index) => <span className={`espn-goal-line ${goalSideClass(goal, match)}`} key={goal.id || `${goal.minute}-${goal.espn_name || goal.player_name}-${index}`}>
       <time>{goal.minute || "—"}</time><i>⚽</i><strong>{goal.player_name || goal.espn_name || "Goleador sin identificar"}</strong>
@@ -1743,7 +1748,7 @@ const winnerFromScore = (g1, g2) => {
 };
 const knockoutNotice = "Partido de eliminatoria: pronóstico válido hasta 120 minutos. La tanda de penaltis no cuenta para resultado, signo ni goleadores.";
 const knockoutDetails = "En las eliminatorias pronosticas el marcador al final de la prórroga, es decir, después de 90 minutos más 30 minutos extra si los hubiera. Si el partido llega a penaltis, la tanda solo decide quién avanza en el Mundial: no cambia el resultado de la porra, no cambia el signo acertado y no suma goleadores. Por ejemplo, un 1-1 tras la prórroga y victoria por penaltis sigue contando como empate 1-1 para puntuación.";
-function HorizontalScoreControl({ team, value, onChange, onAdjust }) {
+function HorizontalScoreControl({ team, teamData, value, onChange, onAdjust }) {
   const dragRef = useRef(null);
   const score = value === "" ? 0 : Number(value);
   const safeScore = Number.isFinite(score) ? Math.max(0, score) : 0;
@@ -1814,7 +1819,7 @@ function HorizontalScoreControl({ team, value, onChange, onAdjust }) {
   };
   return (
     <div className="vertical-score-control">
-      <small>{team}</small>
+      <small className={teamData ? "horizontal-score-team" : ""}>{teamData && <Flag team={team} teamData={teamData} />}{team}</small>
       <div className="horizontal-score-rail">
         <button
           type="button"
@@ -2724,9 +2729,10 @@ export function MatchDetailPage() {
             </button>
           </div>
         )}
-        <span>
-          {localMatchParts(m,user.country_code).date} · {localMatchTime(m,user.country_code)} · {m.stadium}
-        </span>
+        <div className="match-detail-meta-panels">
+          <span><b>Fecha y hora</b>{localMatchParts(m,user.country_code).date} · {localMatchTime(m,user.country_code)}</span>
+          <span><b>Estadio</b>{m.stadium || "Por confirmar"}</span>
+        </div>
         <div>
           <button
             className="detail-team-button"
@@ -2979,6 +2985,7 @@ export function MatchDetailPage() {
               <div className="detail-score-picker horizontal">
                 <HorizontalScoreControl
                   team={m.team1}
+                  teamData={m.team1_team}
                   value={pick.g1}
                   onChange={(value) => updatePickScore("g1", value)}
                   onAdjust={(delta) => adjustPick("g1", delta)}
@@ -2986,6 +2993,7 @@ export function MatchDetailPage() {
                 <b>:</b>
                 <HorizontalScoreControl
                   team={m.team2}
+                  teamData={m.team2_team}
                   value={pick.g2}
                   onChange={(value) => updatePickScore("g2", value)}
                   onAdjust={(delta) => adjustPick("g2", delta)}

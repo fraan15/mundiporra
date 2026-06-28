@@ -1920,6 +1920,17 @@ const insertClosedLiveMatch = () => {
   return result.lastInsertRowid;
 };
 
+const insertStartedOpenLiveMatch = () => {
+  const { date, time } = madridNowParts();
+  const team1 = db.prepare("SELECT id,name FROM teams WHERE fifa_code='ESP'").get();
+  const team2 = db.prepare("SELECT id,name FROM teams WHERE fifa_code='CAN'").get();
+  const result = db.prepare(`
+    INSERT INTO matches(match_date,match_time,stadium,team1,team2,team1_id,team2_id,status,auto_close_at,force_published,created_at,updated_at)
+    VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
+  `).run(date, time, "Estadio ESPN Open Test", team1.name, team2.name, team1.id, team2.id, "open", new Date(Date.now() - 60000).toISOString(), 1, now(), now());
+  return result.lastInsertRowid;
+};
+
 test("ESPN Live guarda live_completed_at y lo devuelve en endpoints", async () => {
   const admin = request.agent(app);
   await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
@@ -1945,6 +1956,37 @@ test("ESPN Live guarda live_completed_at y lo devuelve en endpoints", async () =
     assert.equal(batch.body.items[matchId].espn_completed, true);
     assert.equal(batch.body.items[matchId].live_completed_at, individual.body.live_completed_at);
     assert.equal(calls, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("ESPN Live batch consulta partidos open que ya empezaron", async () => {
+  const admin = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  const matchId = insertStartedOpenLiveMatch();
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async (url) => {
+    calls += 1;
+    const text = String(url);
+    if (text.includes("scoreboard")) {
+      return { ok: true, json: async () => ({ events: [{
+        id: "987654",
+        date: new Date().toISOString(),
+        competitions: [{ competitors: [
+          { team: { abbreviation: "ESP" } },
+          { team: { abbreviation: "CAN" } },
+        ] }],
+      }] }) };
+    }
+    return { ok: true, json: async () => liveSummaryFixture({ completed: false }) };
+  };
+  try {
+    const batch = await admin.get(`/api/matches/live-scores?ids=${matchId}`).expect(200);
+    assert.equal(batch.body.items[matchId].available, true);
+    assert.equal(batch.body.items[matchId].score.team1, 2);
+    assert.ok(calls >= 2);
   } finally {
     globalThis.fetch = originalFetch;
   }

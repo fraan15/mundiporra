@@ -1779,7 +1779,7 @@ const loadLiveMatch = async (match) => {
     }
     return { available: true, live: enrichLivePlayers(cached, match), stale: false, espn_completed: Boolean(match.live_completed_at || cached.completed), live_completed_at: match.live_completed_at || null };
   }
-  if (!isMatchInPlay(match) && !match.in_play) {
+  if (!isMatchInPlay(match)) {
     return { available: Boolean(cached), live: enrichLivePlayers(cached, match), stale: Boolean(cached), espn_completed: Boolean(match.live_completed_at || cached?.completed), live_completed_at: match.live_completed_at || null };
   }
   try {
@@ -1812,7 +1812,8 @@ app.get("/api/matches/live-scores", requireAuth, async (req, res) => {
   for (const id of ids) {
     const match = liveMatchRow(id);
     if (!match || !canAccessMatch(req, match)) continue;
-    if (match.status !== "closed" && !match.in_play && !match.live_test_enabled && !match.live_data_json) {
+    const started = isMatchInPlay(match);
+    if (match.status !== "closed" && !started && !match.live_test_enabled && !match.live_data_json) {
       items[id] = { available: false };
       continue;
     }
