@@ -2674,6 +2674,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 @media(max-width:800px){.profile-side-content{gap:14px;padding-top:12px}.profile-side-nav.profile-side-main-nav{padding-bottom:12px}.profile-side-nav.profile-side-main-nav button{min-height:52px}.profile-side-secondary-nav button{min-height:38px}.profile-side-footer{padding-top:12px}.profile-side-logout{min-height:44px}}
 @media(max-width:380px){.profile-side-drawer{border-radius:22px 0 0 22px;padding-bottom:calc(14px + env(safe-area-inset-bottom))}.profile-side-view-profile{left:calc(100% + 6px);bottom:5px;font-size:10px}.profile-side-meta{align-items:flex-start;flex-direction:column;gap:4px}.profile-side-meta p{max-width:100%}.profile-side-nav.profile-side-main-nav button{gap:13px}.profile-side-secondary-nav button{gap:10px}.profile-side-section-title{padding:0 12px}}
 @media(max-width:800px){body.profile-menu-open .main-nav,body.profile-menu-open .bottom-nav-bubble{opacity:0;pointer-events:none;transform:translate3d(-50%,110%,0)}body.profile-menu-open .main-nav:not(.app-bottom-nav){transform:translateY(110%)}}
+@media(display-mode:browser){.profile-side-header,.profile-side-main-nav,.profile-side-secondary-section{flex-shrink:0}}
 html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavior:none}
 
 /* Definitive medals showcase */

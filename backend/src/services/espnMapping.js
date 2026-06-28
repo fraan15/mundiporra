@@ -31,6 +31,12 @@ const ROSTER_REPLACEMENT_OVERRIDES = [
     espnNames: ["abde ezzalzouli", "abdessamad ezzalzouli"],
     localNames: ["amine sbai"],
   },
+  {
+    teamCode: "ARG",
+    number: 15,
+    espnNames: ["nico gonzalez", "nicolas gonzalez"],
+    localNames: ["nico gonzalez", "nicolas gonzalez"],
+  },
 ];
 
 const fetchJson = async (url) => {

@@ -171,3 +171,41 @@ test("mapea reemplazo de convocatoria de Marruecos dorsal 17 aunque ESPN manteng
     globalThis.fetch = originalFetch;
   }
 });
+
+test("mapea Nico Gonzalez de ESPN con Nicolás González local de Argentina", async () => {
+  initDatabase();
+  const local = db.prepare("SELECT id FROM players WHERE team_fifa_code='ARG' AND number=15").get();
+  assert.ok(local);
+  db.prepare("UPDATE players SET name='Nicolás González',espn_id=NULL WHERE id=?").run(local.id);
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    if (String(url).includes("/teams/202/roster")) {
+      return {
+        ok: true,
+        json: async () => ({
+          athletes: [{
+            id: "194958",
+            displayName: "Nico Gonzalez",
+            fullName: "Nico Gonzalez",
+            jersey: "15",
+          }],
+        }),
+      };
+    }
+    return {
+      ok: true,
+      json: async () => ({
+        sports: [{ leagues: [{ teams: [{ team: { id: "202", abbreviation: "ARG", displayName: "Argentina" } }] }] }],
+      }),
+    };
+  };
+
+  try {
+    const result = await syncEspnMappings();
+    assert.equal(result.players_mapped, 1);
+    assert.equal(db.prepare("SELECT espn_id FROM players WHERE id=?").get(local.id).espn_id, "194958");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

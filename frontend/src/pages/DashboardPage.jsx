@@ -317,6 +317,7 @@ function DashboardCalendar({ matches, liveScores, calendarToday, onOpenMatch, re
   const scrollSettleRef = useRef(null);
   const calendarPointerRef = useRef(null);
   const centerFrameRef = useRef(null);
+  const activeDayIndexRef = useRef(1);
   const [activeDayIndex, setActiveDayIndex] = useState(() => {
     if (!restoreCalendar) return 1;
     const storedIndex = Number(sessionStorage.getItem("dashboardCalendarActiveDayIndex"));
@@ -342,6 +343,10 @@ function DashboardCalendar({ matches, liveScores, calendarToday, onOpenMatch, re
     };
   });
   const activeDay = days[activeDayIndex] || days[1];
+  const setActiveDay = (index) => {
+    activeDayIndexRef.current = index;
+    setActiveDayIndex(index);
+  };
   const closestDayIndex = () => {
     const scroller = viewportRef.current;
     if (!scroller) return activeDayIndex;
@@ -380,18 +385,18 @@ function DashboardCalendar({ matches, liveScores, calendarToday, onOpenMatch, re
   };
   const settleDay = (behavior = "smooth") => {
     const settledIndex = closestDayIndex();
-    setActiveDayIndex(settledIndex);
+    setActiveDay(settledIndex);
     centerDay(settledIndex, behavior);
   };
   const goToDay = (index) => {
     const nextIndex = Math.max(0, Math.min(days.length - 1, index));
     if (scrollSettleRef.current) clearTimeout(scrollSettleRef.current);
     centerDay(nextIndex);
-    setActiveDayIndex(nextIndex);
+    setActiveDay(nextIndex);
   };
   const updateActiveDay = () => {
     const next = closestDayIndex();
-    setActiveDayIndex(next);
+    setActiveDay(next);
     if (scrollSettleRef.current) clearTimeout(scrollSettleRef.current);
     if (calendarPointerRef.current?.pressed) return;
     scrollSettleRef.current = window.setTimeout(() => {
@@ -401,12 +406,21 @@ function DashboardCalendar({ matches, liveScores, calendarToday, onOpenMatch, re
   const startCalendarPointer = (event) => {
     if (event.pointerType === "mouse" && event.button !== 0) return;
     if (scrollSettleRef.current) clearTimeout(scrollSettleRef.current);
-    calendarPointerRef.current = { pressed: true, x: event.clientX };
+    calendarPointerRef.current = { pressed: true, x: event.clientX, index: activeDayIndexRef.current };
   };
-  const endCalendarPointer = () => {
+  const endCalendarPointer = (event) => {
     if (!calendarPointerRef.current) return;
+    const { x, index } = calendarPointerRef.current;
     calendarPointerRef.current = null;
     if (scrollSettleRef.current) clearTimeout(scrollSettleRef.current);
+    const deltaX = event.clientX - x;
+    const swipeThreshold = 34;
+    if (Math.abs(deltaX) >= swipeThreshold) {
+      const nextIndex = Math.max(0, Math.min(days.length - 1, index + (deltaX < 0 ? 1 : -1)));
+      setActiveDay(nextIndex);
+      centerDay(nextIndex, "fast");
+      return;
+    }
     scrollSettleRef.current = window.setTimeout(() => settleDay("fast"), 15);
   };
   const saveScroll = () => {
@@ -451,6 +465,9 @@ function DashboardCalendar({ matches, liveScores, calendarToday, onOpenMatch, re
     const nextIndex = keyIndex >= 0 ? keyIndex : Number.isInteger(storedIndex) && storedIndex >= 0 && storedIndex < days.length ? storedIndex : -1;
     if (nextIndex >= 0) window.requestAnimationFrame(() => goToDay(nextIndex));
   }, [days[0].key, restoreCalendar]);
+  useEffect(() => {
+    activeDayIndexRef.current = activeDayIndex;
+  }, [activeDayIndex]);
   useEffect(() => {
     window.requestAnimationFrame(() => {
       centerDay(activeDayIndex, "auto");
