@@ -420,6 +420,11 @@ export function initDatabase() {
       UPDATE matches SET scorer_enabled=0;
     `);
   }
+  if (!matchColumns.includes("espn_event_id")) db.exec("ALTER TABLE matches ADD COLUMN espn_event_id TEXT");
+  if (!matchColumns.includes("live_data_json")) db.exec("ALTER TABLE matches ADD COLUMN live_data_json TEXT");
+  if (!matchColumns.includes("live_updated_at")) db.exec("ALTER TABLE matches ADD COLUMN live_updated_at TEXT");
+  if (!matchColumns.includes("live_test_enabled")) db.exec("ALTER TABLE matches ADD COLUMN live_test_enabled INTEGER NOT NULL DEFAULT 0 CHECK(live_test_enabled IN (0,1))");
+  if (!matchColumns.includes("live_test_event_id")) db.exec("ALTER TABLE matches ADD COLUMN live_test_event_id TEXT");
   const predictionColumns = db.prepare("PRAGMA table_info(predictions)").all().map((column) => column.name);
   if (!predictionColumns.includes("scoring_multiplier")) db.exec("ALTER TABLE predictions ADD COLUMN scoring_multiplier INTEGER NOT NULL DEFAULT 1");
   if (!predictionColumns.includes("predicted_scorer_id")) db.exec("ALTER TABLE predictions ADD COLUMN predicted_scorer_id INTEGER REFERENCES players(id)");

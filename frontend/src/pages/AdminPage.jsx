@@ -595,6 +595,31 @@ function AdminMatches() {
     load();
   };
   const finish = (m) => setResultMatch(m);
+  const toggleLiveTest = async (m) => {
+    let eventId = m.live_test_event_id || "";
+    if (!m.live_test_enabled) {
+      eventId = window.prompt(
+        `ID del evento ESPN que quieres reproducir sobre ${m.team1} – ${m.team2}:`,
+        eventId || "760480",
+      )?.trim();
+      if (!eventId) return;
+    }
+    try {
+      await api(`/admin/matches/${m.id}/live-test`, {
+        method: "PATCH",
+        body: { enabled: !m.live_test_enabled, event_id: eventId },
+      });
+      setNotice({
+        type: "success",
+        text: m.live_test_enabled
+          ? "Modo de prueba ESPN desactivado."
+          : `Modo de prueba ESPN activado con el evento ${eventId}.`,
+      });
+      await load();
+    } catch (error) {
+      setNotice({ type: "error", text: error.message });
+    }
+  };
   const deleteResult = async (m) => {
     if (
       !window.confirm(
@@ -871,6 +896,7 @@ function AdminMatches() {
                     ? "Publicado"
                     : `Oculto hasta ${new Date(m.publishes_at).toLocaleString("es-ES")}`}
                 </span>
+                {Boolean(m.live_test_enabled) && <span className="admin-live-test-state">⚡ PRUEBA ESPN ACTIVA · evento {m.live_test_event_id}</span>}
               </div>
               <div className="actions">
                 <button onClick={() => startEdit(m)}>Editar</button>
@@ -891,6 +917,10 @@ function AdminMatches() {
                 <button className="accent" onClick={() => finish(m)}>
                   Resultado
                 </button>
+                <button className={m.live_test_enabled ? "danger" : ""} onClick={() => toggleLiveTest(m)}>
+                  {m.live_test_enabled ? "Desactivar prueba ESPN" : "Probar directo ESPN"}
+                </button>
+                {Boolean(m.live_test_enabled) && <button onClick={() => window.open(`/match/${m.id}`, "_blank", "noopener,noreferrer")}>Ver prueba</button>}
                 {m.status === "finished" && (
                   <button className="danger" onClick={() => deleteResult(m)}>
                     Eliminar resultado

@@ -42,6 +42,7 @@ import { formatLocalDateTime, localMatchParts, localMatchTime } from "../utils/m
 import { AvatarCropper } from "../components/AvatarCropper";
 import { ReactionBar } from "../components/ReactionBar";
 import { IMAGE_ACCEPT, inferImageType, optimizeImageForUpload, sendImage } from "../utils/imageUpload";
+import { startVisiblePolling } from "../utils/visiblePolling";
 
 const StatCards = ({ s, onPointsInfo }) => (
   <div className="profile-score-summary">
@@ -84,6 +85,80 @@ const StatCards = ({ s, onPointsInfo }) => (
   </div>
 );
 
+const preferredLiveStats = [
+  "possession", "shots", "shotsontarget", "foulscommitted", "yellowcards",
+  "redcards", "cornerkicks", "offsides", "saves",
+];
+const compactStatKey = (value) => String(value || "").toLowerCase().replace(/[^a-z]/g, "");
+
+function LiveMatchPanel({ match, response }) {
+  const live = response?.live;
+  if (!live) return (
+    <section className="content-card live-match-card live-match-unavailable">
+      <div className="live-match-heading"><div><span>EN DIRECTO</span><h2>Seguimiento del partido</h2></div><small>ESPN</small></div>
+      <p>El directo aparecerá aquí cuando ESPN identifique el encuentro.</p>
+    </section>
+  );
+  const byCode = new Map((live.competitors || []).map((team) => [team.code, team]));
+  const team1 = byCode.get(match.team1_team?.fifa_code) || live.competitors?.[0] || {};
+  const team2 = byCode.get(match.team2_team?.fifa_code) || live.competitors?.[1] || {};
+  const statsByCode = new Map((live.stats || []).map((team) => [team.code, team.stats || []]));
+  const team1Stats = statsByCode.get(match.team1_team?.fifa_code) || [];
+  const team2Stats = statsByCode.get(match.team2_team?.fifa_code) || [];
+  const statKeys = [...new Set([...team1Stats, ...team2Stats].map((stat) => stat.key))]
+    .sort((a, b) => {
+      const ai = preferredLiveStats.indexOf(compactStatKey(a)), bi = preferredLiveStats.indexOf(compactStatKey(b));
+      return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi);
+    });
+  const stat = (list, key) => list.find((item) => item.key === key);
+  const timeline = live.timeline || [];
+  const odds = live.state === "in" ? live.odds : null;
+  const team1Odd = team1.home_away === "away" ? odds?.away : odds?.home;
+  const team2Odd = team2.home_away === "home" ? odds?.home : odds?.away;
+  return (
+    <section className={`content-card live-match-card ${live.state === "in" ? "is-live" : ""}`}>
+      <div className="live-match-heading">
+        <div><span>{live.test_mode ? "⚡ MODO PRUEBA" : live.completed ? "FINAL ESPN" : live.state === "in" ? "● EN DIRECTO" : "SEGUIMIENTO ESPN"}</span><h2>{live.status || "Partido en curso"}</h2></div>
+        <small>{response.stale ? "Última información guardada" : `Actualizado ${new Date(live.fetched_at).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`}</small>
+      </div>
+      <div className="live-scoreboard" aria-label={`Marcador en directo: ${match.team1} ${team1.score || 0}, ${match.team2} ${team2.score || 0}`}>
+        <span><Flag team={match.team1} teamData={match.team1_team}/><strong>{match.team1}</strong></span>
+        <b>{team1.score ?? 0}<i>–</i>{team2.score ?? 0}</b>
+        <span><Flag team={match.team2} teamData={match.team2_team}/><strong>{match.team2}</strong></span>
+      </div>
+      {(live.clock || live.period) && <p className="live-clock">{live.clock || `${live.period}ª parte`}</p>}
+      {odds && <div className="live-odds">
+        <div className="live-odds-title"><h3>Cuotas en juego</h3><small>{odds.provider} · formato decimal</small></div>
+        <div className="live-odds-markets">
+          <span><small>{match.team1}</small><strong>{team1Odd?.toFixed(2) || "—"}</strong></span>
+          <span><small>Empate</small><strong>{odds.draw?.toFixed(2) || "—"}</strong></span>
+          <span><small>{match.team2}</small><strong>{team2Odd?.toFixed(2) || "—"}</strong></span>
+        </div>
+        {odds.over_under !== null && <div className="live-odds-totals">
+          <span>Más de {odds.over_under}: <b>{odds.over?.toFixed(2) || "—"}</b></span>
+          <span>Menos de {odds.over_under}: <b>{odds.under?.toFixed(2) || "—"}</b></span>
+        </div>}
+      </div>}
+      {timeline.length > 0 && <div className="live-timeline">
+        <h3>Jugadas e incidencias</h3>
+        {timeline.map((item) => <article key={item.id} className={`${item.scoring ? "goal" : ""} ${item.red_card ? "red-card" : item.yellow_card ? "yellow-card" : ""}`}>
+          <time>{item.minute || "—"}</time>
+          <i aria-hidden="true">{item.scoring ? "⚽" : item.red_card ? "🟥" : item.yellow_card ? "🟨" : item.penalty ? "🥅" : "•"}</i>
+          <div><strong>{item.type}</strong>{item.athletes?.length > 0 && <span>{item.mapped_athletes?.map((athlete) => athlete.player_name || athlete.espn_name).join(" · ") || item.athletes.join(" · ")}</span>}{item.text && <small>{item.text}</small>}</div>
+        </article>)}
+      </div>}
+      {statKeys.length > 0 && <div className="live-stats">
+        <h3>Estadísticas</h3>
+        {statKeys.map((key) => {
+          const first = stat(team1Stats, key), second = stat(team2Stats, key);
+          return <div key={key}><strong>{first?.display ?? "—"}</strong><span>{first?.label || second?.label || key}</span><strong>{second?.display ?? "—"}</strong></div>;
+        })}
+      </div>}
+      <footer>Información orientativa de ESPN. El resultado oficial y los puntos solo se aplican cuando el administrador los guarda.</footer>
+    </section>
+  );
+}
+
 const MedalsSection = ({ badges = [], catalog = [], disputed = [] }) => (
   <section className="content-card medals-card">
     <h2>
@@ -124,7 +199,7 @@ const SIMULATION_TEAM_SHORT_NAMES = {
 
 const simulationTeamLabel = (team = "") => SIMULATION_TEAM_SHORT_NAMES[team] || team;
 
-function MatchSimulationOverlay({ match, players, user, onClose }) {
+function MatchSimulationOverlay({ match, players, user, initialLiveResponse, onClose }) {
   const [matches, setMatches] = useState([match]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [matchDirection, setMatchDirection] = useState(1);
@@ -135,6 +210,7 @@ function MatchSimulationOverlay({ match, players, user, onClose }) {
   const [simulationPlayers, setSimulationPlayers] = useState(players);
   const [simulation, setSimulation] = useState(null);
   const [simulationError, setSimulationError] = useState("");
+  const [liveByMatch, setLiveByMatch] = useState({});
   const swipeRef = useRef(null);
   const orderedMatches = useMemo(() => [...matches].sort((a, b) =>
     String(b.match_date || "").localeCompare(String(a.match_date || "")) ||
@@ -149,11 +225,29 @@ function MatchSimulationOverlay({ match, players, user, onClose }) {
     return { ...current, [matchId]: { ...score, [field]: String(Math.max(0, Number(score[field] || 0) + delta)) } };
   });
   useEffect(() => {
-    api("/dashboard").then(data => {
-      const inPlay = data.in_play_matches?.length ? data.in_play_matches : [match];
+    api("/dashboard").then(async data => {
+      const inPlay = match.live_test_enabled ? [match] : data.in_play_matches?.length ? data.in_play_matches : [match];
+      const codes = [...new Set(inPlay.flatMap(item => [item.team1_team?.fifa_code, item.team2_team?.fifa_code]).filter(Boolean))];
+      const [allPlayers, ...liveResponses] = await Promise.all([
+        codes.length ? api(`/players?team_fifa_codes=${codes.join(",")}`).catch(() => players) : Promise.resolve(players),
+        ...inPlay.map(item => String(item.id) === String(match.id) && initialLiveResponse
+          ? Promise.resolve(initialLiveResponse)
+          : api(`/matches/${item.id}/live`).catch(() => null)),
+      ]);
+      const nextLiveByMatch = Object.fromEntries(inPlay.map((item, index) => [item.id, liveResponses[index]?.live || null]));
+      const nextScores = Object.fromEntries(inPlay.map(item => {
+        const live = nextLiveByMatch[item.id];
+        const byCode = new Map((live?.competitors || []).map(team => [team.code, team]));
+        return [item.id, live ? {
+          g1: String(byCode.get(item.team1_team?.fifa_code)?.score ?? 0),
+          g2: String(byCode.get(item.team2_team?.fifa_code)?.score ?? 0),
+        } : { g1: "0", g2: "0" }];
+      }));
       setMatches(inPlay);
-      setScores(current => Object.fromEntries(inPlay.map(item => [item.id, current[item.id] || { g1: "0", g2: "0" }])));
-      setScorerIdsByMatch(current => Object.fromEntries(inPlay.map(item => [item.id, current[item.id] || []])));
+      setSimulationPlayers(allPlayers);
+      setLiveByMatch(nextLiveByMatch);
+      setScores(nextScores);
+      setScorerIdsByMatch(Object.fromEntries(inPlay.map(item => [item.id, nextLiveByMatch[item.id]?.scorer_player_ids || []])));
       setActiveByMatch(current => Object.fromEntries(inPlay.map(item => [item.id, current[item.id] !== undefined ? current[item.id] : true])));
     }).catch(() => setMatches([match]));
   }, [match.id]);
@@ -236,6 +330,7 @@ function MatchSimulationOverlay({ match, players, user, onClose }) {
   const item = currentMatch,
     itemScore = scores[item.id] || { g1: "0", g2: "0" },
     itemScorerIds = scorerIdsByMatch[item.id] || [],
+    itemLive = liveByMatch[item.id],
     itemActive = activeByMatch[item.id] !== false,
     itemAvailableScorers = simulationPlayers.filter(player => scoringCodesFor(item, itemScore).includes(player.team_fifa_code) && !itemScorerIds.includes(player.id)),
     hasMultipleMatches = orderedMatches.length > 1;
@@ -251,6 +346,7 @@ function MatchSimulationOverlay({ match, players, user, onClose }) {
           <small>{localMatchParts(item,user.country_code).date} · {localMatchTime(item,user.country_code)}</small>
           {hasMultipleMatches && <label className="simulation-active-toggle" title={itemActive ? "Partido activo en la simulación" : "Partido fuera de la simulación"}><input type="checkbox" checked={itemActive} onChange={event => setActiveByMatch(current => ({ ...current, [item.id]: event.target.checked }))}/><span>{itemActive ? "Activo" : "Off"}</span></label>}
         </div>
+        {itemLive && <div className="simulation-espn-prefill"><span>⚡ Datos precargados desde ESPN · {itemLive.clock || itemLive.status}</span>{itemLive.unmatched_scorers?.length > 0 && <small>Revisa goleadores sin coincidencia: {itemLive.unmatched_scorers.join(", ")}</small>}</div>}
         <div className="simulation-gesture-area">
           <article className={`${itemActive ? "simulation-match-slide active" : "simulation-match-slide inactive"} ${matchDirection < 0 ? "from-left" : "from-right"}`} key={`${item.id}-${matchAnimation}`}>
               <div className="detail-score-picker horizontal simulation-score-editor">
@@ -2232,6 +2328,7 @@ export function MatchDetailPage() {
     [savingPick, setSavingPick] = useState(false),
     [pickMessage, setPickMessage] = useState(""),
     [pickSavedPulse, setPickSavedPulse] = useState(0),
+    [liveResponse, setLiveResponse] = useState(null),
     [simulationOpen, setSimulationOpen] = useState(false),
     [knockoutInfoOpen, setKnockoutInfoOpen] = useState(false);
   const hydratedPickMatchId = useRef(null), commentFileRef = useRef(null), selectedImageRef = useRef(null);
@@ -2273,6 +2370,14 @@ export function MatchDetailPage() {
     load();
     setCommentsPage(1);
   }, [id]);
+  useEffect(() => {
+    setLiveResponse(null);
+    if (!data?.match || (data.match.betting_open && !data.match.live_test_enabled)) return undefined;
+    return startVisiblePolling(
+      () => api(`/matches/${id}/live`).then(setLiveResponse).catch(() => {}),
+      30000,
+    );
+  }, [id, data?.match?.betting_open, data?.match?.live_test_enabled]);
   useEffect(() => {
     const query = text.match(/(?:^|\s)@([^\s@]{2,})$/)?.[1];
     if (!query) { setCommentMentions([]); return; }
@@ -2573,7 +2678,7 @@ export function MatchDetailPage() {
           onClose={() => setComparing(false)}
         />
       )}
-      {simulationOpen && <MatchSimulationOverlay match={data.match} players={players} user={user} onClose={() => setSimulationOpen(false)}/>}
+      {simulationOpen && <MatchSimulationOverlay match={data.match} players={players} user={user} initialLiveResponse={liveResponse} onClose={() => setSimulationOpen(false)}/>}
       {knockoutInfoOpen && <KnockoutInfoDialog onClose={() => setKnockoutInfoOpen(false)}/>}
       <button
         className="back-btn"
@@ -2820,7 +2925,7 @@ export function MatchDetailPage() {
         <section
           className={`content-card detail-prediction ${!m.betting_open ? "detail-prediction-locked" : ""}`}
         >
-          <div className="detail-prediction-heading"><h2>{user.is_read_only ? "Vista de espectador" : `Mi pronóstico${Number(m.is_knockout) === 1 ? " (a 120 mins)" : ""}`}</h2>{m.status === "closed" && Boolean(m.in_play) && <button type="button" className="simulation-trigger" onClick={() => setSimulationOpen(true)}><Calculator size={17}/><span>Simular</span></button>}</div>
+          <div className="detail-prediction-heading"><h2>{user.is_read_only ? "Vista de espectador" : `Mi pronóstico${Number(m.is_knockout) === 1 ? " (a 120 mins)" : ""}`}</h2>{((m.status === "closed" && Boolean(m.in_play)) || Boolean(m.live_test_enabled)) && <button type="button" className="simulation-trigger" onClick={() => setSimulationOpen(true)}><Calculator size={17}/><span>Simular</span></button>}</div>
           {m.betting_open && !user.is_read_only ? (
             <>
               <div className="detail-winner-picks">
@@ -2927,6 +3032,7 @@ export function MatchDetailPage() {
             <MatchPredictionSummary match={m} user={user} />
           )}
         </section>
+        {liveResponse && <LiveMatchPanel match={m} response={liveResponse}/>}
         <section className="content-card">
           <h2>Distribución</h2>
           {data.revealed ? (
