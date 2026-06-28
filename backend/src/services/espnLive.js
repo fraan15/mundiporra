@@ -202,6 +202,20 @@ const normalizeStats = (summary, competition) => {
   });
 };
 
+const goalSignature = (item) => [
+  item.minute_value ?? item.display_minute ?? item.minute ?? "",
+  item.team_id || item.team_code || "",
+  item.athlete_ids?.[0] || normalizePlayerNameForSignature(item.athletes?.[0]),
+  item.own_goal ? "own" : item.penalty ? "pen" : "goal",
+].join("|");
+
+const normalizePlayerNameForSignature = (value) => String(value || "")
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "")
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, " ")
+  .trim();
+
 export const normalizeEspnLive = (event, summary = {}) => {
   const headerEvent = summary?.header || event;
   const competition = competitionOf(headerEvent) || competitionOf(event);
@@ -223,14 +237,16 @@ export const normalizeEspnLive = (event, summary = {}) => {
   const codeByTeamId = new Map(competitors.map((team) => [team.id, team.code]));
   const normalizedTimeline = rawTimeline.map((item, index) => normalizeTimelineItem(item, index, codeByTeamId));
   const timeline = [...new Map(normalizedTimeline.map((normalized) => {
-    const signature = [
-      normalized.minute, normalized.scoring, normalized.yellow_card, normalized.red_card,
-      normalized.athletes[0], normalized.athletes[1],
-      normalized.scoring || normalized.yellow_card || normalized.red_card ? "" : normalized.type,
-    ].join("|");
+    const signature = normalized.scoring || normalized.category === "goal"
+      ? `goal|${goalSignature(normalized)}`
+      : [
+        normalized.minute, normalized.scoring, normalized.yellow_card, normalized.red_card,
+        normalized.athletes[0], normalized.athletes[1],
+        normalized.yellow_card || normalized.red_card ? "" : normalized.type,
+      ].join("|");
     return [signature, normalized];
   })).values()].sort((a, b) => (b.minute_value ?? -1) - (a.minute_value ?? -1));
-  const goals = timeline.filter((item) => item.scoring || item.category === "goal")
+  const mappedGoals = timeline.filter((item) => item.scoring || item.category === "goal")
     .map((item) => {
       const scorerName = item.athletes?.[0] || "Goleador sin identificar";
       const goalLabel = item.own_goal ? "Autogol" : item.penalty ? "Gol de penalti" : "Gol";
@@ -255,6 +271,20 @@ export const normalizeEspnLive = (event, summary = {}) => {
       };
     })
     .sort((a, b) => (a.minute_value ?? 999) - (b.minute_value ?? 999));
+  const dedupedGoals = [...new Map(mappedGoals.map((goal) => [goalSignature({
+    minute_value: goal.minute_value,
+    display_minute: goal.minute,
+    team_id: goal.team_id,
+    team_code: goal.team_code,
+    athlete_ids: goal.espn_athlete_id ? [goal.espn_athlete_id] : [],
+    athletes: [goal.espn_name],
+    own_goal: goal.own_goal,
+    penalty: goal.penalty,
+  }), goal])).values()];
+  const scoreGoalTotal = competitors.reduce((sum, team) => sum + Number(team.score || 0), 0);
+  const goals = scoreGoalTotal > 0 && dedupedGoals.length > scoreGoalTotal
+    ? dedupedGoals.slice(0, scoreGoalTotal)
+    : dedupedGoals;
   return {
     provider: "ESPN",
     event_id: String(headerEvent?.id || event?.id || competition?.id || ""),

@@ -228,14 +228,12 @@ function LiveMatchTicker({ matches, liveScores, user, onOpenMatch }) {
             {Boolean(match.is_star) && <span className="live-ticker-star"><Star size={12} fill="currentColor"/> x2</span>}
             <span className="live-ticker-live"><i/> Live</span>
             <span className="live-ticker-team home"><Flag team={match.team1} teamData={match.team1_team}/><strong>{match.team1}</strong></span>
-            <b>{liveScoreText(match, liveScore)}</b>
+            <span className="live-ticker-score-stack"><b>{liveScoreText(match, liveScore)}</b>{statusText && <small className={`live-ticker-minute ${statusText === "FIN" ? "is-final" : statusText === "DES" ? "is-break" : ""}`}>{statusText}</small>}</span>
             <span className="live-ticker-team away"><Flag team={match.team2} teamData={match.team2_team}/><strong>{match.team2}</strong></span>
-            {statusText && <small className={`live-ticker-minute ${statusText === "FIN" ? "is-final" : statusText === "DES" ? "is-break" : ""}`}>{statusText}</small>}
             <em>{isExpanded ? "Ocultar" : "Ver más"}</em>
           </button>
           {isExpanded && <div className="live-ticker-details">
             <div className="live-ticker-goals">
-              <small><span aria-hidden="true">⚽</span> Goles</small>
               {goals.length ? goals.map((goal) => <span className="live-ticker-goal" key={goal.id || `${goal.minute}-${goal.espn_name}`}>
                 <time>{goal.minute || "—"}</time>
                 <i>⚽</i>
@@ -244,7 +242,14 @@ function LiveMatchTicker({ matches, liveScores, user, onOpenMatch }) {
             </div>
             <div className="live-ticker-bet">
               <small>{user.is_read_only ? "Participación" : "Tu apuesta"}</small>
-              <strong><span>{user.is_read_only ? "Solo lectura" : prediction}</span>{Boolean(match.is_star) && <em>x2</em>}</strong>
+              <strong>
+                {user.is_read_only ? <span>Solo lectura</span> : <>
+                  <span className="live-ticker-bet-team"><Flag team={match.team1} teamData={match.team1_team}/></span>
+                  <span className="live-ticker-bet-score">{prediction}</span>
+                  <span className="live-ticker-bet-team"><Flag team={match.team2} teamData={match.team2_team}/></span>
+                </>}
+                {Boolean(match.is_star) && <em>x2</em>}
+              </strong>
               {scorer ? <span>{scorer}</span> : <span>Sin goleador apostado</span>}
             </div>
             {pointsPreview && <div className="live-ticker-points">

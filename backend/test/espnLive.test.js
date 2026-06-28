@@ -160,3 +160,31 @@ test("distingue goles de penalti y autogoles sin incluir otras incidencias", () 
   assert.equal(live.goals[1].label, "Autogol");
   assert.equal(live.goals[1].own_goal, true);
 });
+
+test("deduplica goles repetidos por ESPN aunque vengan en varias secciones", () => {
+  const duplicatedGoals = [
+    { id: "g1", clock: { displayValue: "17'" }, type: { text: "Goal" }, scoringPlay: true, team: { id: "1" }, participants: [{ athlete: { id: "10", displayName: "Jugador A" } }] },
+    { id: "g2", clock: { displayValue: "24'" }, type: { text: "Goal" }, scoringPlay: true, team: { id: "2" }, participants: [{ athlete: { id: "20", displayName: "Jugador B" } }] },
+    { id: "g3", clock: { displayValue: "39'" }, type: { text: "Goal" }, scoringPlay: true, team: { id: "1" }, participants: [{ athlete: { id: "11", displayName: "Jugador C" } }] },
+    { id: "g4", clock: { displayValue: "55'" }, type: { text: "Goal" }, scoringPlay: true, team: { id: "1" }, participants: [{ athlete: { id: "12", displayName: "Jugador D" } }] },
+  ];
+  const live = normalizeEspnLive({ id: "dup" }, {
+    header: { id: "dup", competitions: [{
+      competitors: [
+        { score: "3", team: { id: "1", abbreviation: "COD" } },
+        { score: "1", team: { id: "2", abbreviation: "UZB" } },
+      ],
+      details: duplicatedGoals,
+    }] },
+    commentary: duplicatedGoals.map((goal) => ({
+      ...goal,
+      id: `commentary-${goal.id}`,
+      text: `${goal.participants[0].athlete.displayName} scores`,
+      participants: [{ athlete: { ...goal.participants[0].athlete, fullName: goal.participants[0].athlete.displayName } }],
+    })),
+  });
+  assert.equal(live.score.team1, 3);
+  assert.equal(live.score.team2, 1);
+  assert.equal(live.goals.length, 4);
+  assert.deepEqual(live.goals.map((goal) => goal.espn_name), ["Jugador A", "Jugador B", "Jugador C", "Jugador D"]);
+});

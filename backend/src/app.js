@@ -1730,6 +1730,9 @@ const liveMatchRow = (id) => db.prepare(`
 `).get(id);
 
 const loadLiveMatch = async (match) => {
+  if (match.status === "finished" && !match.live_test_enabled) {
+    return { available: false, live: null, stale: false };
+  }
   let cached = (() => {
     try { return match.live_data_json ? JSON.parse(match.live_data_json) : null; } catch { return null; }
   })();

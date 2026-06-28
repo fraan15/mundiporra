@@ -3865,3 +3865,142 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
   .live-ticker-card.is-open .live-ticker-details>button{grid-column:1;justify-self:start}
   .live-ticker-goals{max-height:170px}
 }
+
+/* Ajuste visual final del ticker live */
+.live-ticker-summary{
+  grid-template-columns:auto minmax(0,1fr) auto minmax(0,1fr);
+}
+.live-ticker-team,
+.live-ticker-team.home,
+.live-ticker-team.away{
+  flex-direction:column;
+  justify-content:center;
+  gap:4px;
+  text-align:center;
+}
+.live-ticker-team .real-flag,
+.live-ticker-team .flag{
+  order:0;
+  width:28px;
+  height:22px;
+  flex:0 0 auto;
+  border-radius:6px;
+}
+.live-ticker-team strong{
+  order:1;
+  max-width:100%;
+  text-align:center;
+}
+.live-ticker-score-stack{
+  display:grid;
+  place-items:center;
+  gap:4px;
+  min-width:54px;
+}
+.live-ticker-score-stack>b{
+  color:#211f20;
+  font-size:18px;
+  font-weight:950;
+  line-height:1;
+  white-space:nowrap;
+}
+.live-ticker-score-stack>.live-ticker-minute{
+  margin:0;
+  padding:3px 8px;
+  border-radius:999px;
+  background:#fff0f2;
+  color:#df2038;
+  font-size:10px;
+  font-weight:950;
+  letter-spacing:.04em;
+  line-height:1;
+  text-transform:uppercase;
+}
+.live-ticker-score-stack>.live-ticker-minute.is-final{background:#e8edf6;color:#42628e}
+.live-ticker-score-stack>.live-ticker-minute.is-break{background:#fff0d8;color:#996313}
+.live-ticker-summary>.live-ticker-minute{display:none}
+.live-ticker-card.is-open .live-ticker-details>button{
+  justify-self:center;
+  min-width:150px;
+}
+.live-ticker-goals{
+  padding-top:8px;
+}
+.live-ticker-bet{
+  display:grid;
+  align-content:center;
+  text-align:center;
+}
+.live-ticker-bet>small{
+  text-align:center;
+}
+.live-ticker-bet strong{
+  justify-content:center!important;
+  min-height:54px;
+  padding:10px!important;
+  background:linear-gradient(135deg,#fff,#fff7f8)!important;
+  box-shadow:inset 0 0 0 1px rgba(169,31,50,.08);
+}
+.live-ticker-bet-score{
+  min-width:58px!important;
+  margin:0!important;
+  color:var(--text)!important;
+  font-size:18px!important;
+  font-weight:950!important;
+  text-align:center;
+}
+.live-ticker-bet-team{
+  display:grid!important;
+  place-items:center;
+  width:30px;
+  height:30px;
+  margin:0!important;
+  border-radius:10px;
+  background:rgba(255,255,255,.8);
+}
+.live-ticker-bet-team .real-flag,
+.live-ticker-bet-team .flag{
+  width:24px;
+  height:19px;
+  border-radius:5px;
+}
+.live-ticker-bet>span{
+  margin-top:7px!important;
+  text-align:center;
+}
+[data-theme="dark"] .live-ticker-score-stack>b{color:#f2f7ff}
+[data-theme="dark"] .live-ticker-score-stack>.live-ticker-minute{background:rgba(223,32,56,.16);color:#ff8fa0}
+[data-theme="dark"] .live-ticker-score-stack>.live-ticker-minute.is-final{background:rgba(70,115,170,.22);color:#a9cdf6}
+[data-theme="dark"] .live-ticker-score-stack>.live-ticker-minute.is-break{background:rgba(205,126,42,.22);color:#f3bd7c}
+[data-theme="dark"] .live-ticker-bet strong{background:linear-gradient(135deg,#142b46,#10243a)!important}
+[data-theme="dark"] .live-ticker-bet-team{background:rgba(255,255,255,.06)}
+
+/* Marcador ESPN del detalle siempre en una línea: equipo / resultado / equipo. */
+@media(max-width:620px){
+  .espn-detail-score{
+    grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+    gap:8px;
+    text-align:initial;
+  }
+  .espn-detail-score>span,
+  .espn-detail-score>span:first-child,
+  .espn-detail-score>span:last-child{
+    flex-direction:column;
+    justify-content:center;
+    gap:5px;
+    text-align:center;
+    font-size:11px;
+    line-height:1.15;
+  }
+  .espn-detail-score strong{
+    justify-self:center;
+    padding:7px 10px;
+    font-size:21px;
+  }
+  .espn-detail-score .real-flag,
+  .espn-detail-score .flag{
+    width:28px;
+    height:22px;
+    border-radius:6px;
+  }
+}
