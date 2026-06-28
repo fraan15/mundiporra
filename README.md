@@ -1,3 +1,16 @@
+# Mundiporra
+
+> **Proprietary software — All rights reserved**
+>
+> Copyright © 2026 Francisco Javier Redondo Moya.
+>
+> This repository is public for portfolio, review, and demonstration purposes only.
+> No license is granted to copy, modify, distribute, deploy, sell, reuse, or create derivative works from this project without explicit written permission from the author.
+>
+> Viewing, cloning, downloading, or forking this repository does not grant any usage rights.
+
+Mundiporra is a private full-stack web application for managing a football prediction game, including users, matches, predictions, rankings, administration tools, live match data integrations, notifications, comments, and deployment infrastructure.
+
 # La Porra Mundial
 
 Aplicación web local para organizar una porra privada del Mundial. Incluye autenticación, pronósticos, cierre automático, clasificación, histórico diario y administración auditada.
