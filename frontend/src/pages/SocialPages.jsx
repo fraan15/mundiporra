@@ -2964,7 +2964,13 @@ export function MatchDetailPage() {
         <section
           className={`content-card detail-prediction ${!m.betting_open ? "detail-prediction-locked" : ""}`}
         >
-          <div className="detail-prediction-heading"><h2>{user.is_read_only ? "Vista de espectador" : `Mi pronóstico${Number(m.is_knockout) === 1 ? " (a 120 mins)" : ""}`}</h2>{((m.status === "closed" && Boolean(m.in_play)) || Boolean(m.live_test_enabled)) && <button type="button" className="simulation-trigger" onClick={() => setSimulationOpen(true)}><Calculator size={17}/><span>Simular</span></button>}</div>
+          <div className="detail-prediction-heading">
+            <h2>
+              {user.is_read_only
+                ? "Vista de espectador"
+                : `Mi pronóstico${Number(m.is_knockout) === 1 ? " (a 120 mins)" : ""}`}
+            </h2>
+          </div>
           {m.betting_open && !user.is_read_only ? (
             <>
               <div className="detail-winner-picks">
