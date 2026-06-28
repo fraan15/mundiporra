@@ -1806,6 +1806,7 @@ const loadLiveMatch = async (match) => {
 };
 
 app.get("/api/matches/live-scores", requireAuth, async (req, res) => {
+  res.set("Cache-Control", "no-store");
   const ids = [...new Set(String(req.query.ids || "").split(",").map((id) => Number(id)).filter(Number.isInteger))].slice(0, 20);
   if (!ids.length) return res.json({ items: {} });
   const items = {};

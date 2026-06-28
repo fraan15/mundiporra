@@ -17,7 +17,7 @@ export function useLiveScores(matches = []) {
       return undefined;
     }
     return startVisiblePolling(
-      () => api(`/matches/live-scores?ids=${encodeURIComponent(key)}`)
+      () => api(`/matches/live-scores?ids=${encodeURIComponent(key)}`, { cache: "no-store" })
         .then((response) => setScores(response.items || {}))
         .catch(() => {}),
       30000,

@@ -85,7 +85,12 @@ const StatCards = ({ s, onPointsInfo }) => (
   </div>
 );
 
-const liveMoment = (live, response) => (live.completed || response?.espn_completed) ? "Final" : live.clock || (live.state === "pre" ? "Próximamente" : "En juego");
+const liveMoment = (live, response) => {
+  if (live.completed || response?.espn_completed) return "Final";
+  const status = `${live.status || ""} ${live.clock || ""}`.toLowerCase();
+  if (/\bht\b|half|descanso|intermedio|status_halftime/.test(status)) return "Descanso";
+  return live.clock || (live.state === "pre" ? "Próximamente" : "En juego");
+};
 const goalSortMinute = (goal) => {
   const raw = String(goal?.display_minute || goal?.minute || "").replace(/[’']/g, "").trim();
   const match = raw.match(/(\d+)(?:\s*\+\s*(\d+))?/);
