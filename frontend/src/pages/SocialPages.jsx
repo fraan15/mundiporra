@@ -86,6 +86,12 @@ const StatCards = ({ s, onPointsInfo }) => (
 );
 
 const liveMoment = (live) => live.completed ? "Final" : live.clock || (live.state === "pre" ? "Próximamente" : "En juego");
+const goalSortMinute = (goal) => {
+  const raw = String(goal?.display_minute || goal?.minute || "").replace(/[’']/g, "").trim();
+  const match = raw.match(/(\d+)(?:\s*\+\s*(\d+))?/);
+  if (!match) return -1;
+  return Number(match[1]) * 100 + Number(match[2] || 0);
+};
 
 function LivePredictionPreview({ match, response, onSimulate }) {
   const live = response?.live;
@@ -116,12 +122,13 @@ function LivePredictionPreview({ match, response, onSimulate }) {
 function LiveMatchPanel({ match, response, onSimulate }) {
   const live = response?.live;
   const goals = live?.goals || [];
+  const sortedGoals = useMemo(() => goals.map((goal, index) => ({ goal, index })).sort((a, b) => goalSortMinute(b.goal) - goalSortMinute(a.goal) || b.index - a.index).map(item => item.goal), [goals]);
   const goalsScrollerRef = useRef(null);
   const [activeGoalIndex, setActiveGoalIndex] = useState(0);
   useEffect(() => {
     setActiveGoalIndex(0);
     if (goalsScrollerRef.current) goalsScrollerRef.current.scrollLeft = 0;
-  }, [match.id, goals.length]);
+  }, [match.id, sortedGoals.length]);
   if (match.status === "finished") return null;
   if (!live) return null;
   const isUnconfirmedFinal = live.completed && match.status !== "finished";
@@ -147,9 +154,9 @@ function LiveMatchPanel({ match, response, onSimulate }) {
   return <section className="content-card espn-detail-card">
     <header><div><small>{live.completed ? "FINAL" : "EN DIRECTO"}</small><h2>{live.completed ? <>Resultado final <span className="espn-source-pill">ESPN{isUnconfirmedFinal ? " · Sin confirmar" : ""}</span></> : "Marcador en vivo"}</h2></div><span>{response.stale ? "Último dato disponible" : liveMoment(live)}</span></header>
     <div className="espn-detail-score"><span><Flag team={match.team1} teamData={match.team1_team}/>{match.team1}</span><strong>{live.score?.team1 ?? 0}<i>–</i>{live.score?.team2 ?? 0}</strong><span><Flag team={match.team2} teamData={match.team2_team}/>{match.team2}</span></div>
-    <div className="espn-goals-list">{goals.length ? <><div className="espn-goals-scroll" ref={goalsScrollerRef} onScroll={updateGoalIndex}>{goals.map((goal, index) => <div className="espn-goal-row" key={goal.id || `${goal.minute}-${goal.espn_name || goal.player_name}-${index}`}>
+    <div className="espn-goals-list">{sortedGoals.length ? <><div className="espn-goals-scroll" ref={goalsScrollerRef} onScroll={updateGoalIndex}>{sortedGoals.map((goal, index) => <div className="espn-goal-row" key={goal.id || `${goal.minute}-${goal.espn_name || goal.player_name}-${index}`}>
       <time className="espn-goal-minute">{goal.minute || "—"}</time><span>⚽</span><div className="espn-goal-player"><strong>{goal.player_name || goal.espn_name || "Goleador sin identificar"}</strong><small>{goal.label || (goal.own_goal ? "Autogol" : goal.penalty ? "Gol de penalti" : "Gol")}{goal.team_code ? ` · ${goal.team_code}` : ""}</small></div>
-    </div>)}</div>{goals.length > 1 && <div className="espn-goals-dots" aria-label={`Gol ${activeGoalIndex + 1} de ${goals.length}`}>{goals.map((goal, index) => <button type="button" key={goal.id || `dot-${index}`} className={index === activeGoalIndex ? "active" : ""} onClick={() => goToGoal(index)} aria-label={`Ver gol ${index + 1} de ${goals.length}`}/>)}</div>}</> : <p>Sin goles por ahora.</p>}</div>
+    </div>)}</div>{sortedGoals.length > 1 && <div className="espn-goals-dots" aria-label={`Gol ${activeGoalIndex + 1} de ${sortedGoals.length}`}>{sortedGoals.map((goal, index) => <button type="button" key={goal.id || `dot-${index}`} className={index === activeGoalIndex ? "active" : ""} onClick={() => goToGoal(index)} aria-label={`Ver gol ${index + 1} de ${sortedGoals.length}`}/>)}</div>}</> : <p>Sin goles por ahora.</p>}</div>
     <LivePredictionPreview match={match} response={response} onSimulate={onSimulate}/>
   </section>;
 }
@@ -194,7 +201,7 @@ const SIMULATION_TEAM_SHORT_NAMES = {
 
 const simulationTeamLabel = (team = "") => SIMULATION_TEAM_SHORT_NAMES[team] || team;
 
-function MatchSimulationOverlay({ match, players, user, initialLiveResponse, onClose }) {
+export function MatchSimulationOverlay({ match, players, user, initialLiveResponse, onClose }) {
   const [matches, setMatches] = useState([match]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [matchDirection, setMatchDirection] = useState(1);

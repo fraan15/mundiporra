@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertCircle, ArrowRight, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock3, Eye, Info, Medal, Radio, Sparkles, Star, X } from "lucide-react";
+import { AlertCircle, ArrowRight, Calculator, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock3, Eye, Info, Medal, Radio, Sparkles, Star, X } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { useAuth } from "../App";
@@ -9,6 +9,7 @@ import { StarMatchTitle } from "../components/StarMatchTitle";
 import { ActivityAvatar } from "../components/Avatar";
 import { countryTimeZone, formatLocalDateTime, localMatchDate, localMatchTime } from "../utils/matchDateTime";
 import { useLiveScores } from "../hooks/useLiveScores";
+import { MatchSimulationOverlay } from "./SocialPages";
 
 const dateKey = (date) => date.toLocaleDateString("sv-SE");
 const addDays = (date, days) => {
@@ -173,7 +174,7 @@ const livePointsPreview = (match, liveScore) => {
   return { total: parts.reduce((sum, part) => sum + part.points, 0), parts, multiplier };
 };
 
-function LiveMatchTicker({ matches, liveScores, user, onOpenMatch }) {
+function LiveMatchTicker({ matches, liveScores, user, onOpenMatch, onSimulateMatch }) {
   const scrollRef = useRef(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [expandedMatchId, setExpandedMatchId] = useState(null);
@@ -253,6 +254,9 @@ function LiveMatchTicker({ matches, liveScores, user, onOpenMatch }) {
               {scorer ? <span>{scorer}</span> : <span>Sin goleador apostado</span>}
             </div>
             {pointsPreview && <div className="live-ticker-points">
+              <button type="button" className="live-ticker-simulate" onClick={() => onSimulateMatch(match)} aria-label={`Abrir simulador con ${match.team1} - ${match.team2}`}>
+                <Calculator size={15}/>
+              </button>
               <small>Pronóstico de puntos actual</small>
               <strong>+{pointsPreview.total} pts</strong>
               <div>{pointsPreview.parts.map((part) => <span className={part.hit ? "hit" : ""} key={part.key}>{part.hit ? <CheckCircle2 size={13}/> : <X size={13}/>}<b>{part.label}</b><em>+{part.points}</em></span>)}</div>
@@ -483,6 +487,7 @@ function DashboardCalendar({ matches, liveScores, calendarToday, onOpenMatch, re
 
 export function DashboardPage() {
   const {user}=useAuth(),navigate=useNavigate(),location=useLocation(),[data,setData]=useState(null),[activity,setActivity]=useState([]),[calendarMatches,setCalendarMatches]=useState([]),[calendarToday,setCalendarToday]=useState(null),[tick,setTick]=useState(Date.now()),[knockoutInfoOpen,setKnockoutInfoOpen]=useState(false),[medalInfoOpen,setMedalInfoOpen]=useState(false),[medalData,setMedalData]=useState(null);
+  const [simulationMatch,setSimulationMatch]=useState(null);
   const restoreDashboardCalendar=location.state?.restoreDashboardCalendar===true;
   const [calendarReturnInfo]=useState(()=>restoreDashboardCalendar?{scrollTop:Number(sessionStorage.getItem("dashboardCalendarScrollTop")||0)}:null);
   const calendarRestoreScrollTop=calendarReturnInfo ? calendarReturnInfo.scrollTop : null;
@@ -518,9 +523,14 @@ export function DashboardPage() {
     window.history.replaceState({...historyState,usr:{...(historyState.usr||{}),restoreDashboardCalendar:true}},"");
     navigate(`/match/${match.id}`,{state:{fromDashboardCalendar:true}});
   };
+  const openLiveSimulation=(match)=>{
+    if(!match)return;
+    setSimulationMatch(match);
+  };
   return <div className="page dashboard-page"><section className="hero-panel dashboard-hero"><div><span className="eyebrow"><Sparkles size={14}/> TU CENTRO DE JUEGO</span><h1>Hola, {user.display_name||user.username}</h1><p>{user.is_read_only?"Modo solo lectura: puedes consultar toda la porra sin participar.":s.pending?`Tienes ${s.pending} partidos pendientes de pronosticar.`:"Todo al día. A disfrutar de la jornada."}</p></div><button className="hero-rank" onClick={()=>navigate("/clasificacion")} title="Ver clasificación"><small>POSICIÓN</small><strong>#{s.position}</strong><span>{s.total_points} puntos</span></button></section>
   {knockoutInfoOpen&&<KnockoutInfoDialog onClose={()=>setKnockoutInfoOpen(false)}/>}
   {medalInfoOpen&&<BadgeCatalogDialog catalog={medalData?.badge_catalog} disputed={medalData?.disputed_badges} onClose={()=>setMedalInfoOpen(false)}/>}
+  {simulationMatch&&<MatchSimulationOverlay match={simulationMatch} players={[]} user={user} initialLiveResponse={{live:liveScores[simulationMatch.id]}} onClose={()=>setSimulationMatch(null)}/>}
   <div className="dashboard-overview">
   {user.role!=="admin"&&!user.is_read_only&&<button className={`pending-bet-banner ${s.pending>0?"has-pending":"complete"}`} onClick={()=>navigate("/partidos#upcoming")}>{s.pending>0?<AlertCircle/>:<CheckCircle2/>}<span><small>PARTIDOS PENDIENTES DE APUESTA</small><strong>{s.pending}</strong><em>{s.pending>0?"Completa tus pronósticos":"Estás al día"}</em></span><ArrowRight/></button>}</div>
   <section className="worldcup-dashboard-actions" aria-label="Información del Mundial">
@@ -541,7 +551,7 @@ export function DashboardPage() {
       <span className="worldcup-action-arrow"><ArrowRight size={17}/></span>
     </button>
   </section>
-  <LiveMatchTicker matches={inPlayMatches} liveScores={liveScores} user={user} onOpenMatch={openMatch}/>
+  <LiveMatchTicker matches={inPlayMatches} liveScores={liveScores} user={user} onOpenMatch={openMatch} onSimulateMatch={openLiveSimulation}/>
   <DashboardCalendar matches={calendarMatches} liveScores={liveScores} calendarToday={calendarToday} onOpenMatch={openCalendarMatch} restoreScrollTop={calendarRestoreScrollTop} restoreCalendar={restoreDashboardCalendar} user={user} currentTime={tick}/>
   <div className="dashboard-grid">
   <section className="content-card activity-card"><div className="card-title"><div><span className="eyebrow">COMUNIDAD</span><h2>Última actividad</h2></div><button onClick={()=>navigate("/actividad")}>Ver todo</button></div><div className="activity-feed compact">{activity.slice(0,4).map((a,i)=><article key={i}><ActivityAvatar user={a} type={a.type}/><div><strong className="activity-line">{a.text}{a.type==="points"&&<span className={`points-award ${a.exact_result_points>0?"exact":""}`}>{a.exact_result_points>0&&<Star size={14} fill="currentColor"/>}+{a.total_points} pts</span>}</strong><small>{formatLocalDateTime(a.created_at,user.country_code)}</small></div></article>)}</div></section></div></div>

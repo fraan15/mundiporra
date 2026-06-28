@@ -3767,7 +3767,7 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
 .espn-detail-score>span{display:flex;align-items:center;gap:8px;min-width:0;font-size:13px;font-weight:850}
 .espn-detail-score>span:first-child{justify-content:flex-end;text-align:right}
 .espn-detail-score>span:last-child{justify-content:flex-start}
-.espn-detail-score .real-flag{flex:0 0 auto}
+.espn-detail-score .real-flag,.espn-detail-score .flag{width:28px;height:28px;flex:0 0 28px;border-radius:50%;object-fit:cover}
 .espn-detail-score strong{display:inline-flex;align-items:center;gap:10px;padding:8px 13px;border-radius:14px;background:var(--panel);color:var(--text);font-size:25px;line-height:1;box-shadow:inset 0 0 0 1px rgba(120,80,88,.08)}
 .espn-detail-score strong i{color:var(--muted);font-style:normal;font-size:18px}
 .espn-goals-list{display:grid;gap:9px;min-width:0}
@@ -3841,10 +3841,12 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
 .live-ticker-bet strong{display:flex!important;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:11px;background:#fff;color:var(--text);font-size:16px}
 .live-ticker-bet strong span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .live-ticker-bet strong em{flex:0 0 auto;padding:3px 6px;border-radius:999px;background:#fff0bd;color:#8f1026;font-size:9px;font-style:normal;font-weight:950}
-.live-ticker-points{min-width:0;padding:10px;border:1px solid rgba(35,166,111,.18);border-radius:13px;background:rgba(35,166,111,.08)}
+.live-ticker-points{position:relative;min-width:0;padding:10px 44px 10px 10px;border:1px solid rgba(35,166,111,.18);border-radius:13px;background:rgba(35,166,111,.08)}
 .live-ticker-points>small{display:block;margin-bottom:5px;color:#147a48;font-size:9px;font-weight:950;text-transform:uppercase}
 .live-ticker-points>strong{display:block;margin-bottom:7px;color:#147a48;font-size:20px;line-height:1}
 .live-ticker-points>div{display:grid;gap:5px}
+.live-ticker-simulate{position:absolute;right:9px;top:50%;display:grid;place-items:center;width:29px;height:29px;min-height:0;padding:0;border:1px solid rgba(35,166,111,.22);border-radius:10px;background:rgba(255,255,255,.78);color:#147a48;box-shadow:0 8px 18px rgba(35,166,111,.1);transform:translateY(-50%);transition:transform .18s ease,box-shadow .18s ease,background .18s ease}
+.live-ticker-simulate:hover,.live-ticker-simulate:focus-visible{background:#fff;box-shadow:0 10px 22px rgba(35,166,111,.16);transform:translateY(-50%) scale(1.04)}
 .live-ticker-points span{display:grid;grid-template-columns:16px minmax(0,1fr) auto;align-items:center;gap:5px;padding:5px 7px;border-radius:9px;background:rgba(255,255,255,.62);color:var(--muted);font-size:10px;font-weight:850}
 .live-ticker-points span.hit{color:#147a48}
 .live-ticker-points span svg{color:#a7a0a2}
@@ -3860,6 +3862,8 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
 [data-theme="dark"] .live-ticker-points{border-color:rgba(142,215,178,.22);background:rgba(35,166,111,.12)}
 [data-theme="dark"] .live-ticker-points>small,[data-theme="dark"] .live-ticker-points>strong,[data-theme="dark"] .live-ticker-points span.hit{color:#8ed7b2}
 [data-theme="dark"] .live-ticker-points span{background:rgba(255,255,255,.05)}
+[data-theme="dark"] .live-ticker-simulate{border-color:rgba(142,215,178,.2);background:rgba(255,255,255,.06);color:#8ed7b2;box-shadow:none}
+[data-theme="dark"] .live-ticker-simulate:hover,[data-theme="dark"] .live-ticker-simulate:focus-visible{background:rgba(255,255,255,.1)}
 @media(max-width:700px){
   .live-ticker-card.is-open .live-ticker-details{grid-template-columns:1fr}
   .live-ticker-card.is-open .live-ticker-details>button{grid-column:1;justify-self:start}
@@ -3882,9 +3886,10 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
 .live-ticker-team .flag{
   order:0;
   width:28px;
-  height:22px;
+  height:28px;
   flex:0 0 auto;
-  border-radius:6px;
+  border-radius:50%;
+  object-fit:cover;
 }
 .live-ticker-team strong{
   order:1;
@@ -3952,17 +3957,19 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
 .live-ticker-bet-team{
   display:grid!important;
   place-items:center;
-  width:30px;
-  height:30px;
+  width:34px;
+  height:34px;
   margin:0!important;
-  border-radius:10px;
+  border-radius:50%;
   background:rgba(255,255,255,.8);
+  overflow:hidden;
 }
 .live-ticker-bet-team .real-flag,
 .live-ticker-bet-team .flag{
-  width:24px;
-  height:19px;
-  border-radius:5px;
+  width:28px;
+  height:28px;
+  border-radius:50%;
+  object-fit:cover;
 }
 .live-ticker-bet>span{
   margin-top:7px!important;
@@ -3974,6 +3981,39 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
 [data-theme="dark"] .live-ticker-score-stack>.live-ticker-minute.is-break{background:rgba(205,126,42,.22);color:#f3bd7c}
 [data-theme="dark"] .live-ticker-bet strong{background:linear-gradient(135deg,#142b46,#10243a)!important}
 [data-theme="dark"] .live-ticker-bet-team{background:rgba(255,255,255,.06)}
+
+/* Más aire para las pompas del carrusel de partidos en juego. */
+.dashboard-page .live-match-carousel-controls{
+  margin-top:18px;
+  margin-bottom:18px;
+}
+.dashboard-page .live-ticker-dots{
+  min-height:22px;
+  margin-top:10px;
+  margin-bottom:12px;
+  padding:4px 0 6px;
+}
+.dashboard-page .live-ticker-card.is-open ~ .live-ticker-dots,
+.dashboard-page .live-match-carousel:has(.live-ticker-card.is-open) .live-ticker-dots{
+  margin-top:16px;
+  margin-bottom:18px;
+}
+@media(max-width:700px){
+  .dashboard-page .live-match-carousel-controls{
+    margin-top:16px;
+    margin-bottom:20px;
+  }
+  .dashboard-page .live-ticker-dots{
+    min-height:24px;
+    margin-top:12px;
+    margin-bottom:16px;
+    padding:5px 0 7px;
+  }
+  .dashboard-page .live-match-carousel:has(.live-ticker-card.is-open) .live-ticker-dots{
+    margin-top:18px;
+    margin-bottom:20px;
+  }
+}
 
 /* Marcador ESPN del detalle siempre en una línea: equipo / resultado / equipo. */
 @media(max-width:620px){
@@ -4000,7 +4040,9 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
   .espn-detail-score .real-flag,
   .espn-detail-score .flag{
     width:28px;
-    height:22px;
-    border-radius:6px;
+    height:28px;
+    flex-basis:28px;
+    border-radius:50%;
+    object-fit:cover;
   }
 }
