@@ -314,6 +314,7 @@ function LiveMatchTicker({ matches, liveScores, user, onOpenMatch, onSimulateMat
 function DashboardCalendar({ matches, liveScores, calendarToday, onOpenMatch, restoreScrollTop, restoreCalendar, user, currentTime }) {
   const viewportRef = useRef(null);
   const pointerRef = useRef(null);
+  const scrollSettleRef = useRef(null);
   const [activeDayIndex, setActiveDayIndex] = useState(() => {
     if (!restoreCalendar) return 1;
     const storedIndex = Number(sessionStorage.getItem("dashboardCalendarActiveDayIndex"));
@@ -339,25 +340,38 @@ function DashboardCalendar({ matches, liveScores, calendarToday, onOpenMatch, re
     };
   });
   const activeDay = days[activeDayIndex] || days[1];
-  const goToDay = (index) => {
-    const nextIndex = Math.max(0, Math.min(days.length - 1, index));
-    const slide = viewportRef.current?.querySelectorAll(".calendar-day-slide")?.[nextIndex];
-    if (slide) slide.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
-    setActiveDayIndex(nextIndex);
-  };
-  const updateActiveDay = () => {
+  const closestDayIndex = () => {
     const scroller = viewportRef.current;
-    if (!scroller) return;
+    if (!scroller) return activeDayIndex;
     const cards = Array.from(scroller.querySelectorAll(".calendar-day-slide"));
-    if (!cards.length) return;
+    if (!cards.length) return activeDayIndex;
     const center = scroller.scrollLeft + scroller.clientWidth / 2;
-    const next = cards.reduce((bestIndex, card, index) => {
+    return cards.reduce((bestIndex, card, index) => {
       const bestCard = cards[bestIndex];
       const cardCenter = card.offsetLeft + card.offsetWidth / 2;
       const bestCenter = bestCard.offsetLeft + bestCard.offsetWidth / 2;
       return Math.abs(cardCenter - center) < Math.abs(bestCenter - center) ? index : bestIndex;
     }, 0);
+  };
+  const centerDay = (index, behavior = "smooth") => {
+    const slide = viewportRef.current?.querySelectorAll(".calendar-day-slide")?.[index];
+    slide?.scrollIntoView({ behavior, inline: "center", block: "nearest" });
+  };
+  const goToDay = (index) => {
+    const nextIndex = Math.max(0, Math.min(days.length - 1, index));
+    if (scrollSettleRef.current) clearTimeout(scrollSettleRef.current);
+    centerDay(nextIndex);
+    setActiveDayIndex(nextIndex);
+  };
+  const updateActiveDay = () => {
+    const next = closestDayIndex();
     setActiveDayIndex(next);
+    if (scrollSettleRef.current) clearTimeout(scrollSettleRef.current);
+    scrollSettleRef.current = window.setTimeout(() => {
+      const settledIndex = closestDayIndex();
+      setActiveDayIndex(settledIndex);
+      centerDay(settledIndex);
+    }, 120);
   };
   const saveScroll = () => {
     sessionStorage.setItem("dashboardCalendarScrollTop", String(window.scrollY || 0));
@@ -403,9 +417,11 @@ function DashboardCalendar({ matches, liveScores, calendarToday, onOpenMatch, re
   }, [days[0].key, restoreCalendar]);
   useEffect(() => {
     window.requestAnimationFrame(() => {
-      const slide = viewportRef.current?.querySelectorAll(".calendar-day-slide")?.[activeDayIndex];
-      slide?.scrollIntoView({ behavior: "auto", inline: "center", block: "nearest" });
+      centerDay(activeDayIndex, "auto");
     });
+  }, []);
+  useEffect(() => () => {
+    if (scrollSettleRef.current) clearTimeout(scrollSettleRef.current);
   }, []);
   useEffect(() => {
     if (restoreScrollTop === null) return;
