@@ -188,3 +188,26 @@ test("deduplica goles repetidos por ESPN aunque vengan en varias secciones", () 
   assert.equal(live.goals.length, 4);
   assert.deepEqual(live.goals.map((goal) => goal.espn_name), ["Jugador A", "Jugador B", "Jugador C", "Jugador D"]);
 });
+
+test("no clasifica como gol un tiro parado aunque el texto diga goal", () => {
+  const live = normalizeEspnLive({ id: "saved" }, {
+    header: { id: "saved", competitions: [{
+      competitors: [
+        { score: "0", team: { id: "1", abbreviation: "ALG" } },
+        { score: "0", team: { id: "2", abbreviation: "AUT" } },
+      ],
+    }] },
+    commentary: [{
+      sequence: 1,
+      text: "Attempt saved. Ibrahim Maza (Algeria) left footed shot from the centre of the box is saved in the centre of the goal.",
+      play: {
+        id: "saved-1",
+        type: { text: "Shot On Target" },
+        text: "Attempt saved. Ibrahim Maza (Algeria) left footed shot from the centre of the box is saved in the centre of the goal.",
+        clock: { displayValue: "44'" },
+        participants: [{ athlete: { displayName: "Ibrahim Maza" } }],
+      },
+    }],
+  });
+  assert.equal(live.goals.length, 0);
+});

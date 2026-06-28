@@ -122,9 +122,11 @@ const minuteDetails = (value, label = "") => {
 
 const categorizeEvent = (item, label, text) => {
   const source = `${label} ${text}`.toLowerCase();
+  const normalizedLabel = String(label || "").toLowerCase();
+  const normalizedText = String(text || "").trim().toLowerCase();
   if (item?.redCard || /red card|tarjeta roja/.test(source)) return "red_card";
   if (item?.yellowCard || /yellow card|tarjeta amarilla/.test(source)) return "yellow_card";
-  if (item?.scoringPlay || /goal|gol|penalty scored/.test(source)) return "goal";
+  if (item?.scoringPlay || /^goal\b|^gol\b|penalty scored/.test(normalizedLabel) || /^goal!|^gol!/.test(normalizedText)) return "goal";
   if (item?.penaltyKick || /penalty kick|penalti|penalty/.test(source)) return "penalty";
   if (/substitution|substitute|cambio/.test(source)) return "substitution";
   if (/\bvar\b|video assistant/.test(source)) return "var";
@@ -161,7 +163,7 @@ const normalizeTimelineItem = (item, index, codeByTeamId) => {
   const teamId = String(play?.team?.id || "");
   const minuteInfo = minuteDetails(minute, `${label} ${text}`);
   return {
-    id: String(play?.id || item?.sequence || `${play?.period?.number || play?.period || 0}-${play?.clock?.value || play?.clock?.displayValue || index}-${text}`),
+    id: String(play?.id || item?.sequence || `${play?.period?.number || play?.period || 0}-${play?.clock?.value || play?.clock?.displayValue || ""}-${play?.clock?.displayValue || ""}-${index}-${text}`),
     minute,
     period: play?.period?.displayValue || play?.period?.number || play?.period || null,
     type: label,
@@ -170,7 +172,7 @@ const normalizeTimelineItem = (item, index, codeByTeamId) => {
     athlete_ids: participantRows.map((participant) => participant.id),
     athlete_team_ids: participantRows.map((participant) => participant.team_id),
     team_id: teamId,
-    scoring: Boolean(play?.scoringPlay || /goal|gol|penalty scored/i.test(label)),
+    scoring: Boolean(play?.scoringPlay || /^goal\b|^gol\b|penalty scored/i.test(label) || /^goal!|^gol!/i.test(text.trim())),
     yellow_card: Boolean(play?.yellowCard || /yellow|amarilla/i.test(label)),
     red_card: Boolean(play?.redCard || /red card|roja/i.test(label)),
     penalty: Boolean(play?.penaltyKick || /penalty|penal/i.test(`${label} ${text}`)),
@@ -204,8 +206,7 @@ const normalizeStats = (summary, competition) => {
 
 const goalSignature = (item) => [
   item.minute_value ?? item.display_minute ?? item.minute ?? "",
-  item.team_id || item.team_code || "",
-  item.athlete_ids?.[0] || normalizePlayerNameForSignature(item.athletes?.[0]),
+  normalizePlayerNameForSignature(item.athletes?.[0]) || item.athlete_ids?.[0] || item.team_id || item.team_code || "",
   item.own_goal ? "own" : item.penalty ? "pen" : "goal",
 ].join("|");
 
@@ -236,7 +237,8 @@ export const normalizeEspnLive = (event, summary = {}) => {
   ];
   const codeByTeamId = new Map(competitors.map((team) => [team.id, team.code]));
   const normalizedTimeline = rawTimeline.map((item, index) => normalizeTimelineItem(item, index, codeByTeamId));
-  const timeline = [...new Map(normalizedTimeline.map((normalized) => {
+  const timelineBySignature = new Map();
+  normalizedTimeline.forEach((normalized) => {
     const signature = normalized.scoring || normalized.category === "goal"
       ? `goal|${goalSignature(normalized)}`
       : [
@@ -244,8 +246,9 @@ export const normalizeEspnLive = (event, summary = {}) => {
         normalized.athletes[0], normalized.athletes[1],
         normalized.yellow_card || normalized.red_card ? "" : normalized.type,
       ].join("|");
-    return [signature, normalized];
-  })).values()].sort((a, b) => (b.minute_value ?? -1) - (a.minute_value ?? -1));
+    if (!timelineBySignature.has(signature)) timelineBySignature.set(signature, normalized);
+  });
+  const timeline = [...timelineBySignature.values()].sort((a, b) => (b.minute_value ?? -1) - (a.minute_value ?? -1));
   const mappedGoals = timeline.filter((item) => item.scoring || item.category === "goal")
     .map((item) => {
       const scorerName = item.athletes?.[0] || "Goleador sin identificar";
