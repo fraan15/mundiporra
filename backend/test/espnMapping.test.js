@@ -133,3 +133,41 @@ test("remapea ESPN ID de jugador si estaba asignado a otro equipo", async () => 
     globalThis.fetch = originalFetch;
   }
 });
+
+test("mapea reemplazo de convocatoria de Marruecos dorsal 17 aunque ESPN mantenga a Abde", async () => {
+  initDatabase();
+  const local = db.prepare("SELECT id FROM players WHERE team_fifa_code='MAR' AND number=17").get();
+  assert.ok(local);
+  db.prepare("UPDATE players SET name='Amine Sbaï',espn_id=NULL WHERE id=?").run(local.id);
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    if (String(url).includes("/teams/2869/roster")) {
+      return {
+        ok: true,
+        json: async () => ({
+          athletes: [{
+            id: "300912",
+            displayName: "Abde Ezzalzouli",
+            fullName: "Abde Ezzalzouli",
+            jersey: "17",
+          }],
+        }),
+      };
+    }
+    return {
+      ok: true,
+      json: async () => ({
+        sports: [{ leagues: [{ teams: [{ team: { id: "2869", abbreviation: "MAR", displayName: "Morocco" } }] }] }],
+      }),
+    };
+  };
+
+  try {
+    const result = await syncEspnMappings();
+    assert.equal(result.players_mapped, 1);
+    assert.equal(db.prepare("SELECT espn_id FROM players WHERE id=?").get(local.id).espn_id, "300912");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

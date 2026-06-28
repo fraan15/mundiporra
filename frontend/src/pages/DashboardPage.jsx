@@ -315,6 +315,8 @@ function DashboardCalendar({ matches, liveScores, calendarToday, onOpenMatch, re
   const viewportRef = useRef(null);
   const pointerRef = useRef(null);
   const scrollSettleRef = useRef(null);
+  const calendarPointerRef = useRef(null);
+  const centerFrameRef = useRef(null);
   const [activeDayIndex, setActiveDayIndex] = useState(() => {
     if (!restoreCalendar) return 1;
     const storedIndex = Number(sessionStorage.getItem("dashboardCalendarActiveDayIndex"));
@@ -354,8 +356,32 @@ function DashboardCalendar({ matches, liveScores, calendarToday, onOpenMatch, re
     }, 0);
   };
   const centerDay = (index, behavior = "smooth") => {
-    const slide = viewportRef.current?.querySelectorAll(".calendar-day-slide")?.[index];
-    slide?.scrollIntoView({ behavior, inline: "center", block: "nearest" });
+    const scroller = viewportRef.current;
+    const slide = scroller?.querySelectorAll(".calendar-day-slide")?.[index];
+    if (!scroller || !slide) return;
+    if (centerFrameRef.current) cancelAnimationFrame(centerFrameRef.current);
+    const target = slide.offsetLeft + slide.offsetWidth / 2 - scroller.clientWidth / 2;
+    if (behavior !== "fast") {
+      scroller.scrollTo({ left: target, behavior });
+      return;
+    }
+    const start = scroller.scrollLeft;
+    const distance = target - start;
+    const startedAt = performance.now();
+    const duration = 135;
+    const animate = (now) => {
+      const progress = Math.min(1, (now - startedAt) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      scroller.scrollLeft = start + distance * eased;
+      if (progress < 1) centerFrameRef.current = requestAnimationFrame(animate);
+      else centerFrameRef.current = null;
+    };
+    centerFrameRef.current = requestAnimationFrame(animate);
+  };
+  const settleDay = (behavior = "smooth") => {
+    const settledIndex = closestDayIndex();
+    setActiveDayIndex(settledIndex);
+    centerDay(settledIndex, behavior);
   };
   const goToDay = (index) => {
     const nextIndex = Math.max(0, Math.min(days.length - 1, index));
@@ -367,11 +393,21 @@ function DashboardCalendar({ matches, liveScores, calendarToday, onOpenMatch, re
     const next = closestDayIndex();
     setActiveDayIndex(next);
     if (scrollSettleRef.current) clearTimeout(scrollSettleRef.current);
+    if (calendarPointerRef.current?.pressed) return;
     scrollSettleRef.current = window.setTimeout(() => {
-      const settledIndex = closestDayIndex();
-      setActiveDayIndex(settledIndex);
-      centerDay(settledIndex, "auto");
-    }, 45);
+      settleDay("fast");
+    }, 30);
+  };
+  const startCalendarPointer = (event) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    if (scrollSettleRef.current) clearTimeout(scrollSettleRef.current);
+    calendarPointerRef.current = { pressed: true, x: event.clientX };
+  };
+  const endCalendarPointer = () => {
+    if (!calendarPointerRef.current) return;
+    calendarPointerRef.current = null;
+    if (scrollSettleRef.current) clearTimeout(scrollSettleRef.current);
+    scrollSettleRef.current = window.setTimeout(() => settleDay("fast"), 15);
   };
   const saveScroll = () => {
     sessionStorage.setItem("dashboardCalendarScrollTop", String(window.scrollY || 0));
@@ -422,6 +458,7 @@ function DashboardCalendar({ matches, liveScores, calendarToday, onOpenMatch, re
   }, []);
   useEffect(() => () => {
     if (scrollSettleRef.current) clearTimeout(scrollSettleRef.current);
+    if (centerFrameRef.current) cancelAnimationFrame(centerFrameRef.current);
   }, []);
   useEffect(() => {
     if (restoreScrollTop === null) return;
@@ -439,7 +476,7 @@ function DashboardCalendar({ matches, liveScores, calendarToday, onOpenMatch, re
           <span>{day.subtitle}</span>
         </button>)}
       </div>
-      <div className="calendar-days-viewport" ref={viewportRef} onScroll={updateActiveDay}>
+      <div className="calendar-days-viewport" ref={viewportRef} onScroll={updateActiveDay} onPointerDown={startCalendarPointer} onPointerUp={endCalendarPointer} onPointerCancel={endCalendarPointer} onPointerLeave={endCalendarPointer}>
         <div className="calendar-days-track">
           {days.map((day, index) => <article className={`calendar-day-slide ${index === activeDayIndex ? "active" : ""} ${index === activeDayIndex - 1 ? "prev" : ""} ${index === activeDayIndex + 1 ? "next" : ""}`} key={day.key} aria-hidden={index !== activeDayIndex}>
             <header className="calendar-day-header">

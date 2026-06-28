@@ -24,6 +24,14 @@ const jerseyNumber = (value) => {
   const parsed = Number(String(value ?? "").match(/\d+/)?.[0]);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 };
+const ROSTER_REPLACEMENT_OVERRIDES = [
+  {
+    teamCode: "MAR",
+    number: 17,
+    espnNames: ["abde ezzalzouli", "abdessamad ezzalzouli"],
+    localNames: ["amine sbai"],
+  },
+];
 
 const fetchJson = async (url) => {
   const response = await fetch(url, {
@@ -115,6 +123,17 @@ const findLocalTeam = (espnTeam, indexes) => {
   return null;
 };
 
+const rosterReplacementCandidates = (localTeam, athlete, rows, number) => {
+  const athleteNames = new Set(playerNameKeys(athlete));
+  return ROSTER_REPLACEMENT_OVERRIDES
+    .filter((item) => item.teamCode === localTeam.fifa_code && item.number === number)
+    .filter((item) => item.espnNames.some((name) => athleteNames.has(normalizePlayerName(name))))
+    .flatMap((item) => rows.filter((player) =>
+      Number(player.number) === item.number &&
+      item.localNames.some((name) => normalizePlayerName(player.name) === normalizePlayerName(name))
+    ));
+};
+
 export async function syncEspnMappings() {
   const startedAt = now();
   const teamsPayload = await fetchJson(TEAMS_URL);
@@ -182,7 +201,8 @@ export async function syncEspnMappings() {
       const uniqueByNumber = [...new Map((byNumber.get(number) || []).map((player) => [player.id, player])).values()];
       const fuzzyWithNumber = number ? uniqueByFuzzyName.filter((player) => Number(player.number) === number) : [];
       const nameWithNumber = number ? uniqueByName.filter((player) => Number(player.number) === number) : [];
-      const unique = firstUnique(uniqueByName, uniqueByBirthDate, nameWithNumber, fuzzyWithNumber, uniqueByNumber, uniqueByFuzzyName);
+      const replacementOverride = number ? rosterReplacementCandidates(localTeam, athlete, rows, number) : [];
+      const unique = firstUnique(replacementOverride, uniqueByName, uniqueByBirthDate, nameWithNumber, fuzzyWithNumber, uniqueByNumber, uniqueByFuzzyName);
       if (unique.length === 1) {
         clearDuplicatePlayer.run(espnId, unique[0].id);
         updatePlayer.run(espnId, unique[0].id);
