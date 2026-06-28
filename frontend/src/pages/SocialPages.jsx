@@ -1819,7 +1819,7 @@ function HorizontalScoreControl({ team, teamData, value, onChange, onAdjust }) {
   };
   return (
     <div className="vertical-score-control">
-      <small className={teamData ? "horizontal-score-team" : ""}>{teamData && <Flag team={team} teamData={teamData} />}{team}</small>
+      <small className="horizontal-score-team"><Flag team={team} teamData={teamData} />{team}</small>
       <div className="horizontal-score-rail">
         <button
           type="button"
@@ -2730,8 +2730,8 @@ export function MatchDetailPage() {
           </div>
         )}
         <div className="match-detail-meta-panels">
-          <span><b>Fecha y hora</b>{localMatchParts(m,user.country_code).date} · {localMatchTime(m,user.country_code)}</span>
-          <span><b>Estadio</b>{m.stadium || "Por confirmar"}</span>
+          <span><b>Fecha y hora</b><em>{localMatchParts(m,user.country_code).date}</em><em>{localMatchTime(m,user.country_code)}</em></span>
+          <span><b>Estadio</b><em>{m.stadium || "Por confirmar"}</em></span>
         </div>
         <div>
           <button
