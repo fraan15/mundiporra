@@ -3850,19 +3850,28 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
 .live-ticker-simulate{position:absolute;right:8px;top:8px;display:grid;place-items:center;width:32px;height:32px;min-height:0;padding:0;border:1px solid rgba(35,166,111,.22);border-radius:10px;background:rgba(255,255,255,.82);color:#147a48;box-shadow:0 8px 18px rgba(35,166,111,.1);transition:transform .18s ease,box-shadow .18s ease,background .18s ease}
 .live-ticker-simulate svg{width:19px;height:19px;stroke-width:2.6}
 .live-ticker-simulate:hover,.live-ticker-simulate:focus-visible{background:#fff;box-shadow:0 10px 22px rgba(35,166,111,.16);transform:scale(1.04)}
-.live-ticker-points span{display:grid;grid-template-columns:16px minmax(0,1fr);align-items:center;gap:5px;padding:5px 7px;border-radius:9px;background:rgba(255,255,255,.62);color:var(--muted);font-size:10px;font-weight:850}
+.live-ticker-points span{display:grid;grid-template-columns:16px minmax(0,1fr) auto auto;align-items:center;gap:5px;padding:5px 7px;border-radius:9px;background:rgba(255,255,255,.62);color:var(--muted);font-size:10px;font-weight:850}
 .live-ticker-points span.hit{color:#147a48}
 .live-ticker-points span svg{color:#a7a0a2}
 .live-ticker-points span.hit svg{color:#18a262}
 .live-ticker-points b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.live-ticker-pick{display:inline-flex!important;align-items:center;justify-content:center;max-width:92px;min-width:0;margin:0;padding:3px 6px;border-radius:999px;background:rgba(32,40,52,.07);color:var(--muted)!important;font-size:9px!important;font-weight:950!important;line-height:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-transform:none!important}
 .live-ticker-points em{font-style:normal;font-weight:950}
 .detail-simulation-card.espn-points-preview{display:block;margin-top:12px;padding:10px 46px 10px 10px;border:1px solid rgba(35,166,111,.18);border-radius:13px;background:rgba(35,166,111,.08)}
 .detail-simulation-card.espn-points-preview>strong{display:block;margin-bottom:7px;color:#147a48;font-size:20px;line-height:1}
 .detail-simulation-card.espn-points-preview>div{display:grid;gap:5px}
-.detail-simulation-card.espn-points-preview span{grid-template-columns:16px minmax(0,1fr) auto}
+.detail-simulation-card.espn-points-preview span{grid-template-columns:16px minmax(0,1fr) auto auto}
 .detail-simulation-card.espn-points-preview p{margin:7px 0 0;color:var(--muted);font-size:10px;font-weight:800}
 .detail-simulation-card.espn-points-preview .live-ticker-simulate{grid-column:auto;grid-row:auto;display:grid;place-items:center;width:32px;height:32px;min-height:0;padding:0;line-height:1;box-sizing:border-box}
 .detail-simulation-card.espn-points-preview .live-ticker-simulate svg{display:block;margin:0}
+.espn-goals-vertical{display:grid;gap:7px;max-height:199px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.espn-goals-vertical .espn-goal-row{display:grid;grid-template-columns:auto auto minmax(0,1fr);align-items:center;gap:7px;width:min(285px,92%);min-height:43px;padding:8px 10px;border:1px solid rgba(169,31,50,.13);border-radius:13px;background:linear-gradient(135deg,#fff,#fff7f8);box-sizing:border-box}
+.espn-goals-vertical .espn-goal-row.home{justify-self:start}
+.espn-goals-vertical .espn-goal-row.away{justify-self:end;text-align:right}
+.espn-goals-vertical .espn-goal-row.away .espn-goal-player{justify-self:end;text-align:right}
+.espn-goals-vertical .espn-goal-minute{min-width:34px;padding:4px 7px;border-radius:999px;background:#fff0f2;color:#df2038;font-size:11px;font-weight:950;text-align:center}
+.espn-goals-vertical .espn-goal-row>i,.espn-goals-vertical .espn-goal-row>span:not(.espn-goal-player){display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#fff;color:#df2038;font-style:normal;box-shadow:inset 0 0 0 1px rgba(223,32,56,.12)}
+.espn-goals-vertical .espn-goal-player{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);font-size:12px;font-weight:900}
 [data-theme="dark"] .live-ticker-summary>.live-ticker-minute{background:rgba(223,32,56,.16);color:#ff8fa0}
 [data-theme="dark"] .live-ticker-summary>.live-ticker-minute.is-final{background:rgba(70,115,170,.22);color:#a9cdf6}
 [data-theme="dark"] .live-ticker-summary>.live-ticker-minute.is-break{background:rgba(205,126,42,.22);color:#f3bd7c}
@@ -3872,6 +3881,9 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
 [data-theme="dark"] .live-ticker-points{border-color:rgba(142,215,178,.22);background:rgba(35,166,111,.12)}
 [data-theme="dark"] .live-ticker-points>small,[data-theme="dark"] .live-ticker-points>strong,[data-theme="dark"] .live-ticker-points span.hit{color:#8ed7b2}
 [data-theme="dark"] .live-ticker-points span{background:rgba(255,255,255,.05)}
+[data-theme="dark"] .live-ticker-pick{background:rgba(255,255,255,.08);color:#b9c9dc!important}
+[data-theme="dark"] .espn-goals-vertical .espn-goal-row{border-color:rgba(237,135,151,.14);background:linear-gradient(135deg,#13243a,#0f2034)}
+[data-theme="dark"] .espn-goals-vertical .espn-goal-minute,[data-theme="dark"] .espn-goals-vertical .espn-goal-row>i,[data-theme="dark"] .espn-goals-vertical .espn-goal-row>span:not(.espn-goal-player){background:rgba(223,32,56,.16);color:#ff8fa0}
 [data-theme="dark"] .live-ticker-simulate{border-color:rgba(142,215,178,.2);background:rgba(255,255,255,.06);color:#8ed7b2;box-shadow:none}
 [data-theme="dark"] .live-ticker-simulate:hover,[data-theme="dark"] .live-ticker-simulate:focus-visible{background:rgba(255,255,255,.1)}
 @media(max-width:700px){
@@ -4018,14 +4030,14 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
 }
 .dashboard-page .live-ticker-dots{
   min-height:22px;
-  margin-top:10px;
-  margin-bottom:12px;
-  padding:4px 0 6px;
+  margin-top:7px;
+  margin-bottom:6px;
+  padding:3px 0 3px;
 }
 .dashboard-page .live-ticker-card.is-open ~ .live-ticker-dots,
 .dashboard-page .live-match-carousel:has(.live-ticker-card.is-open) .live-ticker-dots{
-  margin-top:16px;
-  margin-bottom:18px;
+  margin-top:11px;
+  margin-bottom:8px;
 }
 @media(max-width:700px){
   .dashboard-page .live-match-carousel-controls{
@@ -4034,13 +4046,13 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
   }
   .dashboard-page .live-ticker-dots{
     min-height:24px;
-    margin-top:12px;
-    margin-bottom:16px;
-    padding:5px 0 7px;
+    margin-top:8px;
+    margin-bottom:8px;
+    padding:4px 0;
   }
   .dashboard-page .live-match-carousel:has(.live-ticker-card.is-open) .live-ticker-dots{
-    margin-top:18px;
-    margin-bottom:20px;
+    margin-top:12px;
+    margin-bottom:10px;
   }
 }
 

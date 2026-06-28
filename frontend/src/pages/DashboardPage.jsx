@@ -169,6 +169,26 @@ const livePredictionChecks = (match, liveScore) => {
     { key: "scorer", label: "Goleador", hit: Boolean(Number(match.scorer_enabled) && predictedScorerId && currentScorers.has(String(predictedScorerId))), disabled: !Number(match.scorer_enabled) },
   ].filter((part) => !part.disabled);
 };
+const predictedWinnerLabel = (match) => {
+  if (!match.prediction_id) return "Sin apuesta";
+  if (match.predicted_winner === "draw") return "Empate";
+  if (match.predicted_winner === "team1") return match.team1;
+  if (match.predicted_winner === "team2") return match.team2;
+  return "Sin apuesta";
+};
+const predictedResultLabel = (match) => match.prediction_id
+  ? `${match.predicted_team1_goals ?? 0}-${match.predicted_team2_goals ?? 0}`
+  : "Sin apuesta";
+const predictedScorerLabel = (match) => {
+  if (!match.prediction_id || !Number(match.scorer_enabled)) return "Sin apuesta";
+  if (Number(match.predicted_team1_goals || 0) + Number(match.predicted_team2_goals || 0) === 0) return "Sin goleador";
+  return match.predicted_scorer?.name || "Sin goleador";
+};
+const goalSideClass = (goal, match) => {
+  const code = String(goal?.team_code || "").toUpperCase();
+  if (code && code === String(match.team2_team?.fifa_code || "").toUpperCase()) return "away";
+  return "home";
+};
 function LiveTickerPointsCard({ match, liveScore, onSimulateMatch }) {
   const [preview, setPreview] = useState(null);
   const [previewError, setPreviewError] = useState(false);
@@ -188,17 +208,17 @@ function LiveTickerPointsCard({ match, liveScore, onSimulateMatch }) {
   }, [match.id, canPreview, liveScore?.score?.team1, liveScore?.score?.team2, JSON.stringify(liveScore?.scorer_player_ids || [])]);
   const points = preview?.points;
   const rows = points ? [
-    { key: "winner", label: "Ganador", value: points.winner_points || 0 },
-    { key: "exact", label: "Resultado", value: points.exact_result_points || 0 },
-    { key: "scorer", label: "Goleador", value: points.scorer_points || 0, disabled: !Number(match.scorer_enabled) },
+    { key: "winner", label: "Ganador", pick: predictedWinnerLabel(match), value: points.winner_points || 0 },
+    { key: "exact", label: "Resultado", pick: predictedResultLabel(match), value: points.exact_result_points || 0 },
+    { key: "scorer", label: "Goleador", pick: predictedScorerLabel(match), value: points.scorer_points || 0, disabled: !Number(match.scorer_enabled) },
   ].filter((part) => !part.disabled) : null;
-  return <div className="live-ticker-points">
+  return <div className="espn-points-preview live-ticker-points detail-simulation-card">
     <button type="button" className="live-ticker-simulate" onClick={() => onSimulateMatch(match)} aria-label={`Abrir simulador con ${match.team1} - ${match.team2}`}>
       <Calculator size={15}/>
     </button>
-    <small>Pronóstico con marcador ESPN</small>
+    <small>Si terminara así</small>
     <strong>{points ? `+${points.total_points || 0} pts` : "Simular puntos"}</strong>
-    <div>{rows?.length ? rows.map((part) => <span className={Number(part.value) > 0 ? "hit" : ""} key={part.key}>{Number(part.value) > 0 ? <CheckCircle2 size={13}/> : <X size={13}/>}<b>{part.label}</b><em>+{part.value}</em></span>) : checks?.length ? checks.map((part) => <span className={part.hit ? "hit" : ""} key={part.key}>{part.hit ? <CheckCircle2 size={13}/> : <X size={13}/>}<b>{part.label}</b><em>{previewError ? "?" : "..."}</em></span>) : <span><Calculator size={13}/><b>Usa el marcador ESPN actual</b></span>}</div>
+    <div>{rows?.length ? rows.map((part) => <span className={Number(part.value) > 0 ? "hit" : ""} key={part.key}>{Number(part.value) > 0 ? <CheckCircle2 size={13}/> : <X size={13}/>}<b>{part.label}</b><small className="live-ticker-pick">{part.pick}</small><em>+{part.value}</em></span>) : checks?.length ? checks.map((part) => <span className={part.hit ? "hit" : ""} key={part.key}>{part.hit ? <CheckCircle2 size={13}/> : <X size={13}/>}<b>{part.label}</b><small className="live-ticker-pick">{part.key === "winner" ? predictedWinnerLabel(match) : part.key === "exact" ? predictedResultLabel(match) : predictedScorerLabel(match)}</small><em>{previewError ? "?" : "..."}</em></span>) : <span><Calculator size={13}/><b>Usa el marcador ESPN actual</b></span>}</div>
   </div>;
 }
 function LiveMatchTicker({ matches, liveScores, user, onOpenMatch, onSimulateMatch }) {
@@ -262,11 +282,11 @@ function LiveMatchTicker({ matches, liveScores, user, onOpenMatch, onSimulateMat
             <em>{isExpanded ? "Ocultar" : "Ver más"}</em>
           </button>
           {isExpanded && <div className="live-ticker-details">
-            <div className="live-ticker-goals">
-              {goals.length ? goals.map((goal) => <span className="live-ticker-goal" key={goal.id || `${goal.minute}-${goal.espn_name}`}>
-                <time>{goal.minute || "—"}</time>
+            <div className="live-ticker-goals espn-goals-vertical">
+              {goals.length ? goals.map((goal) => <span className={`live-ticker-goal espn-goal-row ${goalSideClass(goal, match)}`} key={goal.id || `${goal.minute}-${goal.espn_name}`}>
+                <time className="espn-goal-minute">{goal.minute || "—"}</time>
                 <i>⚽</i>
-                <strong>{goal.player_name || goal.espn_name || "Goleador sin identificar"}<small>{goal.label || "Gol"}{goal.team_code ? ` · ${goal.team_code}` : ""}</small></strong>
+                <strong className="espn-goal-player">{goal.player_name || goal.espn_name || "Goleador sin identificar"}</strong>
               </span>) : <p>Sin goles por ahora.</p>}
             </div>
             <div className="live-ticker-bet">
