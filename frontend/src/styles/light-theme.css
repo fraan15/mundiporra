@@ -3680,8 +3680,8 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
 }
 .dashboard-calendar-carousel .calendar-days-track{
   display:flex;
-  gap:11px;
-  width:max-content;
+  gap:0;
+  width:100%;
   min-width:100%;
   align-items:flex-start;
   contain:none;
@@ -3690,8 +3690,8 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
 .dashboard-calendar-carousel .calendar-day-slide{
   box-sizing:border-box;
   display:block;
-  flex:0 0 min(520px,88vw);
-  width:min(520px,88vw);
+  flex:0 0 100%;
+  width:100%;
   min-width:0;
   height:auto;
   overflow:visible;
@@ -3699,7 +3699,7 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
   visibility:visible;
   scroll-snap-align:center;
   scroll-snap-stop:always;
-  scroll-margin-inline:6px;
+  scroll-margin-inline:0;
   transform:none;
   transition:opacity .18s ease;
   touch-action:pan-x pan-y;
@@ -3720,21 +3720,6 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
   min-width:0;
   opacity:1;
   visibility:visible;
-}
-@media(min-width:900px){
-  .dashboard-calendar-carousel .calendar-day-slide{
-    flex-basis:min(640px,72vw);
-    width:min(640px,72vw);
-  }
-}
-@media(max-width:700px){
-  .dashboard-calendar-carousel .calendar-days-track{
-    gap:10px;
-  }
-  .dashboard-calendar-carousel .calendar-day-slide{
-    flex-basis:88vw;
-    width:88vw;
-  }
 }
 .dashboard-calendar-carousel .calendar-day-slide .calendar-match,
 .dashboard-calendar-carousel .calendar-match-main,
