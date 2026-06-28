@@ -1631,13 +1631,15 @@ const enrichLivePlayers = (live, match) => {
   `).all(...teamCodes) : [];
   const codeByEspnTeamId = new Map((live.competitors || []).map((team) => [String(team.id), team.code]));
   const timeline = (live.timeline || []).map((item) => {
-    const teamCode = codeByEspnTeamId.get(String(item.team_id));
+    const teamCode = item.team_code || codeByEspnTeamId.get(String(item.team_id));
     const mappedAthletes = (item.athletes || []).map((name) => {
       const player = mapEspnPlayer(name, teamCode, players);
       return { espn_name: name, player_id: player?.id || null, player_name: player?.name || null };
     });
     return {
       ...item,
+      team_code: teamCode || "",
+      side: teamCode === match.team1_fifa_code ? "team1" : teamCode === match.team2_fifa_code ? "team2" : null,
       mapped_athletes: mappedAthletes,
       scorer_player_id: item.scoring && !item.own_goal ? mappedAthletes[0]?.player_id || null : null,
     };

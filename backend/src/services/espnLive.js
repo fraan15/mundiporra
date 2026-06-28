@@ -70,24 +70,81 @@ const eventLabel = (item) =>
   item?.type?.text || item?.type?.description || item?.type?.name ||
   (item?.scoringPlay ? "Gol" : item?.yellowCard ? "Tarjeta amarilla" : item?.redCard ? "Tarjeta roja" : "Incidencia");
 
-const normalizeTimelineItem = (item, index) => {
+const minuteDetails = (value, label = "") => {
+  const raw = String(value || "").trim();
+  const added = raw.match(/(\d+)\s*['’]?\s*\+\s*(\d+)/);
+  const regular = raw.match(/(\d+)/);
+  const minuteValue = added
+    ? Number(added[1]) + Number(added[2]) / 100
+    : regular ? Number(regular[1]) : null;
+  const normalizedLabel = String(label || "").toLowerCase();
+  if (/end of game|full time|final/.test(normalizedLabel)) return { minute_value: minuteValue ?? 999, display_minute: "Final" };
+  if (/half.?time|end of (the )?(first )?half/.test(normalizedLabel)) return { minute_value: minuteValue ?? 45, display_minute: "Descanso" };
+  if (/start of game|kick.?off|inicio/.test(normalizedLabel) && minuteValue === null) return { minute_value: 0, display_minute: "Inicio" };
+  return {
+    minute_value: minuteValue,
+    display_minute: added ? `${added[1]}+${added[2]}'` : regular ? `${regular[1]}'` : raw,
+  };
+};
+
+const categorizeEvent = (item, label, text) => {
+  const source = `${label} ${text}`.toLowerCase();
+  if (item?.redCard || /red card|tarjeta roja/.test(source)) return "red_card";
+  if (item?.yellowCard || /yellow card|tarjeta amarilla/.test(source)) return "yellow_card";
+  if (item?.scoringPlay || /goal|gol|penalty scored/.test(source)) return "goal";
+  if (item?.penaltyKick || /penalty kick|penalti|penalty/.test(source)) return "penalty";
+  if (/substitution|substitute|cambio/.test(source)) return "substitution";
+  if (/\bvar\b|video assistant/.test(source)) return "var";
+  if (/start of game|kick.?off|end of game|end of (the )?half|half.?time|full time|inicio|final/.test(source)) return "start_end";
+  if (/shot|attempt|save|chance|tiro|ocasión|parada/.test(source)) return "chance";
+  return "other";
+};
+
+const spanishEventLabel = (category, label, text) => {
+  const source = `${label} ${text}`.toLowerCase();
+  if (category === "goal") return /penalty|penalti/.test(source) ? "Gol de penalti" : "Gol";
+  return {
+    yellow_card: "Tarjeta amarilla",
+    red_card: "Tarjeta roja",
+    penalty: "Penalti",
+    substitution: "Cambio",
+    var: "VAR",
+    chance: /saved|save|detenido|parada/.test(source) ? "Parada" : "Ocasión",
+    start_end: /end of game|full time|final/.test(source)
+      ? "Final"
+      : /end of (the )?half|half.?time|descanso/.test(source) ? "Descanso" : "Inicio",
+    other: /offside/.test(source) ? "Fuera de juego" : /foul/.test(source) ? "Falta" : "Incidencia",
+  }[category] || "Incidencia";
+};
+
+const normalizeTimelineItem = (item, index, codeByTeamId) => {
   const play = item?.play || item;
   const athletes = participantNames(play);
   const text = play?.text || item?.text || play?.shortText || play?.description || "";
   const label = eventLabel(play);
+  const category = categorizeEvent(play, label, text);
+  const minute = displayValue(play?.clock?.displayValue || play?.clock?.displayClock || item?.time?.displayValue || item?.time || "").replace("—", "");
+  const teamId = String(play?.team?.id || "");
+  const minuteInfo = minuteDetails(minute, `${label} ${text}`);
   return {
     id: String(play?.id || item?.sequence || `${play?.period?.number || play?.period || 0}-${play?.clock?.value || play?.clock?.displayValue || index}-${text}`),
-    minute: displayValue(play?.clock?.displayValue || play?.clock?.displayClock || item?.time?.displayValue || item?.time || "").replace("—", ""),
+    minute,
     period: play?.period?.displayValue || play?.period?.number || play?.period || null,
     type: label,
     text,
     athletes,
-    team_id: String(play?.team?.id || ""),
+    team_id: teamId,
     scoring: Boolean(play?.scoringPlay || /goal|gol|penalty scored/i.test(label)),
     yellow_card: Boolean(play?.yellowCard || /yellow|amarilla/i.test(label)),
     red_card: Boolean(play?.redCard || /red card|roja/i.test(label)),
     penalty: Boolean(play?.penaltyKick || /penalty|penal/i.test(`${label} ${text}`)),
     own_goal: Boolean(play?.ownGoal || /own goal|autogol/i.test(`${label} ${text}`)),
+    category,
+    label_es: spanishEventLabel(category, label, text),
+    ...minuteInfo,
+    team_code: normalizeCode(play?.team?.abbreviation || codeByTeamId.get(teamId)),
+    is_key_event: ["goal", "red_card", "penalty", "var", "start_end"].includes(category),
+    side: null,
   };
 };
 
@@ -127,7 +184,8 @@ export const normalizeEspnLive = (event, summary = {}) => {
     ...(summary?.commentary || []),
     ...(summary?.plays || []),
   ];
-  const normalizedTimeline = rawTimeline.map((item, index) => normalizeTimelineItem(item, index));
+  const codeByTeamId = new Map(competitors.map((team) => [team.id, team.code]));
+  const normalizedTimeline = rawTimeline.map((item, index) => normalizeTimelineItem(item, index, codeByTeamId));
   const timeline = [...new Map(normalizedTimeline.map((normalized) => {
     const signature = [
       normalized.minute, normalized.scoring, normalized.yellow_card, normalized.red_card,
@@ -135,7 +193,7 @@ export const normalizeEspnLive = (event, summary = {}) => {
       normalized.scoring || normalized.yellow_card || normalized.red_card ? "" : normalized.type,
     ].join("|");
     return [signature, normalized];
-  })).values()].sort((a, b) => (numberValue(b.minute) || 0) - (numberValue(a.minute) || 0));
+  })).values()].sort((a, b) => (b.minute_value ?? -1) - (a.minute_value ?? -1));
   return {
     provider: "ESPN",
     event_id: String(headerEvent?.id || event?.id || competition?.id || ""),
