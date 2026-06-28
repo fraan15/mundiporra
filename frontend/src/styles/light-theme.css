@@ -3911,15 +3911,22 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
   place-items:center;
   gap:4px;
   min-width:54px;
+  justify-self:center;
+  text-align:center;
 }
 .live-ticker-score-stack>b{
+  display:block;
   color:#211f20;
   font-size:18px;
   font-weight:950;
   line-height:1;
+  text-align:center;
   white-space:nowrap;
 }
 .live-ticker-score-stack>.live-ticker-minute{
+  display:inline-grid;
+  place-items:center;
+  justify-self:center;
   margin:0;
   padding:3px 8px;
   border-radius:999px;
@@ -3930,6 +3937,10 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
   letter-spacing:.04em;
   line-height:1;
   text-transform:uppercase;
+}
+.live-ticker-summary>em{
+  width:100%;
+  text-align:center;
 }
 .live-ticker-score-stack>.live-ticker-minute.is-final{background:#e8edf6;color:#42628e}
 .live-ticker-score-stack>.live-ticker-minute.is-break{background:#fff0d8;color:#996313}
@@ -3984,6 +3995,14 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
 .live-ticker-bet>span{
   margin-top:7px!important;
   text-align:center;
+}
+.simulation-score-editor.detail-score-picker{
+  padding-top:8px;
+}
+.simulation-score-editor .vertical-score-control>small{
+  height:auto;
+  margin-bottom:3px;
+  line-height:1.15;
 }
 [data-theme="dark"] .live-ticker-score-stack>b{color:#f2f7ff}
 [data-theme="dark"] .live-ticker-score-stack>.live-ticker-minute{background:rgba(223,32,56,.16);color:#ff8fa0}

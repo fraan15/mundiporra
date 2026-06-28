@@ -173,7 +173,7 @@ function LiveTickerPointsCard({ match, liveScore, onSimulateMatch }) {
   const [preview, setPreview] = useState(null);
   const [previewError, setPreviewError] = useState(false);
   const checks = livePredictionChecks(match, liveScore);
-  const canPreview = Boolean(liveScore?.score && !liveScore.completed && !liveScore.espn_completed);
+  const canPreview = Boolean(liveScore?.score);
   useEffect(() => {
     if (!canPreview) { setPreview(null); setPreviewError(false); return; }
     setPreviewError(false);
