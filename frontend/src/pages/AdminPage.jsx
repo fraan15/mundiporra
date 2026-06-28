@@ -1111,6 +1111,7 @@ function MatchReferencePanel({ data, onSelect }) {
 function AdminResultEditor({ match, onCancel, onSaved }) {
   const editorRef = useRef(null);
   const savingRef = useRef(false);
+  const touchedRef = useRef(false);
   const initialScore = {
     g1: String(match.result_team1 ?? 0),
     g2: String(match.result_team2 ?? 0),
@@ -1137,6 +1138,8 @@ function AdminResultEditor({ match, onCancel, onSaved }) {
           !(match.actual_scorers || []).length,
       ),
     ),
+    [livePreview, setLivePreview] = useState(null),
+    [espnPrefilled, setEspnPrefilled] = useState(false),
     [error, setError] = useState(""),
     [saving, setSaving] = useState(false);
   useEffect(() => {
@@ -1151,10 +1154,27 @@ function AdminResultEditor({ match, onCancel, onSaved }) {
     if (codes.length === 2)
       api(`/players?team_fifa_codes=${codes.join(",")}`).then(setPlayers);
   }, [match.id]);
+  useEffect(() => {
+    let active = true;
+    if (match.status === "finished") return undefined;
+    api(`/matches/${match.id}/live`)
+      .then((response) => {
+        if (active) setLivePreview(response);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [match.id, match.status]);
   const scorerEnabled = Boolean(Number(match.scorer_enabled));
   const isKnockout = Boolean(Number(match.is_knockout));
   const isNilNil = Number(score.g1) + Number(score.g2) === 0;
   const scoreIsDraw = score.g1 !== "" && score.g2 !== "" && Number(score.g1) === Number(score.g2);
+  const espnScore = livePreview?.live?.score;
+  const unmatchedScorers = livePreview?.live?.unmatched_scorers || [];
+  const markTouched = () => {
+    touchedRef.current = true;
+  };
   const scoringTeamCodes = [
     Number(score.g1) > 0 && match.team1_team?.fifa_code,
     Number(score.g2) > 0 && match.team2_team?.fifa_code,
@@ -1184,16 +1204,37 @@ function AdminResultEditor({ match, onCancel, onSaved }) {
       setPenalties({ p1: "", p2: "" });
     }
   }, [scoreIsDraw]);
+  useEffect(() => {
+    if (
+      !espnScore ||
+      match.status === "finished" ||
+      espnPrefilled ||
+      touchedRef.current
+    )
+      return;
+    setScore({
+      g1: String(espnScore.team1 ?? 0),
+      g2: String(espnScore.team2 ?? 0),
+    });
+    if (scorerEnabled) {
+      const liveScorers = livePreview?.live?.scorer_player_ids || [];
+      setScorerIds(liveScorers.length ? liveScorers : []);
+      setHasOwnGoal(false);
+    }
+    setEspnPrefilled(true);
+  }, [espnScore, espnPrefilled, livePreview, match.status, scorerEnabled]);
   const available = players.filter(
     (player) =>
       scoringTeamCodes.includes(player.team_fifa_code) &&
       !scorerIds.includes(player.id),
   );
-  const adjustScore = (field, delta) =>
+  const adjustScore = (field, delta) => {
+    markTouched();
     setScore((current) => ({
       ...current,
       [field]: String(Math.max(0, Number(current[field] || 0) + delta)),
     }));
+  };
   const save = async () => {
     if (savingRef.current) return;
     savingRef.current = true;
@@ -1232,21 +1273,39 @@ function AdminResultEditor({ match, onCancel, onSaved }) {
         <HorizontalScoreControl
           team={match.team1}
           value={score.g1}
-          onChange={(value) =>
-            setScore((current) => ({ ...current, g1: value }))
-          }
+          onChange={(value) => {
+            markTouched();
+            setScore((current) => ({ ...current, g1: value }));
+          }}
           onAdjust={(delta) => adjustScore("g1", delta)}
         />
         <b>:</b>
         <HorizontalScoreControl
           team={match.team2}
           value={score.g2}
-          onChange={(value) =>
-            setScore((current) => ({ ...current, g2: value }))
-          }
+          onChange={(value) => {
+            markTouched();
+            setScore((current) => ({ ...current, g2: value }));
+          }}
           onAdjust={(delta) => adjustScore("g2", delta)}
         />
       </div>
+      {espnPrefilled && (
+        <div className="espn-prefill-note admin-result-prefill">
+          <strong>Resultado precargado desde ESPN.</strong>
+          <span>Revisa bien marcador y goleadores antes de guardar.</span>
+          {unmatchedScorers.length > 0 && (
+            <small>
+              Goleadores sin vincular: {unmatchedScorers.map((row) => row.name || row).join(", ")}.
+            </small>
+          )}
+          {isKnockout && (
+            <small>
+              Eliminatoria: no añadas los goles de la tanda de penaltis a goleadores.
+            </small>
+          )}
+        </div>
+      )}
       {isKnockout && scoreIsDraw && (
         <div className="knockout-admin-box">
           <p>Selecciona solo goleadores hasta el 120. Los penaltis de la tanda no cuentan.</p>
@@ -1254,7 +1313,10 @@ function AdminResultEditor({ match, onCancel, onSaved }) {
             <input
               type="checkbox"
               checked={hasPenalties}
-              onChange={(e) => setHasPenalties(e.target.checked)}
+              onChange={(e) => {
+                markTouched();
+                setHasPenalties(e.target.checked);
+              }}
             />
             Tanda de penaltis
           </label>
@@ -1267,7 +1329,10 @@ function AdminResultEditor({ match, onCancel, onSaved }) {
                   min="0"
                   step="1"
                   value={penalties.p1}
-                  onChange={(e) => setPenalties({ ...penalties, p1: e.target.value })}
+                  onChange={(e) => {
+                    markTouched();
+                    setPenalties({ ...penalties, p1: e.target.value });
+                  }}
                 />
               </label>
               <label>
@@ -1277,7 +1342,10 @@ function AdminResultEditor({ match, onCancel, onSaved }) {
                   min="0"
                   step="1"
                   value={penalties.p2}
-                  onChange={(e) => setPenalties({ ...penalties, p2: e.target.value })}
+                  onChange={(e) => {
+                    markTouched();
+                    setPenalties({ ...penalties, p2: e.target.value });
+                  }}
                 />
               </label>
             </div>
@@ -1291,7 +1359,10 @@ function AdminResultEditor({ match, onCancel, onSaved }) {
             <SearchSelect
               items={[NO_SCORER]}
               value={NO_SCORER_ID}
-              onChange={() => setScorerIds([NO_SCORER_ID])}
+              onChange={() => {
+                markTouched();
+                setScorerIds([NO_SCORER_ID]);
+              }}
               placeholder="Sin goleador"
               renderItem={(player) => (
                 <>
@@ -1313,9 +1384,11 @@ function AdminResultEditor({ match, onCancel, onSaved }) {
               <ScorerPicker
                 players={available}
                 value={null}
-                onChange={(playerId) =>
-                  playerId && setScorerIds([...scorerIds, playerId])
-                }
+                onChange={(playerId) => {
+                  if (!playerId) return;
+                  markTouched();
+                  setScorerIds([...scorerIds, playerId]);
+                }}
                 buttonLabel="Añadir goleador"
                 matchLabel={`${match.team1} - ${match.team2}`}
               />
@@ -1329,9 +1402,10 @@ function AdminResultEditor({ match, onCancel, onSaved }) {
                       <button
                         type="button"
                         key={id}
-                        onClick={() =>
-                          setScorerIds(scorerIds.filter((value) => value !== id))
-                        }
+                        onClick={() => {
+                          markTouched();
+                          setScorerIds(scorerIds.filter((value) => value !== id));
+                        }}
                       >
                         {player.name} ×
                       </button>
@@ -1348,7 +1422,10 @@ function AdminResultEditor({ match, onCancel, onSaved }) {
             <input
               type="checkbox"
               checked={hasOwnGoal}
-              onChange={(e) => setHasOwnGoal(e.target.checked)}
+              onChange={(e) => {
+                markTouched();
+                setHasOwnGoal(e.target.checked);
+              }}
             />
             Marcar si todo son autogoles
           </label>
@@ -1605,6 +1682,7 @@ function AdminSettings() {
     [notice, setNotice] = useState(""),
     [syncing, setSyncing] = useState(false),
     [syncingEspn, setSyncingEspn] = useState(false),
+    [clearingEspnLive, setClearingEspnLive] = useState(false),
     [syncError, setSyncError] = useState(""),
     [jsonStatus, setJsonStatus] = useState(null),
     [espnStatus, setEspnStatus] = useState(null);
@@ -1653,6 +1731,20 @@ function AdminSettings() {
       setSyncError(error.message);
     } finally {
       setSyncingEspn(false);
+    }
+  };
+  const clearEspnLiveCache = async () => {
+    if (!window.confirm("¿Limpiar todos los datos ESPN Live guardados? Los partidos en juego volverán a pedir ESPN; el resto quedará sin marcador ESPN.")) return;
+    setClearingEspnLive(true);
+    setSyncError("");
+    setNotice("");
+    try {
+      const result = await api("/admin/clear-espn-live-cache", { method: "POST" });
+      setNotice(`Datos ESPN Live limpiados en ${result.matches_cleared} partido${result.matches_cleared === 1 ? "" : "s"}.`);
+    } catch (error) {
+      setSyncError(error.message);
+    } finally {
+      setClearingEspnLive(false);
     }
   };
   return (
@@ -1799,6 +1891,22 @@ function AdminSettings() {
             <small>{espnStatus.players_mapped}/{espnStatus.players_total} jugadores con ID ESPN</small>
           )}
         </div>
+      </div>
+      <div className="action-panel">
+        <Trash2 size={32} />
+        <h3>Datos ESPN Live</h3>
+        <p>
+          Limpia los marcadores ESPN guardados. Los partidos en juego volverán
+          a pedir ESPN; los demás quedarán sin dato ESPN hasta que entren en directo.
+        </p>
+        <button
+          type="button"
+          className="danger"
+          disabled={clearingEspnLive}
+          onClick={clearEspnLiveCache}
+        >
+          {clearingEspnLive ? "Limpiando…" : "Limpiar datos ESPN Live"}
+        </button>
       </div>
     </section>
   );

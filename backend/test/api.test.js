@@ -1763,6 +1763,12 @@ test("la medalla rey del empate cuenta solo empates acertados", async () => {
   const gamblerMedals = await drawGambler.get(`/api/users/${gambler.id}/public/medals`).expect(200);
   assert.equal(kingMedals.body.badges.some((badge) => badge.name === `Rey del empate · ${targetDraws}`), true);
   assert.equal(gamblerMedals.body.badges.some((badge) => badge.name.startsWith("Rey del empate")), false);
+  const kingDisputed = kingMedals.body.disputed_badges.find((badge) => badge.name === `Rey del empate · ${targetDraws}`);
+  const gamblerDisputed = gamblerMedals.body.disputed_badges.find((badge) => badge.name === `Rey del empate · ${targetDraws}`);
+  assert.equal(kingDisputed.achieved, true);
+  assert.equal(gamblerDisputed.achieved, false);
+  assert.deepEqual(kingDisputed.holders, [kingUsername]);
+  assert.deepEqual(gamblerDisputed.holders, [kingUsername]);
 });
 
 test("un ajuste guarda el histórico y el detalle público cuadra exactamente", async () => {
@@ -2014,4 +2020,25 @@ test("ESPN Live limpia live_completed_at si el caché no coincide", async () => 
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test("admin puede limpiar todos los datos cacheados de ESPN Live", async () => {
+  const admin = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  const matchId = insertClosedLiveMatch();
+  db.prepare(`
+    UPDATE matches
+    SET live_data_json=?,live_updated_at=?,live_completed_at=?,live_test_enabled=1,live_test_event_id='987654'
+    WHERE id=?
+  `).run(JSON.stringify({ provider: "ESPN", completed: true }), now(), now(), matchId);
+
+  const response = await admin.post("/api/admin/clear-espn-live-cache").expect(200);
+  assert.ok(response.body.matches_cleared >= 1);
+  const row = db.prepare("SELECT espn_event_id,live_data_json,live_updated_at,live_completed_at,live_test_enabled,live_test_event_id FROM matches WHERE id=?").get(matchId);
+  assert.equal(row.espn_event_id, null);
+  assert.equal(row.live_data_json, null);
+  assert.equal(row.live_updated_at, null);
+  assert.equal(row.live_completed_at, null);
+  assert.equal(row.live_test_enabled, 1);
+  assert.equal(row.live_test_event_id, "987654");
 });

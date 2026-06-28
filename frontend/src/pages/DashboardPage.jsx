@@ -169,6 +169,38 @@ const livePredictionChecks = (match, liveScore) => {
     { key: "scorer", label: "Goleador", hit: Boolean(Number(match.scorer_enabled) && predictedScorerId && currentScorers.has(String(predictedScorerId))), disabled: !Number(match.scorer_enabled) },
   ].filter((part) => !part.disabled);
 };
+function LiveTickerPointsCard({ match, liveScore, onSimulateMatch }) {
+  const [preview, setPreview] = useState(null);
+  const [previewError, setPreviewError] = useState(false);
+  const checks = livePredictionChecks(match, liveScore);
+  const canPreview = Boolean(liveScore?.score && !liveScore.completed && !liveScore.espn_completed);
+  useEffect(() => {
+    if (!canPreview) { setPreview(null); setPreviewError(false); return; }
+    setPreviewError(false);
+    api(`/matches/${match.id}/simulation`, {
+      method: "POST",
+      body: {
+        result_team1: liveScore.score.team1,
+        result_team2: liveScore.score.team2,
+        scorer_ids: liveScore.scorer_player_ids || [],
+      },
+    }).then(setPreview).catch(() => { setPreview(null); setPreviewError(true); });
+  }, [match.id, canPreview, liveScore?.score?.team1, liveScore?.score?.team2, JSON.stringify(liveScore?.scorer_player_ids || [])]);
+  const points = preview?.points;
+  const rows = points ? [
+    { key: "winner", label: "Ganador", value: points.winner_points || 0 },
+    { key: "exact", label: "Resultado", value: points.exact_result_points || 0 },
+    { key: "scorer", label: "Goleador", value: points.scorer_points || 0, disabled: !Number(match.scorer_enabled) },
+  ].filter((part) => !part.disabled) : null;
+  return <div className="live-ticker-points">
+    <button type="button" className="live-ticker-simulate" onClick={() => onSimulateMatch(match)} aria-label={`Abrir simulador con ${match.team1} - ${match.team2}`}>
+      <Calculator size={15}/>
+    </button>
+    <small>Pronóstico con marcador ESPN</small>
+    <strong>{points ? `+${points.total_points || 0} pts` : "Simular puntos"}</strong>
+    <div>{rows?.length ? rows.map((part) => <span className={Number(part.value) > 0 ? "hit" : ""} key={part.key}>{Number(part.value) > 0 ? <CheckCircle2 size={13}/> : <X size={13}/>}<b>{part.label}</b><em>+{part.value}</em></span>) : checks?.length ? checks.map((part) => <span className={part.hit ? "hit" : ""} key={part.key}>{part.hit ? <CheckCircle2 size={13}/> : <X size={13}/>}<b>{part.label}</b><em>{previewError ? "?" : "..."}</em></span>) : <span><Calculator size={13}/><b>Usa el marcador ESPN actual</b></span>}</div>
+  </div>;
+}
 function LiveMatchTicker({ matches, liveScores, user, onOpenMatch, onSimulateMatch }) {
   const scrollRef = useRef(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -191,7 +223,9 @@ function LiveMatchTicker({ matches, liveScores, user, onOpenMatch, onSimulateMat
       return Math.abs(cardCenter - center) < Math.abs(bestCenter - center) ? index : bestIndex;
     }, 0);
     setActiveIndex((current) => {
-      if (current !== next) setExpandedMatchId(null);
+      if (current !== next) {
+        setExpandedMatchId((openMatchId) => openMatchId ? matches[next]?.id || openMatchId : null);
+      }
       return next;
     });
   };
@@ -199,7 +233,7 @@ function LiveMatchTicker({ matches, liveScores, user, onOpenMatch, onSimulateMat
     const card = scrollRef.current?.querySelectorAll(".live-ticker-card")?.[index];
     if (card) card.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
     setActiveIndex(index);
-    setExpandedMatchId(null);
+    setExpandedMatchId((openMatchId) => openMatchId ? matches[index]?.id || openMatchId : null);
   };
   if (!matches.length) return null;
   return <section className="live-ticker-section content-card" aria-label="Partidos en juego">
@@ -215,7 +249,6 @@ function LiveMatchTicker({ matches, liveScores, user, onOpenMatch, onSimulateMat
         const scorer = predictionScorerText(match, user);
         const isExpanded = expandedMatchId === match.id;
         const statusText = liveStatusText(liveScore);
-        const predictionChecks = livePredictionChecks(match, liveScore);
         return <article className={`live-ticker-card ${match.is_star ? "is-star" : ""} ${isExpanded ? "is-open" : ""}`} key={match.id}>
           <button type="button" className="live-ticker-summary" onClick={() => {
             if (activeIndex !== index) goToMatch(index);
@@ -248,14 +281,7 @@ function LiveMatchTicker({ matches, liveScores, user, onOpenMatch, onSimulateMat
               </strong>
               {scorer ? <span>{scorer}</span> : <span>Sin goleador apostado</span>}
             </div>
-            <div className="live-ticker-points">
-              <button type="button" className="live-ticker-simulate" onClick={() => onSimulateMatch(match)} aria-label={`Abrir simulador con ${match.team1} - ${match.team2}`}>
-                <Calculator size={15}/>
-              </button>
-              <small>Pronóstico con marcador ESPN</small>
-              <strong>Simular puntos</strong>
-              <div>{predictionChecks?.length ? predictionChecks.map((part) => <span className={part.hit ? "hit" : ""} key={part.key}>{part.hit ? <CheckCircle2 size={13}/> : <X size={13}/>}<b>{part.label}</b></span>) : <span><Calculator size={13}/><b>Usa el marcador ESPN actual</b></span>}</div>
-            </div>
+            <LiveTickerPointsCard match={match} liveScore={liveScore} onSimulateMatch={onSimulateMatch}/>
             <button type="button" onClick={() => onOpenMatch(match)}><Eye size={14}/> Ver partido</button>
           </div>}
         </article>;

@@ -5,9 +5,21 @@ const TEAMS_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.wor
 const ROSTER_URL = (teamId) => `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/teams/${encodeURIComponent(teamId)}/roster`;
 const REQUEST_TIMEOUT_MS = 10000;
 
-const ESPN_TO_FIFA = {};
+const ESPN_TO_FIFA = {
+  GER: "DEU",
+  NED: "NLD",
+  SUI: "CHE",
+  KSA: "SAU",
+  CRC: "CRI",
+  CRO: "HRV",
+  RSA: "ZAF",
+};
 
 const normalizeCode = (value) => ESPN_TO_FIFA[String(value || "").toUpperCase()] || String(value || "").toUpperCase();
+const jerseyNumber = (value) => {
+  const parsed = Number(String(value ?? "").match(/\d+/)?.[0]);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+};
 
 const fetchJson = async (url) => {
   const response = await fetch(url, {
@@ -23,19 +35,25 @@ const extractTeams = (payload) => payload?.sports?.flatMap((sport) =>
 ) || [];
 
 const indexLocalPlayers = (fifaCode) => {
-  const rows = db.prepare("SELECT id,name,date_of_birth,espn_id FROM players WHERE team_fifa_code=?").all(fifaCode);
+  const rows = db.prepare("SELECT id,name,number,date_of_birth,espn_id FROM players WHERE team_fifa_code=?").all(fifaCode);
   const byName = new Map();
   const byBirthDate = new Map();
+  const byNumber = new Map();
   for (const row of rows) {
     const key = normalizePlayerName(row.name);
     if (!byName.has(key)) byName.set(key, []);
     byName.get(key).push(row);
+    if (row.number !== null && row.number !== undefined) {
+      const keyNumber = Number(row.number);
+      if (!byNumber.has(keyNumber)) byNumber.set(keyNumber, []);
+      byNumber.get(keyNumber).push(row);
+    }
     if (row.date_of_birth) {
       if (!byBirthDate.has(row.date_of_birth)) byBirthDate.set(row.date_of_birth, []);
       byBirthDate.get(row.date_of_birth).push(row);
     }
   }
-  return { rows, byName, byBirthDate };
+  return { rows, byName, byBirthDate, byNumber };
 };
 
 const playerNameKeys = (athlete) => [...new Set([
@@ -103,7 +121,7 @@ export async function syncEspnMappings() {
       summary.players_unmapped.push({ team: localTeam.name, reason: error.message });
       continue;
     }
-    const { rows, byName, byBirthDate } = indexLocalPlayers(localTeam.fifa_code);
+    const { rows, byName, byBirthDate, byNumber } = indexLocalPlayers(localTeam.fifa_code);
     for (const athlete of roster.athletes || []) {
       summary.players_seen++;
       const espnId = String(athlete.id || "");
@@ -121,10 +139,13 @@ export async function syncEspnMappings() {
       const uniqueByFuzzyName = fuzzyNameCandidates(athlete, rows);
       const birthDate = String(athlete.dateOfBirth || "").slice(0, 10);
       const uniqueByBirthDate = [...new Map((byBirthDate.get(birthDate) || []).map((player) => [player.id, player])).values()];
+      const number = jerseyNumber(athlete.jersey || athlete.displayJersey || athlete.uniform || athlete.number);
+      const uniqueByNumber = [...new Map((byNumber.get(number) || []).map((player) => [player.id, player])).values()];
       const unique = uniqueByName.length === 1 ? uniqueByName
-        : uniqueByName.length === 0 && uniqueByFuzzyName.length === 1 ? uniqueByFuzzyName
-          : uniqueByName.length === 0 && uniqueByFuzzyName.length === 0 && uniqueByBirthDate.length === 1 ? uniqueByBirthDate
-            : uniqueByName.length ? uniqueByName : uniqueByFuzzyName.length ? uniqueByFuzzyName : uniqueByBirthDate;
+        : uniqueByName.length === 0 && uniqueByBirthDate.length === 1 ? uniqueByBirthDate
+          : uniqueByName.length === 0 && uniqueByBirthDate.length === 0 && uniqueByNumber.length === 1 ? uniqueByNumber
+            : uniqueByName.length === 0 && uniqueByBirthDate.length === 0 && uniqueByNumber.length === 0 && uniqueByFuzzyName.length === 1 ? uniqueByFuzzyName
+              : uniqueByName.length ? uniqueByName : uniqueByBirthDate.length ? uniqueByBirthDate : uniqueByNumber.length ? uniqueByNumber : uniqueByFuzzyName;
       if (unique.length === 1) {
         clearDuplicatePlayer.run(espnId, unique[0].id);
         updatePlayer.run(espnId, unique[0].id);

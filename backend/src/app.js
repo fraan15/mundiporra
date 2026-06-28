@@ -931,12 +931,13 @@ const userStats = (userId, { includeMedals = false } = {}) => {
     badges.push(...(dynamicBadges.get(Number(userId)) || []));
     const disputedBadges = Array.from(dynamicBadges.entries()).flatMap(([holderId, holderBadges]) => {
       const holder = leaderboard.find((item) => item.id === holderId);
-      return holderBadges.filter((badge) => badge.disputed || badge.kind === "leader").map((badge) => ({ ...badge, holder: holder?.username || "Jugador" }));
+      return holderBadges.filter((badge) => badge.disputed || badge.kind === "leader").map((badge) => ({ ...badge, holder_id: holderId, holder: holder?.username || "Jugador" }));
     }).reduce((items, badge) => {
       const key = `${badge.name}-${badge.description}`;
       const existing = items.get(key);
       if (existing) {
         existing.holders.push(badge.holder);
+        existing.achieved ||= badge.holder_id === Number(userId);
       } else {
         items.set(key, {
           icon: badge.icon,
@@ -946,7 +947,8 @@ const userStats = (userId, { includeMedals = false } = {}) => {
           level: badge.level,
           order: badge.order,
           description: badge.description,
-          holders: [badge.holder]
+          holders: [badge.holder],
+          achieved: badge.holder_id === Number(userId)
         });
       }
       return items;
@@ -2875,6 +2877,29 @@ app.post("/api/admin/sync-espn-mappings", requireAdmin, async (req, res, next) =
   } catch (error) {
     next(error);
   }
+});
+
+app.post("/api/admin/clear-espn-live-cache", requireAdmin, (req, res) => {
+  const before = db.prepare(`
+    SELECT COUNT(*) count FROM matches
+    WHERE espn_event_id IS NOT NULL
+       OR live_data_json IS NOT NULL
+       OR live_updated_at IS NOT NULL
+       OR live_completed_at IS NOT NULL
+  `).get().count;
+  db.prepare(`
+    UPDATE matches
+    SET espn_event_id=NULL,
+        live_data_json=NULL,
+        live_updated_at=NULL,
+        live_completed_at=NULL
+    WHERE espn_event_id IS NOT NULL
+       OR live_data_json IS NOT NULL
+       OR live_updated_at IS NOT NULL
+       OR live_completed_at IS NOT NULL
+  `).run();
+  logAction(req.user.id, "clear_espn_live_cache", "settings", null, `Caché ESPN Live limpiada en ${before} partidos`, null, { matches_cleared: before });
+  res.json({ ok: true, matches_cleared: before });
 });
 app.get("/api/admin/settings", requireAdmin, (_req, res) => res.json(settings()));
 app.put("/api/admin/settings", requireAdmin, (req, res) => {

@@ -1823,7 +1823,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 .agenda-match-row.needs-bet{box-shadow:none}
 .agenda-fixture{grid-template-columns:minmax(0,1fr) 68px minmax(0,1fr)}
 .agenda-fixture>b{white-space:nowrap;word-break:keep-all;line-height:1}
-.agenda-time small.live{color:#df2038}.agenda-time small.live:before,.agenda-time .espn-live-dot:before{content:"";display:inline-block;width:6px;height:6px;margin-right:4px;border-radius:50%;background:currentColor;box-shadow:0 0 0 3px rgba(223,32,56,.12)}.agenda-time .espn-live-dot{display:block;color:#df2038;font-size:0;line-height:1}.agenda-time .espn-final{color:#f59e0b}.agenda-time .espn-final-source{color:#f59e0b}.agenda-bet-state>span,.agenda-bet-state>small{display:block}.agenda-bet-state>small{max-width:170px;margin-top:3px;overflow:hidden;text-overflow:ellipsis;color:inherit;font-size:8px;white-space:nowrap;opacity:.78}
+.agenda-time small.live{color:#df2038}.agenda-time small.live:before{content:"";display:inline-block;width:6px;height:6px;margin-right:4px;border-radius:50%;background:currentColor;box-shadow:0 0 0 3px rgba(223,32,56,.12)}.agenda-time .espn-final{color:#f59e0b}.agenda-time .espn-final-source{color:#f59e0b}.agenda-bet-state>span,.agenda-bet-state>small{display:block}.agenda-bet-state>small{max-width:170px;margin-top:3px;overflow:hidden;text-overflow:ellipsis;color:inherit;font-size:8px;white-space:nowrap;opacity:.78}
 .agenda-time small.upcoming{color:#999}.agenda-match-row{grid-template-columns:67px minmax(310px,1fr) auto}.agenda-match-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px}.agenda-scorer-tag{display:inline-flex;align-items:center;gap:5px;max-width:180px;padding:6px 9px;border-radius:999px;background:#f1e9de;color:#7a5425;font-size:10px;font-weight:850;white-space:nowrap}.agenda-scorer-tag svg{flex:0 0 auto}.agenda-scorer-tag{overflow:hidden;text-overflow:ellipsis}
 [data-theme="dark"] .agenda-scorer-tag{background:#3b3024;color:#e7c58d}
 .matches-team-search{flex:1;min-width:220px}.matches-team-search .search-select-control{border:1px solid var(--line);border-radius:13px;background:var(--panel);box-shadow:none}.matches-team-search .search-select-control:focus-within{border-color:var(--line);box-shadow:none}.matches-team-search input,.matches-team-search input:focus{border:0!important;outline:0!important;box-shadow:none!important;background:transparent}.matches-team-search .search-select-value{margin-top:5px}.matches-toolbar>.matches-team-search:first-child{flex-basis:auto}
@@ -3760,9 +3760,11 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
 /* Panel ESPN del detalle de partido */
 .espn-detail-card{display:grid;gap:14px;overflow:hidden}
 .espn-detail-card>header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-.espn-detail-card>header h2{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:2px 0 0}
+.espn-detail-title{display:grid;grid-template-columns:minmax(0,auto) auto;align-items:center;gap:5px 8px;min-width:0}
+.espn-detail-title small{grid-column:1/-1}
+.espn-detail-card>header h2{min-width:0;margin:2px 0 0;line-height:1.12}
 .espn-detail-card>header>span{flex:0 0 auto;padding:6px 9px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:11px;font-weight:900}
-.espn-source-pill{display:inline-flex;align-items:center;gap:4px;padding:4px 7px;border:1px solid rgba(169,31,50,.18);border-radius:999px;background:#fff0f2;color:#b31f33;font-size:10px;font-weight:950;letter-spacing:.04em;text-transform:uppercase;vertical-align:middle}
+.espn-source-pill{display:inline-flex;align-items:center;justify-content:center;align-self:end;gap:4px;max-width:100%;padding:4px 7px;border:1px solid rgba(169,31,50,.18);border-radius:999px;background:#fff0f2;color:#b31f33;font-size:10px;font-weight:950;letter-spacing:.04em;line-height:1;text-transform:uppercase;vertical-align:middle;white-space:nowrap}
 .espn-detail-score{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:12px;padding:13px;border:1px solid var(--line);border-radius:18px;background:var(--panel2)}
 .espn-detail-score>span{display:flex;align-items:center;gap:8px;min-width:0;font-size:13px;font-weight:850}
 .espn-detail-score>span:first-child{justify-content:flex-end;text-align:right}
@@ -3859,7 +3861,8 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
 .detail-simulation-card.espn-points-preview>div{display:grid;gap:5px}
 .detail-simulation-card.espn-points-preview span{grid-template-columns:16px minmax(0,1fr) auto}
 .detail-simulation-card.espn-points-preview p{margin:7px 0 0;color:var(--muted);font-size:10px;font-weight:800}
-.detail-simulation-card.espn-points-preview .live-ticker-simulate{grid-column:auto;grid-row:auto;padding:0}
+.detail-simulation-card.espn-points-preview .live-ticker-simulate{grid-column:auto;grid-row:auto;display:grid;place-items:center;width:32px;height:32px;min-height:0;padding:0;line-height:1;box-sizing:border-box}
+.detail-simulation-card.espn-points-preview .live-ticker-simulate svg{display:block;margin:0}
 [data-theme="dark"] .live-ticker-summary>.live-ticker-minute{background:rgba(223,32,56,.16);color:#ff8fa0}
 [data-theme="dark"] .live-ticker-summary>.live-ticker-minute.is-final{background:rgba(70,115,170,.22);color:#a9cdf6}
 [data-theme="dark"] .live-ticker-summary>.live-ticker-minute.is-break{background:rgba(205,126,42,.22);color:#f3bd7c}

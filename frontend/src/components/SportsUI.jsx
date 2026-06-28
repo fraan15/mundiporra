@@ -206,14 +206,14 @@ export function BadgeCatalogDialog({ catalog = [], disputed = [], onClose }) {
             </header>
             <div>
               {activePage.type === "disputed" ? (
-                activePage.items.length ? activePage.items.map((badge) => <article className={badge.kind || ""} key={`${badge.name}-${badge.description}`}>
+                activePage.items.length ? activePage.items.map((badge) => <article className={`${badge.kind || ""} ${badge.achieved ? "achieved" : ""}`} key={`${badge.name}-${badge.description}`}>
                   <span aria-hidden="true">{badge.icon}</span>
                   <div>
                     <strong>{badge.name}</strong>
                     <small>{badge.description || "Medalla disputada durante la porra."}</small>
                     <em>Ahora: {holdersText(badge.holders)}</em>
                   </div>
-                  <Check size={16} />
+                  {badge.achieved ? <Check size={16} /> : <Lock size={15} />}
                 </article>) : <p className="badge-catalog-empty">Ahora mismo no hay medallas en disputa.</p>
               ) : activePage.items.map((tier) => <article className={tier.achieved ? "achieved" : ""} key={`${activePage.group}-${tier.level}`}>
                 <span aria-hidden="true">{tier.icon}</span>

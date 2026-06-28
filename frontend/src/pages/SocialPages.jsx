@@ -97,7 +97,7 @@ function LivePredictionPreview({ match, response, onSimulate }) {
   const live = response?.live;
   const [preview, setPreview] = useState(null);
   const [previewError, setPreviewError] = useState(false);
-  const isPlayableLive = Boolean(live?.score && !live.completed && !response?.espn_completed && match.status !== "finished");
+  const isPlayableLive = Boolean(live?.score && match.status !== "finished");
   useEffect(() => {
     if (!isPlayableLive) { setPreview(null); setPreviewError(false); return; }
     setPreviewError(false);
@@ -161,7 +161,7 @@ function LiveMatchPanel({ match, response, onSimulate }) {
     setActiveGoalIndex(index);
   };
   return <section className="content-card espn-detail-card">
-    <header><div><small>{isEspnFinal ? "FINAL" : "EN DIRECTO"}</small><h2>{isEspnFinal ? <>Resultado final <span className="espn-source-pill">ESPN{isUnconfirmedFinal ? " · Pendiente de confirmar" : ""}</span></> : "Marcador en vivo"}</h2></div><span>{response.stale ? "Último dato disponible" : liveMoment(live, response)}</span></header>
+    <header><div className="espn-detail-title"><small>{isEspnFinal ? "MARCADOR ESPN" : "EN DIRECTO ESPN"}</small><h2>{isEspnFinal ? "Resultado final" : "Marcador en vivo"}</h2>{isUnconfirmedFinal && <span className="espn-source-pill">Pendiente de confirmar</span>}</div><span>{response.stale ? "Último dato disponible" : liveMoment(live, response)}</span></header>
     <div className="espn-detail-score"><span><Flag team={match.team1} teamData={match.team1_team}/>{match.team1}</span><strong>{live.score?.team1 ?? 0}<i>–</i>{live.score?.team2 ?? 0}</strong><span><Flag team={match.team2} teamData={match.team2_team}/>{match.team2}</span></div>
     <div className="espn-goals-list">{sortedGoals.length ? <><div className="espn-goals-scroll" ref={goalsScrollerRef} onScroll={updateGoalIndex}>{sortedGoals.map((goal, index) => <div className="espn-goal-row" key={goal.id || `${goal.minute}-${goal.espn_name || goal.player_name}-${index}`}>
       <time className="espn-goal-minute">{goal.minute || "—"}</time><span>⚽</span><div className="espn-goal-player"><strong>{goal.player_name || goal.espn_name || "Goleador sin identificar"}</strong><small>{goal.label || (goal.own_goal ? "Autogol" : goal.penalty ? "Gol de penalti" : "Gol")}{goal.team_code ? ` · ${goal.team_code}` : ""}</small></div>
