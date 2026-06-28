@@ -32,8 +32,8 @@ npm run dev
 
 - Web: http://localhost:5173
 - API: http://localhost:3001
-- Administrador inicial: `administrador`
-- Contraseña: `yami`
+- Administrador inicial: `xxx`
+- Contraseña: `xxx`
 
 Los usuarios de prueba `lucia`, `marcos` y `sara` solo se crean al ejecutar los tests o si se configura expresamente `SEED_DEMO_DATA=true`.
 
