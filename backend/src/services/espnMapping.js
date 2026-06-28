@@ -12,10 +12,14 @@ const ESPN_TO_FIFA = {
   KSA: "SAU",
   CRC: "CRI",
   CRO: "HRV",
-  RSA: "ZAF",
+  ZAF: "RSA",
 };
 
 const normalizeCode = (value) => ESPN_TO_FIFA[String(value || "").toUpperCase()] || String(value || "").toUpperCase();
+const teamNameKey = (value) => normalizePlayerName(value)
+  .replace(/\b(?:fc|cf|national|team|men|mens)\b/g, " ")
+  .replace(/\s+/g, " ")
+  .trim();
 const jerseyNumber = (value) => {
   const parsed = Number(String(value ?? "").match(/\d+/)?.[0]);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
@@ -82,12 +86,47 @@ const fuzzyNameCandidates = (athlete, players) => {
   return [...best.values()];
 };
 
+const firstUnique = (...groups) => {
+  for (const group of groups) {
+    const unique = [...new Map((group || []).map((player) => [player.id, player])).values()];
+    if (unique.length === 1) return unique;
+    if (unique.length > 1) return unique;
+  }
+  return [];
+};
+
+const localTeamCandidates = (espnTeam) => [
+  espnTeam.abbreviation,
+  normalizeCode(espnTeam.abbreviation),
+  espnTeam.shortDisplayName,
+  espnTeam.displayName,
+  espnTeam.name,
+  espnTeam.location,
+].filter(Boolean);
+
+const findLocalTeam = (espnTeam, indexes) => {
+  for (const value of localTeamCandidates(espnTeam)) {
+    const raw = String(value || "").toUpperCase();
+    const byCode = indexes.byCode.get(raw) || indexes.byCode.get(normalizeCode(raw));
+    if (byCode) return byCode;
+    const byName = indexes.byName.get(teamNameKey(value));
+    if (byName) return byName;
+  }
+  return null;
+};
+
 export async function syncEspnMappings() {
   const startedAt = now();
   const teamsPayload = await fetchJson(TEAMS_URL);
   const espnTeams = extractTeams(teamsPayload);
   const localTeams = db.prepare("SELECT id,fifa_code,name,espn_id FROM teams").all();
-  const localByCode = new Map(localTeams.map((team) => [team.fifa_code, team]));
+  const localByCode = new Map();
+  const localByName = new Map();
+  for (const team of localTeams) {
+    localByCode.set(String(team.fifa_code || "").toUpperCase(), team);
+    localByCode.set(normalizeCode(team.fifa_code), team);
+    localByName.set(teamNameKey(team.name), team);
+  }
   const updateTeam = db.prepare("UPDATE teams SET espn_id=? WHERE id=?");
   const updatePlayer = db.prepare("UPDATE players SET espn_id=? WHERE id=?");
   const clearDuplicatePlayer = db.prepare("UPDATE players SET espn_id=NULL WHERE espn_id=? AND id<>?");
@@ -106,7 +145,7 @@ export async function syncEspnMappings() {
 
   for (const espnTeam of espnTeams) {
     const fifaCode = normalizeCode(espnTeam.abbreviation);
-    const localTeam = localByCode.get(fifaCode);
+    const localTeam = findLocalTeam(espnTeam, { byCode: localByCode, byName: localByName });
     if (!localTeam) {
       summary.teams_unmapped.push({ espn_id: String(espnTeam.id), code: fifaCode, name: espnTeam.displayName || espnTeam.name });
       continue;
@@ -126,8 +165,8 @@ export async function syncEspnMappings() {
       summary.players_seen++;
       const espnId = String(athlete.id || "");
       if (!espnId) continue;
-      const exactMapped = db.prepare("SELECT id FROM players WHERE espn_id=?").get(espnId);
-      if (exactMapped) {
+      const exactMapped = db.prepare("SELECT id,team_fifa_code FROM players WHERE espn_id=?").get(espnId);
+      if (exactMapped?.team_fifa_code === localTeam.fifa_code) {
         summary.players_already_mapped++;
         continue;
       }
@@ -141,11 +180,9 @@ export async function syncEspnMappings() {
       const uniqueByBirthDate = [...new Map((byBirthDate.get(birthDate) || []).map((player) => [player.id, player])).values()];
       const number = jerseyNumber(athlete.jersey || athlete.displayJersey || athlete.uniform || athlete.number);
       const uniqueByNumber = [...new Map((byNumber.get(number) || []).map((player) => [player.id, player])).values()];
-      const unique = uniqueByName.length === 1 ? uniqueByName
-        : uniqueByName.length === 0 && uniqueByBirthDate.length === 1 ? uniqueByBirthDate
-          : uniqueByName.length === 0 && uniqueByBirthDate.length === 0 && uniqueByNumber.length === 1 ? uniqueByNumber
-            : uniqueByName.length === 0 && uniqueByBirthDate.length === 0 && uniqueByNumber.length === 0 && uniqueByFuzzyName.length === 1 ? uniqueByFuzzyName
-              : uniqueByName.length ? uniqueByName : uniqueByBirthDate.length ? uniqueByBirthDate : uniqueByNumber.length ? uniqueByNumber : uniqueByFuzzyName;
+      const fuzzyWithNumber = number ? uniqueByFuzzyName.filter((player) => Number(player.number) === number) : [];
+      const nameWithNumber = number ? uniqueByName.filter((player) => Number(player.number) === number) : [];
+      const unique = firstUnique(uniqueByName, uniqueByBirthDate, nameWithNumber, fuzzyWithNumber, uniqueByNumber, uniqueByFuzzyName);
       if (unique.length === 1) {
         clearDuplicatePlayer.run(espnId, unique[0].id);
         updatePlayer.run(espnId, unique[0].id);
@@ -164,10 +201,25 @@ export async function syncEspnMappings() {
 export function espnMappingStatus() {
   const teams = db.prepare("SELECT COUNT(*) total,SUM(CASE WHEN espn_id IS NOT NULL AND espn_id!='' THEN 1 ELSE 0 END) mapped FROM teams").get();
   const players = db.prepare("SELECT COUNT(*) total,SUM(CASE WHEN espn_id IS NOT NULL AND espn_id!='' THEN 1 ELSE 0 END) mapped FROM players").get();
+  const teamsUnmapped = db.prepare(`
+    SELECT fifa_code code,name
+    FROM teams
+    WHERE espn_id IS NULL OR espn_id=''
+    ORDER BY name
+  `).all();
+  const playersUnmapped = db.prepare(`
+    SELECT p.id,p.name,p.number,p.position,p.team_fifa_code team_code,t.name team
+    FROM players p
+    JOIN teams t ON t.fifa_code=p.team_fifa_code
+    WHERE p.espn_id IS NULL OR p.espn_id=''
+    ORDER BY t.name,p.number IS NULL,p.number,p.name
+  `).all();
   return {
     teams_total: teams.total || 0,
     teams_mapped: teams.mapped || 0,
     players_total: players.total || 0,
     players_mapped: players.mapped || 0,
+    teams_unmapped_local: teamsUnmapped,
+    players_unmapped_local: playersUnmapped,
   };
 }

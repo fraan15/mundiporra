@@ -1733,6 +1733,10 @@ function AdminSettings() {
       setSyncingEspn(false);
     }
   };
+  const espnTeamsMissing = espnStatus?.teams_unmapped_local || [];
+  const espnPlayersMissing = espnStatus?.players_unmapped_local || [];
+  const espnSyncUnmapped = espnStatus?.players_unmapped || [];
+  const espnSyncAmbiguous = espnStatus?.players_ambiguous || [];
   const clearEspnLiveCache = async () => {
     if (!window.confirm("¿Limpiar todos los datos ESPN Live guardados? Los partidos en juego volverán a pedir ESPN; el resto quedará sin marcador ESPN.")) return;
     setClearingEspnLive(true);
@@ -1891,6 +1895,34 @@ function AdminSettings() {
             <small>{espnStatus.players_mapped}/{espnStatus.players_total} jugadores con ID ESPN</small>
           )}
         </div>
+        {espnStatus && (espnTeamsMissing.length > 0 || espnPlayersMissing.length > 0 || espnSyncUnmapped.length > 0 || espnSyncAmbiguous.length > 0) && (
+          <div className="espn-mapping-report">
+            {espnTeamsMissing.length > 0 && (
+              <details open>
+                <summary>Equipos sin mapear ({espnTeamsMissing.length})</summary>
+                <div>{espnTeamsMissing.map((team) => <span key={team.code}><b>{team.code}</b>{team.name}</span>)}</div>
+              </details>
+            )}
+            {espnPlayersMissing.length > 0 && (
+              <details>
+                <summary>Jugadores locales sin ESPN ID ({espnPlayersMissing.length})</summary>
+                <div>{espnPlayersMissing.map((player) => <span key={player.id}><b>{player.team_code}</b>{player.name}{player.number ? ` · #${player.number}` : ""}<small>{player.team}</small></span>)}</div>
+              </details>
+            )}
+            {espnSyncUnmapped.length > 0 && (
+              <details>
+                <summary>Jugadores ESPN no encontrados ({espnSyncUnmapped.length})</summary>
+                <div>{espnSyncUnmapped.slice(0, 250).map((player, index) => <span key={`${player.team}-${player.espn_id || index}`}><b>{player.team}</b>{player.espn_name || player.reason || "Sin nombre ESPN"}{player.espn_id ? <small>ESPN {player.espn_id}</small> : null}</span>)}</div>
+              </details>
+            )}
+            {espnSyncAmbiguous.length > 0 && (
+              <details>
+                <summary>Jugadores ambiguos ({espnSyncAmbiguous.length})</summary>
+                <div>{espnSyncAmbiguous.map((player) => <span key={`${player.team}-${player.espn_id}`}><b>{player.team}</b>{player.espn_name}<small>Candidatos: {player.candidates?.join(", ")}</small></span>)}</div>
+              </details>
+            )}
+          </div>
+        )}
       </div>
       <div className="action-panel">
         <Trash2 size={32} />
