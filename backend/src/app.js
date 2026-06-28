@@ -14,7 +14,7 @@ import { createNotification, leaderboardRows, notifyAll, notifyAllExcept, notify
 import { NO_SCORER, NO_SCORER_ID, parseScorerList, parseScorerSelection, serializeActualScorers, serializePredictedScorer } from "./services/scorers.js";
 import { loadWorldCupReference, normalizePlayerName, syncWorldCupReference, teamReferenceStats, worldCupOverview } from "./services/worldcupReference.js";
 import { getPushPreferences, pushConfigured, savePushSubscription, sendPushToUser, vapidPublicKey } from "./services/push.js";
-import { getEspnEventById, getEspnLiveMatch } from "./services/espnLive.js";
+import { espnEventMatches, getEspnEventById, getEspnLiveMatch } from "./services/espnLive.js";
 import { espnMappingStatus, syncEspnMappings } from "./services/espnMapping.js";
 
 initDatabase();
@@ -1730,15 +1730,28 @@ const liveMatchRow = (id) => db.prepare(`
 `).get(id);
 
 const loadLiveMatch = async (match) => {
-  const cached = (() => {
+  let cached = (() => {
     try { return match.live_data_json ? JSON.parse(match.live_data_json) : null; } catch { return null; }
   })();
+  if (cached && !espnEventMatches(cached, { ...match, starts_at: matchStartsAt(match).toISOString() })) {
+    db.prepare("UPDATE matches SET espn_event_id=NULL,live_data_json=NULL,live_updated_at=NULL WHERE id=?").run(match.id);
+    match.espn_event_id = null;
+    match.live_data_json = null;
+    match.live_updated_at = null;
+    cached = null;
+  }
   if (match.live_test_enabled && match.live_test_event_id) {
     try {
       const cachedReplay = liveTestCache.get(match.live_test_event_id);
       const sourceLive = cachedReplay && Date.now() - cachedReplay.at < 20000
         ? cachedReplay.live
         : await getEspnEventById(match.live_test_event_id);
+      const matchWithStart = { ...match, starts_at: matchStartsAt(match).toISOString() };
+      if (!espnEventMatches(sourceLive, matchWithStart)) {
+        db.prepare("UPDATE matches SET live_test_enabled=0,live_test_event_id=NULL,updated_at=? WHERE id=?")
+          .run(now(), match.id);
+        return { available: false, live: null, stale: false, test_mode: false, error: "El evento ESPN guardado no coincide con este partido." };
+      }
       liveTestCache.set(match.live_test_event_id, { at: Date.now(), live: sourceLive });
       const replay = enrichLivePlayers(asTestReplay(sourceLive, match), match);
       return { available: true, live: replay, stale: false, test_mode: true };
@@ -1789,6 +1802,7 @@ app.get("/api/matches/live-scores", requireAuth, async (req, res) => {
       clock: live.clock,
       score: live.score,
       goals: live.goals || [],
+      scorer_player_ids: live.scorer_player_ids || [],
       fetched_at: live.fetched_at,
     } : { available: false, stale: response.stale };
   }
@@ -1839,8 +1853,14 @@ app.patch("/api/admin/matches/:id/live-test", requireAdmin, async (req, res) => 
   if (!enabled) eventId = String(match.live_test_event_id || "").trim();
   if (enabled && !/^\d{4,12}$/.test(eventId)) return res.status(400).json({ error: "Introduce un ID numérico de evento ESPN válido." });
   if (enabled) {
-    try { await getEspnEventById(eventId); }
-    catch { return res.status(400).json({ error: "ESPN no reconoce ese evento o no está disponible." }); }
+    try {
+      const live = await getEspnEventById(eventId);
+      if (!espnEventMatches(live, { ...match, starts_at: matchStartsAt(match).toISOString() })) {
+        return res.status(400).json({ error: "Ese evento ESPN no coincide con la fecha y las selecciones de este partido." });
+      }
+    } catch {
+      return res.status(400).json({ error: "ESPN no reconoce ese evento o no está disponible." });
+    }
   }
   db.prepare("UPDATE matches SET live_test_enabled=?,live_test_event_id=?,updated_at=? WHERE id=?")
     .run(enabled ? 1 : 0, eventId || null, now(), match.id);

@@ -9,7 +9,6 @@ import { StarMatchTitle } from "../components/StarMatchTitle";
 import { ActivityAvatar } from "../components/Avatar";
 import { countryTimeZone, formatLocalDateTime, localMatchDate, localMatchTime } from "../utils/matchDateTime";
 import { useLiveScores } from "../hooks/useLiveScores";
-import { EspnLiveScore } from "../components/EspnLiveScore";
 
 const dateKey = (date) => date.toLocaleDateString("sv-SE");
 const addDays = (date, days) => {
@@ -144,47 +143,123 @@ export function KnockoutInfoDialog({ onClose }) {
 const liveScoreText = (match, liveScore) => liveScore?.available && liveScore.score
   ? `${liveScore.score.team1} - ${liveScore.score.team2}`
   : hasResult(match) ? `${match.result_team1} - ${match.result_team2}` : "VS";
+const liveStatusText = (liveScore) => {
+  if (!liveScore?.available) return "";
+  if (liveScore.completed) return "FIN";
+  const status = `${liveScore.status || ""} ${liveScore.clock || ""}`.toLowerCase();
+  if (/half|descanso|intermedio/.test(status)) return "DES";
+  return liveScore.clock || "";
+};
+const liveWinner = (score) => {
+  const g1 = Number(score?.team1 || 0), g2 = Number(score?.team2 || 0);
+  return g1 === g2 ? "draw" : g1 > g2 ? "team1" : "team2";
+};
+const livePointsPreview = (match, liveScore) => {
+  if (!match.prediction_id || !liveScore?.score) return null;
+  const multiplier = Number(match.is_star) ? 2 : 1;
+  const predictedScorerId = Number(match.predicted_team1_goals) + Number(match.predicted_team2_goals) === 0
+    ? "no-scorer"
+    : match.predicted_scorer_id;
+  const currentScorers = new Set((liveScore.scorer_player_ids || []).map(String));
+  if (Number(match.scorer_enabled) && Number(liveScore.score.team1 || 0) + Number(liveScore.score.team2 || 0) === 0) currentScorers.add("no-scorer");
+  const winnerHit = match.predicted_winner === liveWinner(liveScore.score);
+  const exactHit = Number(match.predicted_team1_goals) === Number(liveScore.score.team1 || 0) && Number(match.predicted_team2_goals) === Number(liveScore.score.team2 || 0);
+  const scorerHit = Boolean(Number(match.scorer_enabled) && predictedScorerId && currentScorers.has(String(predictedScorerId)));
+  const parts = [
+    { key: "winner", label: "Ganador", hit: winnerHit, points: winnerHit ? 3 * multiplier : 0 },
+    { key: "exact", label: "Resultado", hit: exactHit, points: exactHit ? 5 * multiplier : 0 },
+    { key: "scorer", label: "Goleador", hit: scorerHit, points: scorerHit ? 2 * multiplier : 0, disabled: !Number(match.scorer_enabled) },
+  ].filter((part) => !part.disabled);
+  return { total: parts.reduce((sum, part) => sum + part.points, 0), parts, multiplier };
+};
 
 function LiveMatchTicker({ matches, liveScores, user, onOpenMatch }) {
+  const scrollRef = useRef(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [expandedMatchId, setExpandedMatchId] = useState(null);
+  useEffect(() => {
+    setActiveIndex(0);
+    setExpandedMatchId(null);
+    if (scrollRef.current) scrollRef.current.scrollLeft = 0;
+  }, [matches.length]);
+  const updateActiveIndex = () => {
+    const scroller = scrollRef.current;
+    if (!scroller) return;
+    const cards = Array.from(scroller.querySelectorAll(".live-ticker-card"));
+    if (!cards.length) { setActiveIndex(0); return; }
+    const center = scroller.scrollLeft + scroller.clientWidth / 2;
+    const next = cards.reduce((bestIndex, card, index) => {
+      const bestCard = cards[bestIndex];
+      const cardCenter = card.offsetLeft + card.offsetWidth / 2;
+      const bestCenter = bestCard.offsetLeft + bestCard.offsetWidth / 2;
+      return Math.abs(cardCenter - center) < Math.abs(bestCenter - center) ? index : bestIndex;
+    }, 0);
+    setActiveIndex((current) => {
+      if (current !== next) setExpandedMatchId(null);
+      return next;
+    });
+  };
+  const goToMatch = (index) => {
+    const card = scrollRef.current?.querySelectorAll(".live-ticker-card")?.[index];
+    if (card) card.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    setActiveIndex(index);
+    setExpandedMatchId(null);
+  };
   if (!matches.length) return null;
   return <section className="live-ticker-section content-card" aria-label="Partidos en juego">
     <header className="live-ticker-header">
       <div><span className="eyebrow live-label"><Radio size={14}/> EN DIRECTO</span><h2>Partidos en juego</h2></div>
       <small>Desliza para verlos</small>
     </header>
-    <div className="live-ticker-scroll">
-      {matches.map((match) => {
+    <div className="live-ticker-scroll" ref={scrollRef} onScroll={updateActiveIndex}>
+      {matches.map((match, index) => {
         const liveScore = liveScores[match.id];
         const goals = liveScore?.goals || [];
         const prediction = match.prediction_id ? predictionScoreText(match, "No apostado") : "No apostado";
         const scorer = predictionScorerText(match, user);
-        return <details className={`live-ticker-card ${match.is_star ? "is-star" : ""}`} key={match.id}>
-          <summary>
+        const isExpanded = expandedMatchId === match.id;
+        const statusText = liveStatusText(liveScore);
+        const pointsPreview = livePointsPreview(match, liveScore);
+        return <article className={`live-ticker-card ${match.is_star ? "is-star" : ""} ${isExpanded ? "is-open" : ""}`} key={match.id}>
+          <button type="button" className="live-ticker-summary" onClick={() => {
+            if (activeIndex !== index) goToMatch(index);
+            setExpandedMatchId(isExpanded ? null : match.id);
+          }} aria-expanded={isExpanded}>
             {Boolean(match.is_star) && <span className="live-ticker-star"><Star size={12} fill="currentColor"/> x2</span>}
             <span className="live-ticker-live"><i/> Live</span>
             <span className="live-ticker-team home"><Flag team={match.team1} teamData={match.team1_team}/><strong>{match.team1}</strong></span>
             <b>{liveScoreText(match, liveScore)}</b>
             <span className="live-ticker-team away"><Flag team={match.team2} teamData={match.team2_team}/><strong>{match.team2}</strong></span>
-            <em>Ver más</em>
-          </summary>
-          <div className="live-ticker-details">
+            {statusText && <small className={`live-ticker-minute ${statusText === "FIN" ? "is-final" : statusText === "DES" ? "is-break" : ""}`}>{statusText}</small>}
+            <em>{isExpanded ? "Ocultar" : "Ver más"}</em>
+          </button>
+          {isExpanded && <div className="live-ticker-details">
             <div className="live-ticker-goals">
-              <small>Goles</small>
-              {goals.length ? goals.map((goal) => <span key={goal.id || `${goal.minute}-${goal.espn_name}`}>
+              <small><span aria-hidden="true">⚽</span> Goles</small>
+              {goals.length ? goals.map((goal) => <span className="live-ticker-goal" key={goal.id || `${goal.minute}-${goal.espn_name}`}>
                 <time>{goal.minute || "—"}</time>
-                <strong>{goal.player_name || goal.espn_name || "Goleador sin identificar"}</strong>
+                <i>⚽</i>
+                <strong>{goal.player_name || goal.espn_name || "Goleador sin identificar"}<small>{goal.label || "Gol"}{goal.team_code ? ` · ${goal.team_code}` : ""}</small></strong>
               </span>) : <p>Sin goles por ahora.</p>}
             </div>
             <div className="live-ticker-bet">
               <small>{user.is_read_only ? "Participación" : "Tu apuesta"}</small>
-              <strong>{user.is_read_only ? "Solo lectura" : prediction}</strong>
+              <strong><span>{user.is_read_only ? "Solo lectura" : prediction}</span>{Boolean(match.is_star) && <em>x2</em>}</strong>
               {scorer ? <span>{scorer}</span> : <span>Sin goleador apostado</span>}
             </div>
+            {pointsPreview && <div className="live-ticker-points">
+              <small>Pronóstico de puntos actual</small>
+              <strong>+{pointsPreview.total} pts</strong>
+              <div>{pointsPreview.parts.map((part) => <span className={part.hit ? "hit" : ""} key={part.key}>{part.hit ? <CheckCircle2 size={13}/> : <X size={13}/>}<b>{part.label}</b><em>+{part.points}</em></span>)}</div>
+            </div>}
             <button type="button" onClick={() => onOpenMatch(match)}><Eye size={14}/> Ver partido</button>
-          </div>
-        </details>;
+          </div>}
+        </article>;
       })}
     </div>
+    {matches.length > 1 && <div className="live-ticker-dots" aria-label={`Partido ${activeIndex + 1} de ${matches.length}`}>
+      {matches.map((match, index) => <button type="button" key={`live-ticker-dot-${match.id}`} className={index === activeIndex ? "active" : ""} onClick={() => goToMatch(index)} aria-label={`Ver partido ${index + 1} de ${matches.length}`}/>)}
+    </div>}
   </section>;
 }
 
@@ -372,7 +447,6 @@ function DashboardCalendar({ matches, liveScores, calendarToday, onOpenMatch, re
             </header>
             <div className="calendar-day-matches">{day.matches.length ? day.matches.map(match => <button type="button" className="calendar-match" key={match.id} onPointerDown={startMatchPointer} onPointerMove={moveMatchPointer} onPointerCancel={()=>{pointerRef.current=null}} onClick={event=>clickMatch(event, match)} onKeyDown={event=>openMatchOnKey(event, match)} aria-label={`Ver detalle de ${match.team1} contra ${match.team2}`}>
           <span className="calendar-match-main">
-            <span className="calendar-live-slot"><EspnLiveScore data={liveScores[match.id]}/></span>
             <span className="calendar-team home"><strong>{match.team1}</strong><Flag team={match.team1} teamData={match.team1_team}/></span>
             <b>{liveScores[match.id]?.available && liveScores[match.id]?.score ? `${liveScores[match.id].score.team1} - ${liveScores[match.id].score.team2}` : hasResult(match) ? `${match.result_team1} - ${match.result_team2}` : localMatchTime(match, user.country_code)}</b>
             <span className="calendar-team away"><Flag team={match.team2} teamData={match.team2_team}/><strong>{match.team2}</strong></span>
@@ -381,7 +455,7 @@ function DashboardCalendar({ matches, liveScores, calendarToday, onOpenMatch, re
             <span className={`calendar-bet ${match.prediction_id ? "has-prediction" : "no-prediction"}`}>
               {user.is_read_only ? "Solo lectura" : match.prediction_id ? `Tu apuesta: ${match.predicted_team1_goals} - ${match.predicted_team2_goals}` : "Sin apuesta"}
             </span>
-            <span className={`calendar-close ${closeState(match)}`}><Clock3 size={12}/>{closeText(match, currentTime, user.country_code)}</span>
+            {match.in_play ? <span className="calendar-close playing calendar-live-state"><i aria-hidden="true"/>Live</span> : <span className={`calendar-close ${closeState(match)}`}><Clock3 size={12}/>{closeText(match, currentTime, user.country_code)}</span>}
             {(Boolean(match.is_star)||match.predicted_scorer?.name)&&<span className={`calendar-special ${match.is_star&&match.predicted_scorer?.name?"split":""}`}>
               {Boolean(match.is_star)&&<span className="calendar-star"><Star size={12} fill="currentColor"/> Estrella x2</span>}
               {match.predicted_scorer?.name&&<span className="calendar-scorer">Goleador: {match.predicted_scorer.name}</span>}

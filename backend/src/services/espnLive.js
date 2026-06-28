@@ -40,6 +40,7 @@ const localTeamCodes = (match) => [
   normalizeCode(match.team2_fifa_code),
 ].filter(Boolean);
 const espnDate = (value) => new Date(value).toISOString().slice(0, 10).replaceAll("-", "");
+const EVENT_TIME_TOLERANCE_MS = 6 * 60 * 60 * 1000;
 
 export const espnScoreboardDates = (match) => {
   const startsAt = new Date(match.starts_at);
@@ -55,7 +56,7 @@ export const findEspnEvent = (events, match) => {
   const expectedCodes = localTeamCodes(match);
   const candidates = (events || []).filter((event) => {
     const codes = (competitionOf(event)?.competitors || []).map(teamCode);
-    return expectedCodes.length === 2 && expectedCodes.every((code) => codes.includes(code));
+    return expectedCodes.length === 2 && expectedCodes.every((code) => codes.includes(code)) && espnEventTimeMatches(event, match);
   });
   if (candidates.length === 1) return candidates[0];
   if (!candidates.length) return null;
@@ -63,6 +64,25 @@ export const findEspnEvent = (events, match) => {
   return candidates.sort((a, b) =>
     Math.abs(new Date(a.date).getTime() - expected) - Math.abs(new Date(b.date).getTime() - expected)
   )[0];
+};
+
+export const espnEventTimeMatches = (event, match, toleranceMs = EVENT_TIME_TOLERANCE_MS) => {
+  if (!match?.starts_at) return true;
+  const eventDate = event?.date || competitionOf(event)?.date || competitionOf(event)?.startDate;
+  if (!eventDate) return false;
+  const expected = new Date(match.starts_at).getTime();
+  const actual = new Date(eventDate).getTime();
+  return Number.isFinite(expected) && Number.isFinite(actual) && Math.abs(actual - expected) <= toleranceMs;
+};
+
+export const espnEventMatches = (liveOrEvent, match) => {
+  const expectedCodes = localTeamCodes(match);
+  const codes = liveOrEvent?.competitors
+    ? liveOrEvent.competitors.map((team) => normalizeCode(team.code || team.team?.abbreviation))
+    : (competitionOf(liveOrEvent)?.competitors || []).map(teamCode);
+  return expectedCodes.length === 2 &&
+    expectedCodes.every((code) => codes.includes(code)) &&
+    espnEventTimeMatches(liveOrEvent, match);
 };
 
 const participantDetails = (item) => (item?.athletesInvolved || item?.participants || item?.athletes || [])
@@ -238,6 +258,7 @@ export const normalizeEspnLive = (event, summary = {}) => {
   return {
     provider: "ESPN",
     event_id: String(headerEvent?.id || event?.id || competition?.id || ""),
+    date: headerEvent?.date || competition?.date || competition?.startDate || event?.date || "",
     state: status?.type?.state || "pre",
     completed: Boolean(status?.type?.completed),
     status: status?.type?.shortDetail || status?.type?.detail || status?.type?.description || "",
@@ -260,7 +281,8 @@ export async function getEspnLiveMatch(match) {
   let event = null;
   if (match.espn_event_id) {
     const summary = await fetchJson(`${SUMMARY_URL}?event=${encodeURIComponent(match.espn_event_id)}`);
-    return normalizeEspnLive({ id: match.espn_event_id }, summary);
+    const live = normalizeEspnLive({ id: match.espn_event_id }, summary);
+    if (espnEventMatches(live, match)) return live;
   }
   const dates = espnScoreboardDates(match);
   for (const date of dates) {

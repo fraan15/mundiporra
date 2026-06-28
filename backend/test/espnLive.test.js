@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { espnScoreboardDates, findEspnEvent, normalizeEspnLive } from "../src/services/espnLive.js";
+import { espnEventMatches, espnScoreboardDates, findEspnEvent, normalizeEspnLive } from "../src/services/espnLive.js";
 
 test("relaciona un partido del Mundial por códigos locales", () => {
   const events = [{
@@ -42,6 +42,28 @@ test("consulta también la fecha UTC para partidos de madrugada en Madrid", () =
     starts_at: "2026-06-27T23:30:00.000Z",
   });
   assert.equal(event?.id, "760481");
+});
+
+test("rechaza eventos ESPN de las mismas selecciones si la hora no cuadra", () => {
+  const match = {
+    team1_fifa_code: "COL",
+    team2_fifa_code: "POR",
+    starts_at: "2026-06-27T23:30:00.000Z",
+  };
+  const wrongEvent = {
+    id: "wrong-col-por",
+    date: "2026-06-20T19:00:00Z",
+    competitions: [{ competitors: [
+      { team: { abbreviation: "COL" } },
+      { team: { abbreviation: "POR" } },
+    ] }],
+  };
+  assert.equal(findEspnEvent([wrongEvent], match), null);
+  assert.equal(espnEventMatches({
+    event_id: "wrong-col-por",
+    date: wrongEvent.date,
+    competitors: [{ code: "COL" }, { code: "POR" }],
+  }, match), false);
 });
 
 test("normaliza marcador, incidencias y estadísticas sin convertirlos en resultado oficial", () => {

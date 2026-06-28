@@ -115,13 +115,40 @@ function LivePredictionPreview({ match, response, onSimulate }) {
 
 function LiveMatchPanel({ match, response, onSimulate }) {
   const live = response?.live;
+  const goals = live?.goals || [];
+  const goalsScrollerRef = useRef(null);
+  const [activeGoalIndex, setActiveGoalIndex] = useState(0);
+  useEffect(() => {
+    setActiveGoalIndex(0);
+    if (goalsScrollerRef.current) goalsScrollerRef.current.scrollLeft = 0;
+  }, [match.id, goals.length]);
   if (!live) return null;
+  const isUnconfirmedFinal = live.completed && match.status !== "finished";
+  const updateGoalIndex = () => {
+    const scroller = goalsScrollerRef.current;
+    if (!scroller) return;
+    const cards = Array.from(scroller.querySelectorAll(".espn-goal-row"));
+    if (!cards.length) { setActiveGoalIndex(0); return; }
+    const center = scroller.scrollLeft + scroller.clientWidth / 2;
+    const next = cards.reduce((bestIndex, card, index) => {
+      const bestCard = cards[bestIndex];
+      const cardCenter = card.offsetLeft + card.offsetWidth / 2;
+      const bestCenter = bestCard.offsetLeft + bestCard.offsetWidth / 2;
+      return Math.abs(cardCenter - center) < Math.abs(bestCenter - center) ? index : bestIndex;
+    }, 0);
+    setActiveGoalIndex(next);
+  };
+  const goToGoal = (index) => {
+    const card = goalsScrollerRef.current?.querySelectorAll(".espn-goal-row")?.[index];
+    if (card) card.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+    setActiveGoalIndex(index);
+  };
   return <section className="content-card espn-detail-card">
-    <header><div><small>{live.completed ? "FINAL" : "EN DIRECTO"}</small><h2>{live.completed ? "Resultado final" : "Marcador en vivo"}</h2></div><span>{response.stale ? "Último dato disponible" : liveMoment(live)}</span></header>
+    <header><div><small>{live.completed ? "FINAL" : "EN DIRECTO"}</small><h2>{live.completed ? <>Resultado final <span className="espn-source-pill">ESPN{isUnconfirmedFinal ? " · Sin confirmar" : ""}</span></> : "Marcador en vivo"}</h2></div><span>{response.stale ? "Último dato disponible" : liveMoment(live)}</span></header>
     <div className="espn-detail-score"><span><Flag team={match.team1} teamData={match.team1_team}/>{match.team1}</span><strong>{live.score?.team1 ?? 0}<i>–</i>{live.score?.team2 ?? 0}</strong><span><Flag team={match.team2} teamData={match.team2_team}/>{match.team2}</span></div>
-    <div className="espn-goals-list"><h3>Goles</h3>{live.goals?.length ? <div className="espn-goals-scroll">{live.goals.map((goal) => <div className="espn-goal-row" key={goal.id}>
+    <div className="espn-goals-list"><h3><span aria-hidden="true">⚽</span> Goles</h3>{goals.length ? <><div className="espn-goals-scroll" ref={goalsScrollerRef} onScroll={updateGoalIndex}>{goals.map((goal, index) => <div className="espn-goal-row" key={goal.id || `${goal.minute}-${goal.espn_name || goal.player_name}-${index}`}>
       <time className="espn-goal-minute">{goal.minute || "—"}</time><span>⚽</span><div className="espn-goal-player"><strong>{goal.player_name || goal.espn_name || "Goleador sin identificar"}</strong><small>{goal.label || (goal.own_goal ? "Autogol" : goal.penalty ? "Gol de penalti" : "Gol")}{goal.team_code ? ` · ${goal.team_code}` : ""}</small></div>
-    </div>)}</div> : <p>Sin goles por ahora.</p>}</div>
+    </div>)}</div>{goals.length > 1 && <div className="espn-goals-dots" aria-label={`Gol ${activeGoalIndex + 1} de ${goals.length}`}>{goals.map((goal, index) => <button type="button" key={goal.id || `dot-${index}`} className={index === activeGoalIndex ? "active" : ""} onClick={() => goToGoal(index)} aria-label={`Ver gol ${index + 1} de ${goals.length}`}/>)}</div>}</> : <p>Sin goles por ahora.</p>}</div>
     <LivePredictionPreview match={match} response={response} onSimulate={onSimulate}/>
   </section>;
 }
