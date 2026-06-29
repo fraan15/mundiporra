@@ -2352,7 +2352,8 @@ export function MatchDetailPage() {
     [liveResponse, setLiveResponse] = useState(null),
     [espnPrefilledResult, setEspnPrefilledResult] = useState(false),
     [simulationOpen, setSimulationOpen] = useState(false),
-    [knockoutInfoOpen, setKnockoutInfoOpen] = useState(false);
+    [knockoutInfoOpen, setKnockoutInfoOpen] = useState(false),
+    [starInfoOpen, setStarInfoOpen] = useState(false);
   const hydratedPickMatchId = useRef(null), adminResultTouchedRef = useRef(false), commentFileRef = useRef(null), selectedImageRef = useRef(null);
   useEffect(() => { selectedImageRef.current = selectedImage; }, [selectedImage]);
   const discardCommentImage = async (image = selectedImageRef.current) => {
@@ -2726,7 +2727,13 @@ export function MatchDetailPage() {
       <section
         className={`match-detail-hero ${m.is_star ? "star-match-detail" : ""}`}
       >
-        <StarMatchTitle match={m} className="match-detail-star-title" />
+        <StarMatchTitle match={m} className="match-detail-star-title" onClick={() => setStarInfoOpen((open) => !open)} />
+        {m.is_star && starInfoOpen && (
+          <div className="match-detail-star-info" role="status">
+            <Info size={15} />
+            <span>Los puntos de este partido se multiplican x2.</span>
+          </div>
+        )}
         {Number(m.is_knockout) === 1 && (
           <div className="match-detail-knockout-label">
             <strong>Partido de eliminatoria</strong>
