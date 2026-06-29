@@ -1428,37 +1428,45 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}html,body,#root{width:1
 }
 @media(prefers-reduced-motion:reduce){.star-match-title .star-match-teams{animation:none;background-position:50% 0}}
 
-/* Blue Partido Estrella treatment */
+/* Golden Partido Estrella treatment */
 .star-match-title{border:0;background:transparent;color:inherit;font:inherit}
 .star-match-title:is(button){cursor:pointer}
-.star-match-title:is(button):focus-visible{outline:3px solid rgba(67,131,209,.32);outline-offset:4px}
-.star-match-badge{color:#1f5f9f}
-.star-match-badge svg{color:#2d7fd3;filter:drop-shadow(0 0 5px rgba(45,127,211,.32))}
-.star-match-title .star-match-teams{background:linear-gradient(90deg,#2d7fd3,#66b8f0,#225b9d,#2d7fd3);background-size:300% 100%;color:transparent;background-clip:text;-webkit-background-clip:text}
+.star-match-title:is(button):focus-visible{outline:3px solid rgba(217,155,37,.32);outline-offset:4px}
+.star-match-badge{color:#9b6410}
+.star-match-badge svg{color:#d99b25;filter:drop-shadow(0 0 5px rgba(217,155,37,.42))}
+.star-match-title .star-match-teams{background:linear-gradient(90deg,#9f6812,#d99b25,#ffe08a,#b87912,#9f6812);background-size:300% 100%;color:transparent;background-clip:text;-webkit-background-clip:text}
 .match-detail-star-title{display:flex;margin:0 auto 16px;padding:0}
-.match-detail-star-title .star-match-badge{border-color:rgba(91,159,224,.46);background:linear-gradient(100deg,#256fb8,#58aee9);color:#fff;box-shadow:0 8px 18px rgba(37,111,184,.18)}
-.match-detail-star-title .star-match-badge svg,.match-detail-star-title .star-match-badge b{color:#d9efff}
-.star-match-detail{border-color:rgba(74,145,214,.36);background:linear-gradient(135deg,#e9f5ff 0%,#f8fbff 55%,#d7ebff 100%);box-shadow:0 15px 35px rgba(37,111,184,.14)}
-.match-detail-star-info{width:min(430px,100%);margin:-8px auto 16px;padding:10px 13px;display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid rgba(91,159,224,.28);border-radius:14px;background:rgba(224,242,255,.76);color:#1f5f9f;font-size:12px;font-weight:850;box-shadow:0 10px 24px rgba(37,111,184,.1)}
-.match-detail-star-info svg{flex:0 0 auto;color:#2d7fd3}
-.agenda-match-row.agenda-star-match{position:relative;overflow:hidden;border-color:rgba(74,145,214,.22);background:linear-gradient(100deg,rgba(230,244,255,.72),rgba(255,255,255,.96) 48%,rgba(222,240,255,.72))}
-.agenda-match-row.agenda-star-match:before{content:"Partido Estrella X2";position:absolute;right:18px;bottom:-3px;z-index:0;color:rgba(37,111,184,.1);font-size:clamp(22px,4vw,42px);font-weight:950;letter-spacing:.02em;text-transform:uppercase;white-space:nowrap;pointer-events:none}
+.match-detail-star-title .star-match-badge{border-color:rgba(234,186,77,.56);background:linear-gradient(105deg,#8b5510,#d99b25 56%,#ffdf7b);color:#fff;box-shadow:0 8px 20px rgba(174,112,17,.2)}
+.match-detail-star-title .star-match-badge svg,.match-detail-star-title .star-match-badge b{color:#fff1b8}
+.star-match-detail{border-color:rgba(217,155,37,.4);background:linear-gradient(135deg,#fff3c5 0%,#fffaf0 52%,#ffe1a1 100%);box-shadow:0 15px 35px rgba(174,112,17,.16)}
+.star-info-overlay{position:fixed;inset:0;z-index:1800;display:grid;place-items:center;padding:20px;background:rgba(61,38,7,.5);backdrop-filter:blur(10px);animation:star-info-fade .16s ease both}
+.star-info-dialog{position:relative;width:min(390px,100%);display:grid;justify-items:center;gap:10px;padding:30px 24px 24px;border:1px solid rgba(234,186,77,.38);border-radius:24px;background:linear-gradient(145deg,#fffaf0,#ffe7a8);color:#5e3907;text-align:center;box-shadow:0 28px 80px rgba(129,78,8,.28);animation:star-info-pop .2s cubic-bezier(.22,1,.36,1) both}
+.star-info-close{position:absolute;top:12px;right:12px;width:38px;height:38px;min-height:0;padding:0;display:grid;place-items:center;border:1px solid rgba(217,155,37,.26);border-radius:50%;background:rgba(255,255,255,.72);color:#9b6410}
+.star-info-icon{width:52px;height:52px;display:grid;place-items:center;border-radius:18px;background:linear-gradient(135deg,#9b6410,#d99b25 62%,#ffdf7b);color:#fff1b8;box-shadow:0 12px 26px rgba(174,112,17,.22)}
+.star-info-dialog h2{margin:4px 0 0;font-size:25px;line-height:1.05}
+.star-info-dialog p{margin:0;max-width:280px;color:#7b4e0e;font-size:15px;line-height:1.45;font-weight:800}
+@keyframes star-info-fade{from{opacity:0}to{opacity:1}}
+@keyframes star-info-pop{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:none}}
+.agenda-match-row.agenda-star-match{position:relative;overflow:hidden;border-color:rgba(217,155,37,.26);background:linear-gradient(100deg,rgba(255,244,204,.82),rgba(255,255,255,.96) 48%,rgba(255,229,162,.72))}
+.agenda-match-row.agenda-star-match:before{content:"Partido Estrella X2";position:absolute;right:18px;bottom:-3px;z-index:0;color:rgba(155,100,16,.11);font-size:clamp(22px,4vw,42px);font-weight:950;letter-spacing:.02em;text-transform:uppercase;white-space:nowrap;pointer-events:none}
 .agenda-match-row.agenda-star-match>*{position:relative;z-index:1}
-.agenda-match-row.agenda-star-match:hover:not(.selected),.agenda-match-row.agenda-star-match:active:not(.selected),.agenda-match-row.agenda-star-match:focus:not(:focus-visible):not(.selected){background:linear-gradient(100deg,rgba(230,244,255,.72),rgba(255,255,255,.96) 48%,rgba(222,240,255,.72))}
-.calendar-star{background:rgba(99,171,235,.2);color:#2368a8}
-.calendar-star svg{color:#2d7fd3}
-[data-theme="dark"] .star-match-badge{color:#8fc9ff}
-[data-theme="dark"] .star-match-badge svg{color:#74b8f4;filter:drop-shadow(0 0 6px rgba(116,184,244,.28))}
-[data-theme="dark"] .star-match-detail{border-color:rgba(91,159,224,.28);background:linear-gradient(135deg,#0e2a49 0%,#0c1a2b 55%,#123960 100%);box-shadow:0 15px 35px rgba(0,0,0,.24)}
-[data-theme="dark"] .match-detail-star-title .star-match-badge{border-color:rgba(116,184,244,.36);background:linear-gradient(100deg,#164f86,#236da8);color:#f2f8ff;box-shadow:0 8px 18px rgba(0,0,0,.24)}
-[data-theme="dark"] .match-detail-star-title .star-match-badge svg,[data-theme="dark"] .match-detail-star-title .star-match-badge b{color:#bfe3ff}
-[data-theme="dark"] .match-detail-star-info{border-color:rgba(116,184,244,.22);background:rgba(14,42,73,.76);color:#cde8ff;box-shadow:0 10px 24px rgba(0,0,0,.24)}
-[data-theme="dark"] .match-detail-star-info svg{color:#8fc9ff}
-[data-theme="dark"] .agenda-match-row.agenda-star-match{border-color:rgba(91,159,224,.22);background:linear-gradient(100deg,rgba(13,45,78,.68),rgba(12,26,43,.96) 48%,rgba(18,57,96,.68))}
-[data-theme="dark"] .agenda-match-row.agenda-star-match:before{color:rgba(143,201,255,.08)}
-[data-theme="dark"] .agenda-match-row.agenda-star-match:hover:not(.selected),[data-theme="dark"] .agenda-match-row.agenda-star-match:active:not(.selected),[data-theme="dark"] .agenda-match-row.agenda-star-match:focus:not(:focus-visible):not(.selected){background:linear-gradient(100deg,rgba(13,45,78,.68),rgba(12,26,43,.96) 48%,rgba(18,57,96,.68))}
-[data-theme="dark"] .calendar-star{background:rgba(57,130,199,.24);color:#b9dcff}
-[data-theme="dark"] .calendar-star svg{color:#8fc9ff}
+.agenda-match-row.agenda-star-match:hover:not(.selected),.agenda-match-row.agenda-star-match:active:not(.selected),.agenda-match-row.agenda-star-match:focus:not(:focus-visible):not(.selected){background:linear-gradient(100deg,rgba(255,244,204,.82),rgba(255,255,255,.96) 48%,rgba(255,229,162,.72))}
+.calendar-star{background:linear-gradient(100deg,rgba(255,231,166,.62),rgba(255,244,204,.46));color:#8a5d12}
+.calendar-star svg{color:#d99b25}
+[data-theme="dark"] .star-match-badge{color:#f4c96a}
+[data-theme="dark"] .star-match-badge svg{color:#ffd667;filter:drop-shadow(0 0 6px rgba(255,214,103,.26))}
+[data-theme="dark"] .star-match-detail{border-color:rgba(217,155,37,.28);background:linear-gradient(135deg,#33250d 0%,#211823 55%,#47320f 100%);box-shadow:0 15px 35px rgba(0,0,0,.24)}
+[data-theme="dark"] .match-detail-star-title .star-match-badge{border-color:rgba(255,214,103,.34);background:linear-gradient(105deg,#68420d,#a36b14 58%,#d99b25);color:#fff9df;box-shadow:0 8px 18px rgba(0,0,0,.24)}
+[data-theme="dark"] .match-detail-star-title .star-match-badge svg,[data-theme="dark"] .match-detail-star-title .star-match-badge b{color:#ffe69b}
+[data-theme="dark"] .star-info-overlay{background:rgba(5,4,2,.72)}
+[data-theme="dark"] .star-info-dialog{border-color:rgba(255,214,103,.24);background:linear-gradient(145deg,#211823,#3b2a10);color:#fff9df;box-shadow:0 28px 80px rgba(0,0,0,.46)}
+[data-theme="dark"] .star-info-close{border-color:rgba(255,214,103,.22);background:rgba(33,24,35,.82);color:#f4c96a}
+[data-theme="dark"] .star-info-dialog p{color:#f1d792}
+[data-theme="dark"] .agenda-match-row.agenda-star-match{border-color:rgba(217,155,37,.22);background:linear-gradient(100deg,rgba(67,48,15,.68),rgba(33,24,35,.96) 48%,rgba(83,58,16,.68))}
+[data-theme="dark"] .agenda-match-row.agenda-star-match:before{color:rgba(255,214,103,.09)}
+[data-theme="dark"] .agenda-match-row.agenda-star-match:hover:not(.selected),[data-theme="dark"] .agenda-match-row.agenda-star-match:active:not(.selected),[data-theme="dark"] .agenda-match-row.agenda-star-match:focus:not(:focus-visible):not(.selected){background:linear-gradient(100deg,rgba(67,48,15,.68),rgba(33,24,35,.96) 48%,rgba(83,58,16,.68))}
+[data-theme="dark"] .calendar-star{background:linear-gradient(100deg,rgba(143,93,18,.28),rgba(217,155,37,.18));color:#f1d792}
+[data-theme="dark"] .calendar-star svg{color:#ffd667}
 @media(max-width:700px){.team-detail-overlay{align-items:stretch;padding:0}.team-detail-panel{width:100%;max-height:100dvh;min-height:0;border-radius:0;padding:22px 14px}.team-detail-scroll{padding-right:0}.comparison-panel{padding:16px 12px 20px}.comparison-panel>.team-detail-close{top:0;margin-bottom:4px}.comparison-header{padding:0 10px 18px}.comparison-header h1{font-size:clamp(24px,8vw,34px);line-height:1.05}.comparison-teams{gap:8px}.comparison-teams>div{padding:13px 9px;border-radius:14px}.comparison-teams span{font-size:34px}.comparison-teams strong{font-size:15px}.comparison-teams small{font-size:11px}.comparison-table{border-radius:14px}.comparison-table>div{grid-template-columns:minmax(0,1fr) minmax(86px,.8fr) minmax(0,1fr)}.comparison-table strong{padding:11px 8px;font-size:17px}.comparison-table span{padding:11px 6px;font-size:9px;line-height:1.2}.comparison-form{margin-top:18px}.comparison-form>div:last-child{grid-template-columns:1fr}.comparison-form article{padding:13px}.comparison-form article span{flex-wrap:wrap;justify-content:flex-end}.team-top-scorers-list{grid-template-columns:1fr}.team-top-scorers.collapsible-team-section{padding:18px;margin-top:18px}.team-top-scorers-list article{grid-template-columns:auto minmax(0,1fr) auto}.team-top-scorers-list article>span{grid-row:1}.team-top-scorers-list b{white-space:nowrap}}
 
 /* Subtle podium polish: deeper steps, steadier cards and more room for the winner. */

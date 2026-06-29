@@ -9,7 +9,7 @@ import sharp from "sharp";
 import convertHeic from "heic-convert";
 import { db, initDatabase, logAction, now, settings } from "./db/database.js";
 import { READ_ONLY_USER, hydrateUser, requireAdmin, requireAuth, requireWritableUser } from "./middleware/auth.js";
-import { autoCloseExpired, calculateWinner, effectiveCloseAt, isExpired, recalculateAll, recalculateMatch } from "./services/matches.js";
+import { autoCloseExpired, calculateWinner, effectiveCloseAt, isExpired, recalculateAll, recalculateMatch, scheduleMatchCloseBackup } from "./services/matches.js";
 import { createNotification, leaderboardRows, notifyAll, notifyAllExcept, notifyNewTopThree, saveRankingSnapshot } from "./services/notifications.js";
 import { NO_SCORER, NO_SCORER_ID, parseScorerList, parseScorerSelection, serializeActualScorers, serializePredictedScorer } from "./services/scorers.js";
 import { loadWorldCupReference, normalizePlayerName, syncWorldCupReference, teamReferenceStats, worldCupOverview } from "./services/worldcupReference.js";
@@ -2248,6 +2248,7 @@ app.patch("/api/matches/:id/status", requireAdmin, (req, res) => {
       link: "/",
       eventKey: `match-closed:${before.id}`
     });
+    scheduleMatchCloseBackup(after);
   }
   res.json(serializeMatch(after));
 });

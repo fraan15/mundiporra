@@ -1,6 +1,53 @@
+import { spawn } from "node:child_process";
 import { db, logAction, now, settings } from "../db/database.js";
 import { createNotification, notifyAll } from "./notifications.js";
 import { NO_SCORER_ID } from "./scorers.js";
+
+const matchCloseBackupTimers = new Set();
+const backupCommand = () => process.env.MATCH_CLOSE_BACKUP_COMMAND || "backup-mundiporra";
+const backupEnabled = () => process.env.MATCH_CLOSE_BACKUP_ENABLED
+  ? process.env.MATCH_CLOSE_BACKUP_ENABLED !== "0"
+  : process.env.NODE_ENV !== "test";
+const slugPart = (value) => String(value || "")
+  .normalize("NFD")
+  .replace(/[\u0300-\u036f]/g, "")
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, "-")
+  .replace(/^-+|-+$/g, "");
+
+export function matchCloseBackupLabel(match) {
+  const [, month, day] = String(match.match_date || "").split("-");
+  return [
+    "pre-partido",
+    slugPart(match.team1),
+    slugPart(match.team2),
+    day && month ? `${day}-${month}` : null
+  ].filter(Boolean).join("-");
+}
+
+export function scheduleMatchCloseBackup(match) {
+  if (!backupEnabled() || !match?.id || matchCloseBackupTimers.has(match.id)) return;
+  const label = matchCloseBackupLabel(match);
+  matchCloseBackupTimers.add(match.id);
+  const timer = setTimeout(() => {
+    const command = backupCommand();
+    const child = spawn(command, [label], {
+      detached: true,
+      shell: process.platform === "win32",
+      stdio: "ignore"
+    });
+    child.on("error", (error) => {
+      console.error(`[backup] No se pudo lanzar ${command} ${label}:`, error.message);
+    });
+    child.on("exit", (code, signal) => {
+      if (code && code !== 0) console.error(`[backup] ${command} ${label} terminó con código ${code}${signal ? ` (${signal})` : ""}.`);
+    });
+    child.unref();
+    matchCloseBackupTimers.delete(match.id);
+  }, 60000);
+  timer.unref();
+  console.log(`[backup] Programado en 60s: ${backupCommand()} ${label}`);
+}
 
 export function effectiveCloseAt(match, config = settings()) {
   const minutes = Number(config.auto_close_minutes_before || 0);
@@ -130,6 +177,7 @@ export function autoCloseExpired() {
       link: "/",
       eventKey: `match-closed:${match.id}`
     });
+    scheduleMatchCloseBackup(match);
   });
   for (const match of open) {
     const started = new Date() >= matchStartsAt(match);

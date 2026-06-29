@@ -2355,6 +2355,19 @@ export function MatchDetailPage() {
     [knockoutInfoOpen, setKnockoutInfoOpen] = useState(false),
     [starInfoOpen, setStarInfoOpen] = useState(false);
   const hydratedPickMatchId = useRef(null), adminResultTouchedRef = useRef(false), commentFileRef = useRef(null), selectedImageRef = useRef(null);
+  useEffect(() => {
+    if (!starInfoOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const close = (event) => {
+      if (event.key === "Escape") setStarInfoOpen(false);
+    };
+    document.addEventListener("keydown", close);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", close);
+    };
+  }, [starInfoOpen]);
   useEffect(() => { selectedImageRef.current = selectedImage; }, [selectedImage]);
   const discardCommentImage = async (image = selectedImageRef.current) => {
     if (image?.id) await api(`/comments/image/${encodeURIComponent(image.id)}`, { method: "DELETE" }).catch(() => {});
@@ -2714,6 +2727,18 @@ export function MatchDetailPage() {
       )}
       {simulationOpen && <MatchSimulationOverlay match={data.match} players={players} user={user} initialLiveResponse={liveResponse} onClose={() => setSimulationOpen(false)}/>}
       {knockoutInfoOpen && <KnockoutInfoDialog onClose={() => setKnockoutInfoOpen(false)}/>}
+      {starInfoOpen && (
+        <div className="star-info-overlay" role="dialog" aria-modal="true" aria-labelledby="star-info-title" onClick={() => setStarInfoOpen(false)}>
+          <div className="star-info-dialog" onClick={(event) => event.stopPropagation()}>
+            <button type="button" className="star-info-close" aria-label="Cerrar información de Partido Estrella" onClick={() => setStarInfoOpen(false)}>
+              <X size={18} />
+            </button>
+            <span className="star-info-icon"><Star size={22} fill="currentColor" /></span>
+            <h2 id="star-info-title">Partido Estrella x2</h2>
+            <p>Los puntos de este partido se multiplican x2.</p>
+          </div>
+        </div>
+      )}
       <button
         className="back-btn"
         onClick={() => navigate(backTarget, {
@@ -2727,13 +2752,7 @@ export function MatchDetailPage() {
       <section
         className={`match-detail-hero ${m.is_star ? "star-match-detail" : ""}`}
       >
-        <StarMatchTitle match={m} className="match-detail-star-title" onClick={() => setStarInfoOpen((open) => !open)} />
-        {m.is_star && starInfoOpen && (
-          <div className="match-detail-star-info" role="status">
-            <Info size={15} />
-            <span>Los puntos de este partido se multiplican x2.</span>
-          </div>
-        )}
+        <StarMatchTitle match={m} className="match-detail-star-title" onClick={() => setStarInfoOpen(true)} />
         {Number(m.is_knockout) === 1 && (
           <div className="match-detail-knockout-label">
             <strong>Partido de eliminatoria</strong>

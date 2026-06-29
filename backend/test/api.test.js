@@ -4,12 +4,20 @@ import request from "supertest";
 import sharp from "sharp";
 import { app } from "../src/app.js";
 import { db, now } from "../src/db/database.js";
-import { remindNextNightMissingPredictions } from "../src/services/matches.js";
+import { matchCloseBackupLabel, remindNextNightMissingPredictions } from "../src/services/matches.js";
 import { normalizePlayerName, normalizeWorldCupReference, worldCupOverview } from "../src/services/worldcupReference.js";
 
 test("normaliza guiones y espacios en nombres de jugadores", () => {
   assert.equal(normalizePlayerName("Mousa Al-Tamari"), normalizePlayerName("Mousa Al Tamari"));
   assert.equal(normalizePlayerName("Eren Elmalı"), normalizePlayerName("Eren Elmali"));
+});
+
+test("genera el texto de backup al cerrar apuestas", () => {
+  assert.equal(matchCloseBackupLabel({
+    team1: "Marruecos",
+    team2: "Senegal",
+    match_date: "2026-06-29"
+  }), "pre-partido-marruecos-senegal-29-06");
 });
 
 test("sirve el frontend compilado desde la ruta raíz", async () => {
