@@ -469,7 +469,7 @@ function DashboardCalendar({ matches, liveScores, calendarToday, onOpenMatch, re
         </button>)}
       </div>
       <div className="calendar-days-viewport" ref={viewportRef} onPointerDown={handleCarouselPointerDown} onPointerMove={handleCarouselPointerMove} onPointerUp={handleCarouselPointerUp} onPointerCancel={handleCarouselPointerCancel}>
-        <div className="calendar-days-track" style={{ transform: `translate3d(-${activeDayIndex * 100}%, 0, 0)` }}>
+        <div className="calendar-days-track" style={{ transform: `translateX(-${activeDayIndex * 100}%)` }}>
           {days.map((day, index) => <article className={`calendar-day-slide ${index === activeDayIndex ? "active" : ""} ${index === activeDayIndex - 1 ? "prev" : ""} ${index === activeDayIndex + 1 ? "next" : ""}`} key={day.key} aria-hidden={index !== activeDayIndex}>
             <header className="calendar-day-header">
               <h3>{day.title}</h3>
