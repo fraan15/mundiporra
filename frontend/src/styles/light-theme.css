@@ -3735,6 +3735,9 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
   position:relative;
   width:100%;
   overflow:hidden;
+  isolation:isolate;
+  transform:translateZ(0);
+  backface-visibility:hidden;
 }
 .dashboard-calendar-carousel .calendar-days-viewport{
   display:block;
@@ -3742,6 +3745,9 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
   width:100%;
   overflow:hidden;
   touch-action:pan-y;
+  background:inherit;
+  transform:translateZ(0);
+  backface-visibility:hidden;
   transition:height .22s ease;
 }
 .dashboard-calendar-carousel .calendar-days-viewport::-webkit-scrollbar{
@@ -3753,9 +3759,11 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
   width:100%;
   min-width:100%;
   align-items:flex-start;
-  contain:none;
+  contain:layout paint;
   transition:transform .24s ease;
   will-change:transform;
+  transform:translate3d(0,0,0);
+  backface-visibility:hidden;
   touch-action:pan-y;
 }
 .dashboard-calendar-carousel .calendar-day-slide{
@@ -3768,14 +3776,15 @@ html.profile-menu-open,body.profile-menu-open{overflow:hidden;overscroll-behavio
   overflow:visible;
   opacity:.72;
   visibility:visible;
-  transform:none;
+  transform:translate3d(0,0,0);
+  backface-visibility:hidden;
   transition:opacity .18s ease;
   touch-action:pan-y;
 }
 .dashboard-calendar-carousel .calendar-day-slide.active{
   opacity:1;
   visibility:visible;
-  transform:none;
+  transform:translate3d(0,0,0);
 }
 .dashboard-calendar-carousel .calendar-day-slide.prev,
 .dashboard-calendar-carousel .calendar-day-slide.next{
