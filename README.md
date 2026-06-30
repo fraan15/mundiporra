@@ -13,9 +13,12 @@ Mundiporra is a private full-stack web application for managing a football predi
 
 # La Porra Mundial
 
-https://app.mundiporra.es
+https://app.mundiporra.es  
+
 Accesible solo lectura con:
+
 Usuario: espectador
+
 Contraseña: mundial2026
 
 Aplicación web local para organizar una porra privada del Mundial. Incluye autenticación, pronósticos, cierre automático, clasificación, histórico diario y administración auditada.
