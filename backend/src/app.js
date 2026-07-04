@@ -1576,7 +1576,9 @@ app.get("/api/matches/:id/detail", requireAuth, (req, res) => {
       ...predictionValidation(match, participant)
     }
     : { id: participant.id, username: participant.username, avatar_url: avatarUrl(participant), participating: Boolean(participant.participating) });
-  const participants = open ? (req.user.role === "admin" ? participantStatusRows() : []) : db.prepare(`
+  const participants = open
+    ? participantStatusRows().filter((participant) => req.user.role === "admin" || !participant.participating)
+    : db.prepare(`
     SELECT u.id,COALESCE(NULLIF(u.display_name,''),u.username) username,u.avatar_filename,
       CASE WHEN p.id IS NULL THEN 0 ELSE 1 END participating,
       p.id prediction_id,p.predicted_winner,p.predicted_team1_goals,p.predicted_team2_goals,p.predicted_scorer_id,

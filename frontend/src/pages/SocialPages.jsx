@@ -3211,51 +3211,56 @@ export function MatchDetailPage() {
                 </ReactionBar>
               ))
             ) : data.participants?.length ? (
-              data.participants.map((p) => (
-                <div key={p.id}>
-                  <strong>{p.username}</strong>
-                  {p.participating && p.result_valid !== undefined ? (
-                    <span className="participant-admin-checks">
-                      <small
+              <>
+                <p className="pending-participants-label">
+                  Aún sin pronóstico ({data.participants.filter((p) => !p.participating).length})
+                </p>
+                {data.participants.map((p) => (
+                  <div key={p.id}>
+                    <strong>{p.username}</strong>
+                    {p.participating && p.result_valid !== undefined ? (
+                      <span className="participant-admin-checks">
+                        <small
+                          className={
+                            p.result_valid ? "success-text" : "error-text"
+                          }
+                        >
+                          Resultado {p.result_valid ? "válido" : "inválido"}
+                        </small>
+                        <small
+                          className={
+                            p.scorer_required
+                              ? p.scorer_valid
+                                ? "success-text"
+                                : "error-text"
+                              : "muted-text"
+                          }
+                        >
+                          {p.scorer_required
+                            ? `Goleador ${p.scorer_valid ? "válido" : "inválido"}`
+                            : "Sin goleador"}
+                        </small>
+                      </span>
+                    ) : (
+                      <span
                         className={
-                          p.result_valid ? "success-text" : "error-text"
+                          p.participating
+                            ? "success-text"
+                            : "not-participating error-text"
                         }
                       >
-                        Resultado {p.result_valid ? "válido" : "inválido"}
-                      </small>
-                      <small
-                        className={
-                          p.scorer_required
-                            ? p.scorer_valid
-                              ? "success-text"
-                              : "error-text"
-                            : "muted-text"
-                        }
-                      >
-                        {p.scorer_required
-                          ? `Goleador ${p.scorer_valid ? "válido" : "inválido"}`
-                          : "Sin goleador"}
-                      </small>
-                    </span>
-                  ) : (
-                    <span
-                      className={
-                        p.participating
-                          ? "success-text"
-                          : "not-participating error-text"
-                      }
-                    >
-                      {p.participating
-                        ? "Pronóstico registrado"
-                        : "Sin participar"}
-                    </span>
-                  )}
-                </div>
-              ))
+                        {p.participating
+                          ? "Pronóstico registrado"
+                          : "Pendiente"}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </>
             ) : (
               <p>
                 {data.participant_count
-                  ? `${data.participant_count} pronóstico${data.participant_count === 1 ? "" : "s"} registrado${data.participant_count === 1 ? "" : "s"}. Los nombres y apuestas se revelarán al cierre.`
+                  ? `Todos los usuarios han registrado su pronóstico. Las apuestas se revelarán al cierre.`
                   : "Aún no hay participantes."}
               </p>
             )}

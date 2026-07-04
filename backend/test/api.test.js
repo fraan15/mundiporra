@@ -752,7 +752,9 @@ test("importa catálogos sin duplicados y puntúa cualquier goleador válido", a
 
   const openDetailForUser = await user.get(`/api/matches/${created.body.id}/detail`);
   assert.equal(openDetailForUser.body.revealed, false);
-  assert.deepEqual(openDetailForUser.body.participants, []);
+  assert.equal(openDetailForUser.body.participants.every((item) => item.participating === false), true);
+  assert.equal(openDetailForUser.body.participants.some((item) => item.id === db.prepare("SELECT id FROM users WHERE username='lucia'").get().id), false);
+  assert.equal(openDetailForUser.body.participants.every((item) => item.predicted_winner === undefined), true);
 
   const finished = await admin.post(`/api/matches/${created.body.id}/finish`).send({
     result_team1: 2,
@@ -1445,7 +1447,7 @@ test("eliminar un resultado no reabre apuestas si ya pasó la hora de cierre", a
   assert.equal(prediction.status, 409);
 });
 
-test("la distribución de votos permanece oculta mientras se puede apostar", async () => {
+test("en partidos abiertos se muestran solo los usuarios pendientes, sin revelar apuestas", async () => {
   const agent = request.agent(app);
   await agent.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
   const matches = await agent.get("/api/matches");
@@ -1456,8 +1458,16 @@ test("la distribución de votos permanece oculta mientras se puede apostar", asy
   assert.equal(detail.status, 200);
   assert.equal(detail.body.revealed, false);
   assert.deepEqual(detail.body.distribution, []);
-  assert.deepEqual(detail.body.participants, []);
   assert.equal(typeof detail.body.participant_count, "number");
+  assert.equal(detail.body.participants.every((participant) => participant.participating === false), true);
+  assert.equal(detail.body.participants.every((participant) => !Object.hasOwn(participant, "predicted_winner")), true);
+  const expectedPending = db.prepare(`
+    SELECT COUNT(*) count
+    FROM users u
+    LEFT JOIN predictions p ON p.user_id=u.id AND p.match_id=?
+    WHERE u.active=1 AND u.role='user' AND p.id IS NULL
+  `).get(open.id).count;
+  assert.equal(detail.body.participants.length, expectedPending);
 
   const predictions = await agent.get(`/api/predictions/match/${open.id}`);
   assert.equal(predictions.status, 200);
@@ -1485,7 +1495,7 @@ test("el administrador ve quien falta sin ver pronosticos en partidos abiertos",
   assert.equal(detail.body.participants.some((participant) => Object.hasOwn(participant, "total_points")), false);
 });
 
-test("el detalle muestra los participantes solo cuando el partido está cerrado", async () => {
+test("el detalle muestra pendientes en abierto y todos los participantes al cerrar", async () => {
   const agent = request.agent(app);
   const admin = request.agent(app);
   await agent.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
@@ -1497,7 +1507,8 @@ test("el detalle muestra los participantes solo cuando el partido está cerrado"
   const hidden = await agent.get(`/api/matches/${open.id}/detail`);
   assert.equal(hidden.status, 200);
   assert.equal(hidden.body.revealed, false);
-  assert.deepEqual(hidden.body.participants, []);
+  assert.equal(hidden.body.participants.every((participant) => participant.participating === false), true);
+  assert.equal(hidden.body.participants.every((participant) => participant.predicted_winner === undefined), true);
 
   const close = await admin.patch(`/api/matches/${open.id}/status`).send({ status: "closed" });
   assert.equal(close.status, 200);
