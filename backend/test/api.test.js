@@ -621,58 +621,6 @@ test("una predicción debe coincidir con el ganador del marcador", async () => {
   assert.equal(response.status, 400);
 });
 
-test("el administrador puede crear una apuesta para un usuario que no apostó en un partido cerrado", async () => {
-  const admin = request.agent(app);
-  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
-  const future = new Date(Date.now() + 48 * 60 * 60 * 1000);
-  const created = await admin.post("/api/matches").send({
-    match_date: future.toISOString().slice(0, 10),
-    match_time: future.toISOString().slice(11, 16),
-    team1: "Equipo admin",
-    team2: "Equipo rival",
-    force_published: true
-  });
-  await admin.patch(`/api/matches/${created.body.id}/status`).send({ status: "closed" }).expect(200);
-
-  const lucia = request.agent(app);
-  await lucia.post("/api/auth/login").send({ username: "lucia", password: "lucia" }).expect(200);
-  await lucia.post("/api/predictions").send({
-    match_id: created.body.id,
-    predicted_winner: "team1",
-    predicted_team1_goals: 1,
-    predicted_team2_goals: 0
-  }).expect(409);
-
-  const marcos = db.prepare("SELECT id FROM users WHERE username='marcos'").get();
-  const review = await admin.get(`/api/admin/matches/${created.body.id}/predictions`);
-  assert.equal(review.status, 200);
-  const missing = review.body.predictions.find((row) => row.user_id === marcos.id);
-  assert.equal(missing.id, null);
-  assert.equal(missing.participating, false);
-
-  const inserted = await admin.post(`/api/admin/matches/${created.body.id}/predictions`).send({
-    user_id: marcos.id,
-    predicted_team1_goals: 2,
-    predicted_team2_goals: 1,
-    reason: "Apuesta comunicada fuera de la app"
-  });
-  assert.equal(inserted.status, 200, JSON.stringify(inserted.body));
-  assert.equal(inserted.body.user_id, marcos.id);
-  assert.equal(inserted.body.predicted_winner, "team1");
-
-  const stored = db.prepare("SELECT * FROM predictions WHERE user_id=? AND match_id=?").get(marcos.id, created.body.id);
-  assert.equal(stored.predicted_team1_goals, 2);
-  assert.equal(stored.predicted_team2_goals, 1);
-  assert.equal(stored.locked, 1);
-
-  await admin.post(`/api/admin/matches/${created.body.id}/predictions`).send({
-    user_id: marcos.id,
-    predicted_team1_goals: 0,
-    predicted_team2_goals: 0,
-    reason: "Intento duplicado"
-  }).expect(409);
-});
-
 test("no permite pronosticar en un partido ya empezado aunque esté abierto manualmente", async () => {
   const admin = request.agent(app);
   const user = request.agent(app);

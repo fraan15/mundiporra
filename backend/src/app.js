@@ -2750,49 +2750,31 @@ app.get("/api/admin/matches/:matchId/predictions", requireAdmin, (req, res) => {
     return res.status(409).json({ error: "Las apuestas solo se pueden revisar cuando el partido está cerrado." });
   }
   const predictions = db.prepare(`
-    SELECT p.id,p.match_id,u.id user_id,p.predicted_winner,p.predicted_team1_goals,p.predicted_team2_goals,
-      p.winner_points,p.exact_result_points,p.total_points,p.scoring_multiplier,p.locked,
-      p.predicted_scorer_id,p.scorer_points,p.created_at,p.updated_at,
-      COALESCE(NULLIF(u.display_name,''),u.username) username,
+    SELECT p.*,u.id user_id,COALESCE(NULLIF(u.display_name,''),u.username) username,
       player.name predicted_scorer_name,player.position predicted_scorer_position
-    FROM users u
-    LEFT JOIN predictions p ON p.user_id=u.id AND p.match_id=?
+    FROM predictions p
+    JOIN users u ON u.id=p.user_id
     LEFT JOIN players player ON player.id=p.predicted_scorer_id
-    WHERE u.role='user' AND u.active=1
+    WHERE p.match_id=? AND u.role='user'
     ORDER BY u.username COLLATE NOCASE
-  `).all(match.id).map((prediction) => {
-    const participating = Boolean(prediction.id);
-    if (participating && prediction.predicted_team1_goals === 0 && prediction.predicted_team2_goals === 0) {
-      return { ...prediction, participating, predicted_scorer_id: NO_SCORER_ID, predicted_scorer_name: NO_SCORER.name, predicted_scorer_position: NO_SCORER.position };
-    }
-    return { ...prediction, participating };
-  });
+  `).all(match.id).map((prediction) => prediction.predicted_team1_goals === 0 && prediction.predicted_team2_goals === 0
+    ? { ...prediction, predicted_scorer_id: NO_SCORER_ID, predicted_scorer_name: NO_SCORER.name, predicted_scorer_position: NO_SCORER.position }
+    : prediction);
   res.json({ match: serializeMatch(match), predictions });
 });
 
-function correctAdminPrediction(req, res, { predictionId = null, userId = null, createOnly = false } = {}) {
+app.patch("/api/admin/matches/:matchId/predictions/:predictionId", requireAdmin, (req, res) => {
   const match = db.prepare("SELECT * FROM matches WHERE id=?").get(req.params.matchId);
   if (!match) return res.status(404).json({ error: "Partido no encontrado." });
   if (match.status === "open" && !isExpired(match)) {
     return res.status(409).json({ error: "No se puede corregir una apuesta mientras el partido está abierto." });
   }
-  const targetUser = predictionId
-    ? null
-    : db.prepare("SELECT id,username,display_name,role,active FROM users WHERE id=?").get(userId);
-  if (!predictionId && (!targetUser || targetUser.role !== "user" || !targetUser.active)) {
-    return res.status(404).json({ error: "Usuario no encontrado." });
-  }
-  const before = predictionId ? db.prepare(`
+  const before = db.prepare(`
     SELECT p.*,COALESCE(NULLIF(u.display_name,''),u.username) username,u.role
     FROM predictions p JOIN users u ON u.id=p.user_id
     WHERE p.id=? AND p.match_id=?
-  `).get(predictionId, match.id) : db.prepare(`
-    SELECT p.*,COALESCE(NULLIF(u.display_name,''),u.username) username,u.role
-    FROM predictions p JOIN users u ON u.id=p.user_id
-    WHERE p.user_id=? AND p.match_id=?
-  `).get(targetUser.id, match.id);
-  if (predictionId && (!before || before.role !== "user")) return res.status(404).json({ error: "Apuesta no encontrada para este partido." });
-  if (createOnly && before) return res.status(409).json({ error: "Este usuario ya tiene una apuesta en este partido. Edita la existente." });
+  `).get(req.params.predictionId, match.id);
+  if (!before || before.role !== "user") return res.status(404).json({ error: "Apuesta no encontrada para este partido." });
 
   const g1 = parseIntField(req.body.predicted_team1_goals);
   const g2 = parseIntField(req.body.predicted_team2_goals);
@@ -2816,43 +2798,24 @@ function correctAdminPrediction(req, res, { predictionId = null, userId = null, 
     if (!player) return res.status(400).json({ error: "El goleador debe pertenecer a un equipo que marque en el pronóstico." });
   }
 
-  const changed = before && (before.predicted_team1_goals !== g1 || before.predicted_team2_goals !== g2 ||
-    (before.predicted_scorer_id ?? null) !== predictedScorerId);
-  if (before && !changed) return res.status(400).json({ error: "La corrección no contiene ningún cambio." });
+  const changed = before.predicted_team1_goals !== g1 || before.predicted_team2_goals !== g2 ||
+    (before.predicted_scorer_id ?? null) !== predictedScorerId;
+  if (!changed) return res.status(400).json({ error: "La corrección no contiene ningún cambio." });
 
   const correctPrediction = db.transaction(() => {
-    const stamp = now();
-    let predictionIdAfter = before?.id;
-    if (before) {
-      db.prepare(`UPDATE predictions SET predicted_winner=?,predicted_team1_goals=?,predicted_team2_goals=?,
-        predicted_scorer_id=?,updated_at=? WHERE id=?`)
-        .run(predictionWinner(g1, g2), g1, g2, predictedScorerId, stamp, before.id);
-    } else {
-      const inserted = db.prepare(`
-        INSERT INTO predictions(user_id,match_id,predicted_winner,predicted_team1_goals,predicted_team2_goals,predicted_scorer_id,locked,created_at,updated_at)
-        VALUES(?,?,?,?,?,?,?,?,?)
-      `).run(targetUser.id, match.id, predictionWinner(g1, g2), g1, g2, predictedScorerId, 1, stamp, stamp);
-      predictionIdAfter = inserted.lastInsertRowid;
-    }
+    db.prepare(`UPDATE predictions SET predicted_winner=?,predicted_team1_goals=?,predicted_team2_goals=?,
+      predicted_scorer_id=?,updated_at=? WHERE id=?`)
+      .run(predictionWinner(g1, g2), g1, g2, predictedScorerId, now(), before.id);
     if (match.status === "finished") recalculateMatch(match.id);
-    const after = db.prepare("SELECT * FROM predictions WHERE id=?").get(predictionIdAfter);
-    const username = before?.username || targetUser.display_name || targetUser.username;
-    logAction(req.user.id, before ? "edit_prediction" : "create_prediction", "prediction", after.id,
-      `Apuesta ${before ? "corregida" : "creada"} para ${username} en ${match.team1} - ${match.team2}. Motivo: ${reason}`,
-      before ? { ...before, reason: undefined } : null, { ...after, reason });
+    const after = db.prepare("SELECT * FROM predictions WHERE id=?").get(before.id);
+    logAction(req.user.id, "edit_prediction", "prediction", before.id,
+      `Apuesta corregida para ${before.username} en ${match.team1} - ${match.team2}. Motivo: ${reason}`,
+      { ...before, reason: undefined }, { ...after, reason });
     return after;
   });
   const after = correctPrediction();
   if (match.status === "finished") saveRankingSnapshot();
-  res.json({ ...after, participating: true, username: before?.username || targetUser.display_name || targetUser.username, recalculated: match.status === "finished" });
-}
-
-app.post("/api/admin/matches/:matchId/predictions", requireAdmin, (req, res) => {
-  correctAdminPrediction(req, res, { userId: Number(req.body.user_id), createOnly: true });
-});
-
-app.patch("/api/admin/matches/:matchId/predictions/:predictionId", requireAdmin, (req, res) => {
-  correctAdminPrediction(req, res, { predictionId: Number(req.params.predictionId) });
+  res.json({ ...after, username: before.username, recalculated: match.status === "finished" });
 });
 app.get("/api/admin/points-adjustments", requireAdmin, (_req, res) => res.json(db.prepare(`
   SELECT a.*,u.username,creator.username created_by_username FROM points_adjustments a
