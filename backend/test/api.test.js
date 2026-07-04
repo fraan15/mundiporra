@@ -1527,6 +1527,29 @@ test("las notificaciones son privadas y requieren sesión", async () => {
   assert.ok(Array.isArray(response.body.notifications));
 });
 
+test("el estado push permite reconciliar solo las suscripciones del usuario conectado", async () => {
+  const lucia = request.agent(app);
+  const admin = request.agent(app);
+  await lucia.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  const luciaId = db.prepare("SELECT id FROM users WHERE username='lucia'").get().id;
+  const adminId = db.prepare("SELECT id FROM users WHERE username='administrador'").get().id;
+  const stamp = now();
+  db.prepare(`
+    INSERT OR REPLACE INTO push_subscriptions(user_id,endpoint,p256dh,auth,user_agent,created_at,updated_at)
+    VALUES(?,?,?,?,?,?,?)
+  `).run(luciaId, "https://push.example/lucia", "key", "auth", "test", stamp, stamp);
+  db.prepare(`
+    INSERT OR REPLACE INTO push_subscriptions(user_id,endpoint,p256dh,auth,user_agent,created_at,updated_at)
+    VALUES(?,?,?,?,?,?,?)
+  `).run(adminId, "https://push.example/admin", "key", "auth", "test", stamp, stamp);
+
+  const response = await lucia.get("/api/push/status");
+  assert.equal(response.status, 200);
+  assert.equal(response.body.subscriptions, 1);
+  assert.deepEqual(response.body.subscription_endpoints, ["https://push.example/lucia"]);
+});
+
 test("devuelve todas las notificaciones pendientes y solo las 5 leídas más recientes", async () => {
   const agent = request.agent(app);
   await agent.post("/api/auth/login").send({ username: "lucia", password: "lucia" });
@@ -1838,6 +1861,44 @@ test("un administrador corrige una apuesta cerrada con auditoría sin reabrir el
   assert.equal(JSON.parse(log.before_data).predicted_team1_goals, 1);
   assert.equal(JSON.parse(log.after_data).predicted_team2_goals, 2);
   assert.match(log.description, /Error de transcripción/);
+});
+
+test("el administrador ve usuarios sin apostar y puede añadir una apuesta de emergencia antes del resultado", async () => {
+  const admin = request.agent(app);
+  await admin.post("/api/auth/login").send({ username: "administrador", password: "yami" });
+  const username = `emergencia-${Date.now()}`;
+  const createdUser = await admin.post("/api/users").send({ username, password: "prueba-segura", role: "user" });
+  const createdMatch = await admin.post("/api/matches").send({
+    match_date: "2099-07-12", match_time: "18:00", team1: "Emergencia A", team2: "Emergencia B",
+    force_published: true, scorer_enabled: false
+  });
+  await admin.patch(`/api/matches/${createdMatch.body.id}/status`).send({ status: "closed" });
+
+  const before = await admin.get(`/api/admin/matches/${createdMatch.body.id}/predictions`);
+  assert.equal(before.status, 200);
+  assert.equal(before.body.missing_users.some((user) => user.user_id === createdUser.body.id), true);
+
+  const inserted = await admin.post(`/api/admin/matches/${createdMatch.body.id}/predictions`).send({
+    user_id: createdUser.body.id, predicted_team1_goals: 2, predicted_team2_goals: 1,
+    predicted_scorer_id: null, reason: "Apuesta comunicada por teléfono"
+  });
+  assert.equal(inserted.status, 201);
+  assert.equal(inserted.body.predicted_winner, "team1");
+  const after = await admin.get(`/api/admin/matches/${createdMatch.body.id}/predictions`);
+  assert.equal(after.body.missing_users.some((user) => user.user_id === createdUser.body.id), false);
+  assert.equal(after.body.predictions.some((prediction) => prediction.user_id === createdUser.body.id), true);
+  assert.ok(db.prepare("SELECT id FROM admin_actions_log WHERE action_type='create_prediction' AND entity_id=?").get(inserted.body.id));
+
+  assert.equal((await admin.post(`/api/admin/matches/${createdMatch.body.id}/predictions`).send({
+    user_id: createdUser.body.id, predicted_team1_goals: 0, predicted_team2_goals: 0,
+    predicted_scorer_id: null, reason: "Intento duplicado"
+  })).status, 409);
+  await admin.post(`/api/matches/${createdMatch.body.id}/finish`).send({ result_team1: 1, result_team2: 0, scorer_ids: [] });
+  const anotherUser = await admin.post("/api/users").send({ username: `${username}-2`, password: "prueba-segura", role: "user" });
+  assert.equal((await admin.post(`/api/admin/matches/${createdMatch.body.id}/predictions`).send({
+    user_id: anotherUser.body.id, predicted_team1_goals: 1, predicted_team2_goals: 0,
+    predicted_scorer_id: null, reason: "Demasiado tarde"
+  })).status, 409);
 });
 
 test("la corrección de una apuesta finalizada recalcula sus puntos y está protegida", async () => {

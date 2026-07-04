@@ -19,6 +19,7 @@ import { Flag } from "./components/SportsUI";
 import { PushSettingsPage } from "./components/PushSettings";
 import { startVisiblePolling } from "./utils/visiblePolling";
 import { formatLocalDateTime, localMatchTime } from "./utils/matchDateTime";
+import { repairPushSubscription } from "./utils/pushSubscription";
 
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
@@ -132,6 +133,12 @@ function NotificationsBell() {
   const [dismissing, setDismissing] = useState({});
   const [data, setData] = useState({ notifications: [], unread: 0 });
   const load = async () => setData(await api("/notifications"));
+  useEffect(() => {
+    if (user.is_read_only) return;
+    api("/push/status")
+      .then(repairPushSubscription)
+      .catch((error) => console.warn("No se pudo sincronizar la suscripción push:", error.message));
+  }, [user.id, user.is_read_only]);
   useEffect(() => {
     if (user.is_read_only) return;
     load();

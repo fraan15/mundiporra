@@ -2488,7 +2488,7 @@ app.get("/api/predictions/match/:matchId", requireAuth, (req, res) => {
     JOIN users u ON u.id=p.user_id
     WHERE p.match_id=? AND u.role='user'
   `).get(match.id).count;
-  if (match.status === "open" && !isExpired(match)) {
+  if (match.status === "open" && !isExpired(match) && !isMatchInPlay(match)) {
     return res.json({ revealed: false, count, participants: [] });
   }
   const predictions = db.prepare(`
@@ -2592,10 +2592,12 @@ app.post("/api/notifications/read-all", requireAuth, requireWritableUser, (req, 
 });
 
 app.get("/api/push/status", requireAuth, (req, res) => {
+  const subscriptions = db.prepare("SELECT endpoint FROM push_subscriptions WHERE user_id=?").all(req.user.id);
   res.json({
     configured: pushConfigured,
     public_key: pushConfigured ? vapidPublicKey : null,
-    subscriptions: db.prepare("SELECT COUNT(*) count FROM push_subscriptions WHERE user_id=?").get(req.user.id).count,
+    subscriptions: subscriptions.length,
+    subscription_endpoints: subscriptions.map(({ endpoint }) => endpoint),
     preferences: getPushPreferences(req.user.id)
   });
 });
@@ -2760,7 +2762,70 @@ app.get("/api/admin/matches/:matchId/predictions", requireAdmin, (req, res) => {
   `).all(match.id).map((prediction) => prediction.predicted_team1_goals === 0 && prediction.predicted_team2_goals === 0
     ? { ...prediction, predicted_scorer_id: NO_SCORER_ID, predicted_scorer_name: NO_SCORER.name, predicted_scorer_position: NO_SCORER.position }
     : prediction);
-  res.json({ match: serializeMatch(match), predictions });
+  const missingUsers = db.prepare(`
+    SELECT u.id user_id,COALESCE(NULLIF(u.display_name,''),u.username) username
+    FROM users u
+    LEFT JOIN predictions p ON p.user_id=u.id AND p.match_id=?
+    WHERE u.active=1 AND u.role='user' AND p.id IS NULL
+    ORDER BY username COLLATE NOCASE
+  `).all(match.id);
+  res.json({ match: serializeMatch(match), predictions, missing_users: missingUsers });
+});
+
+app.post("/api/admin/matches/:matchId/predictions", requireAdmin, (req, res) => {
+  const match = db.prepare("SELECT * FROM matches WHERE id=?").get(req.params.matchId);
+  if (!match) return res.status(404).json({ error: "Partido no encontrado." });
+  if (match.status === "open" && !isExpired(match) && !isMatchInPlay(match)) {
+    return res.status(409).json({ error: "La apuesta de emergencia solo se puede añadir cuando el plazo ya está cerrado." });
+  }
+  if (match.status === "finished" || match.result_team1 !== null || match.result_team2 !== null) {
+    return res.status(409).json({ error: "No se pueden añadir apuestas cuando el partido ya tiene un resultado final." });
+  }
+  const userId = Number(req.body.user_id);
+  const user = Number.isInteger(userId) && db.prepare(`
+    SELECT id,COALESCE(NULLIF(display_name,''),username) username
+    FROM users WHERE id=? AND role='user' AND active=1
+  `).get(userId);
+  if (!user) return res.status(400).json({ error: "Selecciona un usuario activo válido." });
+  if (db.prepare("SELECT id FROM predictions WHERE user_id=? AND match_id=?").get(user.id, match.id)) {
+    return res.status(409).json({ error: "Este usuario ya tiene una apuesta en el partido." });
+  }
+  const g1 = parseIntField(req.body.predicted_team1_goals);
+  const g2 = parseIntField(req.body.predicted_team2_goals);
+  const reason = String(req.body.reason || "").trim();
+  const scorerSelection = parseScorerSelection(req.body.predicted_scorer_id);
+  if (g1 === null || g2 === null) return res.status(400).json({ error: "El marcador debe contener dos números enteros no negativos." });
+  if (reason.length < 5 || reason.length > 500) return res.status(400).json({ error: "Indica un motivo de entre 5 y 500 caracteres." });
+  if (!scorerSelection) return res.status(400).json({ error: "Goleador no válido." });
+  if (!Number(match.scorer_enabled) && scorerSelection.type !== "none") return res.status(400).json({ error: "Este partido no admite pronóstico de goleador." });
+  if (Number(match.scorer_enabled) && g1 + g2 > 0 && scorerSelection.type !== "player") return res.status(400).json({ error: "Selecciona un goleador para un marcador con goles." });
+  if (g1 + g2 === 0 && scorerSelection.type === "player") return res.status(400).json({ error: "Un pronóstico 0-0 solo puede incluir Sin goleador." });
+  if (g1 + g2 > 0 && scorerSelection.type === "no_scorer") return res.status(400).json({ error: "Sin goleador solo es válido para pronósticos 0-0." });
+  const predictedScorerId = scorerSelection.type === "player" ? scorerSelection.playerId : null;
+  if (predictedScorerId) {
+    const allowedTeamIds = scoringTeamIds(match, g1, g2);
+    const player = allowedTeamIds.length && db.prepare(`
+      SELECT p.id FROM players p JOIN teams t ON t.fifa_code=p.team_fifa_code
+      WHERE p.id=? AND t.id IN (${allowedTeamIds.map(() => "?").join(",")})
+    `).get(predictedScorerId, ...allowedTeamIds);
+    if (!player) return res.status(400).json({ error: "El goleador debe pertenecer a un equipo que marque en el pronóstico." });
+  }
+  try {
+    const stamp = now();
+    const result = db.prepare(`
+      INSERT INTO predictions(user_id,match_id,predicted_winner,predicted_team1_goals,predicted_team2_goals,
+        predicted_scorer_id,locked,created_at,updated_at)
+      VALUES(?,?,?,?,?,?,1,?,?)
+    `).run(user.id, match.id, predictionWinner(g1, g2), g1, g2, predictedScorerId, stamp, stamp);
+    const created = db.prepare("SELECT * FROM predictions WHERE id=?").get(result.lastInsertRowid);
+    logAction(req.user.id, "create_prediction", "prediction", created.id,
+      `Apuesta de emergencia añadida para ${user.username} en ${match.team1} - ${match.team2}. Motivo: ${reason}`,
+      null, { ...created, reason });
+    res.status(201).json({ ...created, username: user.username, recalculated: false });
+  } catch (error) {
+    if (String(error.message).includes("UNIQUE")) return res.status(409).json({ error: "Este usuario ya tiene una apuesta en el partido." });
+    throw error;
+  }
 });
 
 app.patch("/api/admin/matches/:matchId/predictions/:predictionId", requireAdmin, (req, res) => {
