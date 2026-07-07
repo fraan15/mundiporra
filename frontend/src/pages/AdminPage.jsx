@@ -677,7 +677,7 @@ function AdminMatches() {
         <div className="admin-form-title">
           <h3>{edit ? "Editar partido" : "Nuevo partido"}</h3>
           {!edit && (
-            <>
+            <div className="reference-toggle-group">
               <button
                 type="button"
                 className="reference-toggle"
@@ -694,7 +694,7 @@ function AdminMatches() {
                 <CalendarSearch size={16} />
                 {reference && referenceSource === "v2" ? "Cerrar JSON v2" : "Buscar JSON v2"}
               </button>
-            </>
+            </div>
           )}
         </div>
         {referenceLoading && (
@@ -1058,6 +1058,7 @@ function MatchReferencePanel({ data, onSelect }) {
   const totalPages = Math.max(1, Math.ceil(data.matches.length / pageSize));
   const currentPage = Math.min(page, totalPages);
   const visibleMatches = data.matches.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const sourceLabel = data.source === "v2" ? "JSON v2" : "JSON";
   useEffect(() => {
     setPage(1);
   }, [data.from, data.to, data.matches.length]);
@@ -1066,6 +1067,7 @@ function MatchReferencePanel({ data, onSelect }) {
       <header>
         <div>
           <strong>Calendario de referencia</strong>
+          <small className="reference-source">Consultando: {sourceLabel}</small>
           <span>
             {dateLabel(data.from)} – {dateLabel(data.to)} · hora peninsular
           </span>
