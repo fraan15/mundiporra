@@ -7,9 +7,12 @@ const root = path.resolve(here, "../..");
 const catalogDir = path.join(root, "data/catalog");
 export const referencePath = path.join(catalogDir, "worldcup.matches.es.json");
 export const rawReferencePath = path.join(catalogDir, "worldcup.json");
+export const rawReferenceV2Path = path.join(catalogDir, "worldcup.v2.json");
 const legacyRawReferencePath = path.join(catalogDir, "worldcup.raw.json");
 export const WORLD_CUP_SOURCE_URL = process.env.WORLD_CUP_JSON_URL ||
   "https://raw.githubusercontent.com/openfootball/worldcup.json/refs/heads/master/2026/worldcup.json";
+export const WORLD_CUP_V2_SOURCE_URL = process.env.WORLD_CUP_JSON_V2_URL ||
+  "https://raw.githubusercontent.com/upbound-web/worldcup-live.json/refs/heads/master/2026/worldcup.json";
 
 const teamAliases = new Map([
   ["Mexico", "MEX"], ["South Africa", "RSA"], ["South Korea", "KOR"], ["Czech Republic", "CZE"],
@@ -55,6 +58,12 @@ const madridFormatter = new Intl.DateTimeFormat("en-CA", {
 
 function readCatalog(filename) {
   return JSON.parse(fs.readFileSync(path.join(catalogDir, filename), "utf8"));
+}
+
+function writeRawReference(rawPath, source) {
+  fs.mkdirSync(catalogDir, { recursive: true });
+  fs.writeFileSync(`${rawPath}.tmp`, `${JSON.stringify(source, null, 2)}\n`);
+  fs.renameSync(`${rawPath}.tmp`, rawPath);
 }
 
 function normalizeTeam(name, teamByCode) {
@@ -167,6 +176,18 @@ export function loadWorldCupReference() {
   return JSON.parse(fs.readFileSync(referencePath, "utf8"));
 }
 
+export function loadWorldCupReferenceV2() {
+  if (!fs.existsSync(rawReferenceV2Path)) {
+    throw new Error("Todavía no hay ningún worldcup.json v2 descargado.");
+  }
+  const raw = JSON.parse(fs.readFileSync(rawReferenceV2Path, "utf8"));
+  return normalizeWorldCupReference(raw, {
+    generatedFrom: "worldcup.v2.json",
+    sourceUrl: WORLD_CUP_V2_SOURCE_URL,
+    syncedAt: fs.statSync(rawReferenceV2Path).mtime.toISOString()
+  });
+}
+
 export async function syncWorldCupReference({ fetchImpl = globalThis.fetch, sourceUrl = WORLD_CUP_SOURCE_URL } = {}) {
   if (typeof fetchImpl !== "function") throw new Error("No hay fetch disponible para descargar el calendario.");
   const response = await fetchImpl(sourceUrl, { headers: { Accept: "application/json" } });
@@ -177,9 +198,21 @@ export async function syncWorldCupReference({ fetchImpl = globalThis.fetch, sour
     sourceUrl,
     syncedAt: new Date().toISOString()
   });
-  fs.mkdirSync(catalogDir, { recursive: true });
-  fs.writeFileSync(`${rawReferencePath}.tmp`, `${JSON.stringify(source, null, 2)}\n`);
-  fs.renameSync(`${rawReferencePath}.tmp`, rawReferencePath);
+  writeRawReference(rawReferencePath, source);
+  return normalized;
+}
+
+export async function syncWorldCupReferenceV2({ fetchImpl = globalThis.fetch, sourceUrl = WORLD_CUP_V2_SOURCE_URL } = {}) {
+  if (typeof fetchImpl !== "function") throw new Error("No hay fetch disponible para descargar el calendario.");
+  const response = await fetchImpl(sourceUrl, { headers: { Accept: "application/json" } });
+  if (!response.ok) throw new Error(`No se pudo descargar worldcup.json v2 (${response.status}).`);
+  const source = await response.json();
+  const normalized = normalizeWorldCupReference(source, {
+    generatedFrom: "worldcup.v2.json",
+    sourceUrl,
+    syncedAt: new Date().toISOString()
+  });
+  writeRawReference(rawReferenceV2Path, source);
   return normalized;
 }
 
@@ -335,6 +368,8 @@ export function startWorldCupReferenceSync({ logger = console, intervalMs = 60 *
     try {
       const catalog = await syncWorldCupReference();
       logger.log(`[worldcup] JSON sincronizado: ${catalog.matches.length} partidos.`);
+      const catalogV2 = await syncWorldCupReferenceV2();
+      logger.log(`[worldcup] JSON v2 sincronizado: ${catalogV2.matches.length} partidos.`);
     } catch (error) {
       logger.error(`[worldcup] No se pudo sincronizar worldcup.json: ${error.message}`);
     } finally {

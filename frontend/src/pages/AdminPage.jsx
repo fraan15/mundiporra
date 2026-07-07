@@ -456,6 +456,7 @@ function AdminMatches() {
       total_pages: 1,
     });
   const [reference, setReference] = useState(null),
+    [referenceSource, setReferenceSource] = useState("default"),
     [referenceLoading, setReferenceLoading] = useState(false),
     [referenceError, setReferenceError] = useState("");
   const load = () =>
@@ -490,15 +491,16 @@ function AdminMatches() {
     setFilter(value);
     setPage(1);
   };
-  const openReference = async () => {
-    if (reference) {
+  const openReference = async (source = "default") => {
+    if (reference && referenceSource === source) {
       setReference(null);
       return;
     }
     setReferenceLoading(true);
     setReferenceError("");
     try {
-      setReference(await api("/admin/match-reference"));
+      setReference(await api(`/admin/match-reference?${new URLSearchParams({ source })}`));
+      setReferenceSource(source);
     } catch (error) {
       setReferenceError(error.message);
     } finally {
@@ -675,14 +677,24 @@ function AdminMatches() {
         <div className="admin-form-title">
           <h3>{edit ? "Editar partido" : "Nuevo partido"}</h3>
           {!edit && (
-            <button
-              type="button"
-              className="reference-toggle"
-              onClick={openReference}
-            >
-              <CalendarSearch size={16} />
-              {reference ? "Cerrar buscador" : "Buscar en JSON"}
-            </button>
+            <>
+              <button
+                type="button"
+                className="reference-toggle"
+                onClick={() => openReference("default")}
+              >
+                <CalendarSearch size={16} />
+                {reference && referenceSource === "default" ? "Cerrar buscador" : "Buscar en JSON"}
+              </button>
+              <button
+                type="button"
+                className="reference-toggle"
+                onClick={() => openReference("v2")}
+              >
+                <CalendarSearch size={16} />
+                {reference && referenceSource === "v2" ? "Cerrar JSON v2" : "Buscar JSON v2"}
+              </button>
+            </>
           )}
         </div>
         {referenceLoading && (
@@ -1716,9 +1728,7 @@ function AdminSettings() {
     try {
       const result = await api("/admin/sync-worldcup-json", { method: "POST" });
       setJsonStatus(result);
-      setNotice(
-        `JSON sincronizado: ${result.matches} partidos · ${new Date(result.synced_at).toLocaleString("es-ES")}.`,
-      );
+      setNotice(`JSON sincronizado: ${result.matches} partidos · JSON v2: ${result.v2_matches || 0} partidos.`);
     } catch (error) {
       setSyncError(error.message);
     } finally {
@@ -1852,8 +1862,7 @@ function AdminSettings() {
         <Download size={32} />
         <h3>Información de equipos y partidos</h3>
         <p>
-          Descarga de nuevo el JSON del Mundial y actualiza resultados,
-          goleadores y estadísticas mostrados en las fichas.
+          Descarga de nuevo el JSON principal y también el JSON v2. El v2 solo se guarda para usarlo desde el buscador alternativo de partidos.
         </p>
         <button
           type="button"
@@ -1872,6 +1881,14 @@ function AdminSettings() {
           </strong>
           {jsonStatus?.synced_at && (
             <small>{jsonStatus.matches} partidos recibidos</small>
+          )}
+          <strong>
+            JSON v2: {jsonStatus?.v2_synced_at
+              ? new Date(jsonStatus.v2_synced_at).toLocaleString("es-ES")
+              : "Todavía no disponible"}
+          </strong>
+          {jsonStatus?.v2_synced_at && (
+            <small>{jsonStatus.v2_matches} partidos recibidos</small>
           )}
         </div>
       </div>

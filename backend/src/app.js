@@ -12,7 +12,7 @@ import { READ_ONLY_USER, hydrateUser, requireAdmin, requireAuth, requireWritable
 import { autoCloseExpired, calculateWinner, effectiveCloseAt, isExpired, recalculateAll, recalculateMatch, scheduleMatchCloseBackup } from "./services/matches.js";
 import { createNotification, leaderboardRows, notifyAll, notifyAllExcept, notifyNewTopThree, saveRankingSnapshot } from "./services/notifications.js";
 import { NO_SCORER, NO_SCORER_ID, parseScorerList, parseScorerSelection, serializeActualScorers, serializePredictedScorer } from "./services/scorers.js";
-import { loadWorldCupReference, normalizePlayerName, syncWorldCupReference, teamReferenceStats, worldCupOverview } from "./services/worldcupReference.js";
+import { loadWorldCupReference, loadWorldCupReferenceV2, normalizePlayerName, syncWorldCupReference, syncWorldCupReferenceV2, teamReferenceStats, worldCupOverview } from "./services/worldcupReference.js";
 import { getPushPreferences, pushConfigured, savePushSubscription, sendPushToUser, vapidPublicKey } from "./services/push.js";
 import { espnEventMatches, getEspnEventById, getEspnLiveMatch } from "./services/espnLive.js";
 import { espnMappingStatus, syncEspnMappings } from "./services/espnMapping.js";
@@ -644,9 +644,10 @@ app.get("/api/admin/matches", requireAdmin, (req, res) => {
 
 app.get("/api/admin/match-reference", requireAdmin, (req, res) => {
   const requestedDate = String(req.query.date || "").trim();
+  const source = String(req.query.source || "default").trim().toLowerCase();
   const from = /^\d{4}-\d{2}-\d{2}$/.test(requestedDate) ? requestedDate : dateInTimeZone();
   const to = addDays(from, 7);
-  const catalog = loadWorldCupReference();
+  const catalog = source === "v2" ? loadWorldCupReferenceV2() : loadWorldCupReference();
   const teams = new Map(db.prepare("SELECT id,fifa_code,name FROM teams").all().map((team) => [team.fifa_code, team]));
   const stadiums = new Map(db.prepare("SELECT id,name,city FROM stadiums").all().map((stadium) => [`${stadium.name}\n${stadium.city}`, stadium]));
   const existingMatches = db.prepare(`
@@ -692,7 +693,7 @@ app.get("/api/admin/match-reference", requireAdmin, (req, res) => {
         missing
       };
     });
-  res.json({ from, to, timezone: catalog.display_timezone, matches });
+  res.json({ from, to, timezone: catalog.display_timezone, source, matches });
 });
 
 const emptyMedals = { badges: [], badge_catalog: [], disputed_badges: [] };
@@ -2923,15 +2924,30 @@ app.post("/api/admin/auto-close-expired-matches", requireAdmin, (_req, res) => r
 app.get("/api/admin/worldcup-json-status", requireAdmin, (_req, res) => {
   try {
     const catalog = loadWorldCupReference();
-    res.json({ synced_at: catalog.synced_at || null, matches: catalog.matches?.length || 0 });
+    let catalogV2 = null;
+    try {
+      catalogV2 = loadWorldCupReferenceV2();
+    } catch {}
+    res.json({
+      synced_at: catalog.synced_at || null,
+      matches: catalog.matches?.length || 0,
+      v2_synced_at: catalogV2?.synced_at || null,
+      v2_matches: catalogV2?.matches?.length || 0
+    });
   } catch {
-    res.json({ synced_at: null, matches: 0 });
+    res.json({ synced_at: null, matches: 0, v2_synced_at: null, v2_matches: 0 });
   }
 });
 app.post("/api/admin/sync-worldcup-json", requireAdmin, async (req, res, next) => {
   try {
     const catalog = await syncWorldCupReference();
-    const result = { synced_at: catalog.synced_at, matches: catalog.matches.length };
+    const catalogV2 = await syncWorldCupReferenceV2();
+    const result = {
+      synced_at: catalog.synced_at,
+      matches: catalog.matches.length,
+      v2_synced_at: catalogV2.synced_at,
+      v2_matches: catalogV2.matches.length
+    };
     logAction(req.user.id, "sync_worldcup_json", "settings", null, "Información JSON sincronizada manualmente", null, result);
     res.json(result);
   } catch (error) {
